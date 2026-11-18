@@ -1,0 +1,80 @@
+"""Đọc/kết xuất PDF bằng pypdfium2 (Apache-2.0/BSD). Không dùng PyMuPDF (AGPL)."""
+from __future__ import annotations
+
+import struct
+import zlib
+from contextlib import contextmanager
+from pathlib import Path
+
+import pypdfium2 as pdfium
+
+
+@contextmanager
+def _open(path):
+    pdf = pdfium.PdfDocument(str(path))
+    try:
+        yield pdf
+    finally:
+        pdf.close()
+
+
+def page_count(path) -> int:
+    with _open(path) as pdf:
+        return len(pdf)
+
+
+def write_png(path, width: int, height: int, pixels: bytes, stride: int, channels: int = 3) -> None:
+    """PNG bằng thư viện chuẩn (zlib), để không phải thêm Pillow."""
+    row = width * channels
+    raw = b"".join(b"\x00" + pixels[y * stride: y * stride + row] for y in range(height))
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    color = 2 if channels == 3 else 6
+    png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, color, 0, 0, 0))
+           + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b""))
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes(png)
+
+
+def render_page_png(pdf_path, page_no: int, out, dpi: int = 150) -> Path:
+    with _open(pdf_path) as pdf:
+        bm = pdf[page_no - 1].render(scale=dpi / 72, rev_byteorder=True)
+        channels = 4 if bm.mode in ("RGBA", "RGBX") else 3
+        write_png(out, bm.width, bm.height, bytes(bm.buffer), bm.stride, channels)
+    return Path(out)
+
+
+def text_in_bbox(pdf_path, page_no: int, bbox) -> str:
+    x0, y0, x1, y1 = bbox
+    with _open(pdf_path) as pdf:
+        page = pdf[page_no - 1]
+        w, h = page.get_size()
+        return page.get_textpage().get_text_bounded(left=x0 * w, bottom=(1 - y1) * h, right=x1 * w, top=(1 - y0) * h)
+
+
+def full_text(path) -> str:
+    with _open(path) as pdf:
+        return "\n".join(page.get_textpage().get_text_range() for page in pdf)
+
+
+def line_height_total(path) -> float:
+    """Tổng chiều cao (pt) các dòng chữ, gom ký tự theo (nửa trang trái/phải, tâm dọc làm tròn 4 pt)."""
+    # ponytail: dòng rộng toàn trang bị tính hai lần (nửa trái + nửa phải) ở cả bản gốc lẫn bản dịch nên tỉ lệ
+    # vẫn dùng được; nâng cấp: gom theo khoảng trống ngang thật nếu tỉ lệ sai lệch trên bài thật.
+    total = 0.0
+    with _open(path) as pdf:
+        for page in pdf:
+            tp = page.get_textpage()
+            w, _ = page.get_size()
+            lines: dict[tuple[int, int], tuple[float, float]] = {}
+            for i in range(tp.count_chars()):
+                left, bottom, right, top = tp.get_charbox(i)
+                if right - left <= 0 or top - bottom <= 0:
+                    continue
+                key = (0 if (left + right) / 2 < w / 2 else 1, round((bottom + top) / 2 / 4))
+                lo, hi = lines.get(key, (bottom, top))
+                lines[key] = (min(lo, bottom), max(hi, top))
+            total += sum(hi - lo for lo, hi in lines.values())
+    return total
