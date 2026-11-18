@@ -78,3 +78,13 @@ def test_fallback_block_text_is_plain_single_line():
     assert "\n\n" in Renderer(doc, tr, VI, set(), {}).heading(h)
     out = Renderer(doc, tr, VI, {h["id"]}, {}).heading(h)
     assert "\n" not in out and "Giới thiệu phương pháp" in out
+
+
+def test_fallback_table_caption_keeps_links_but_cells_go_plain():
+    doc = doc_short()
+    tb = next(b for b in doc["blocks"] if b["kind"] == "table")
+    cap = next(u for u in doc["units"] if u["id"] == tb["id"] + ".cap")
+    tr = tr_of(doc)
+    cap["ph"] = {"r1": {"src": "Table 1", "tex": r"\ref{tab:1}"}}
+    tr[cap["id"]] = "Chú thích ⟦r1⟧"
+    assert r"\ref{tab:1}" in Renderer(doc, tr, VI, {tb["id"]}, {}).text(cap["id"], [])

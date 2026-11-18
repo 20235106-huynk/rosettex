@@ -29,7 +29,7 @@ def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
     if missing:
         problems.append("PDF thiếu ký tự: " + "".join(sorted(missing)))
     # khối đã rơi vào phương án cuối hiển thị chữ thường nên không còn liên kết; phần còn lại vẫn kiểm chặt
-    expected_links = sum(1 for u in doc["units"] if u["block"] not in fallback for n in u["ph"] if n[0] in "cr")
+    expected_links = sum(1 for u in doc["units"] if not (u["block"] in fallback and u["type"] != "caption") for n in u["ph"] if n[0] in "cr")
     links = len(re.findall(r"\\(?:ref|eqref|cite)\{", tex))
     if links != expected_links:
         problems.append(f"số liên kết nội bộ {links} ≠ {expected_links}")

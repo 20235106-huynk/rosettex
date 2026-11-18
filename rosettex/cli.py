@@ -15,7 +15,7 @@ from .extract.run import ExtractError, extract_core
 from .pdf import page_count
 from .render.compile import RenderError, render_core
 from .tools import available_ram_bytes, choose_tier, find_mineru, find_tex, verify_models
-from .workspace import (SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
+from .workspace import (OWNED, SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
                         write_json)
 
 
@@ -46,7 +46,10 @@ def cmd_extract(a):
     out = resolve_out(pdf, a.lang, a.out)
     work = Work(a.work or out.parent / ".rosettex" / f"{pdf.stem}.{a.lang}")
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
-    m = read_manifest(work)
+    m = read_manifest(work, "chọn thư mục làm việc khác bằng -o <thư mục>")
+    if m is None and work.root.is_dir() and any(work.root.iterdir()):
+        raise UsageError(f"thư mục {work.root} không rỗng và không phải thư mục làm việc rosettex",
+                         next_action="chọn thư mục trống hoặc chưa có bằng -o <thư mục>")
     if m and m["sha256"] != digest:
         raise UsageError(f"thư mục làm việc {work.root} thuộc một bài khác",
                          next_action=f"rosettex clean {q(work.root)} --json")
@@ -226,10 +229,21 @@ def cmd_render(a):
 # ---------------- khác ----------------
 def cmd_clean(a):
     w = Work(a.work)
-    if read_manifest(w) is None:
-        raise UsageError(f"không phải thư mục làm việc rosettex (thiếu manifest.json): {w.root}")
-    shutil.rmtree(w.root)
-    return 0, {"ok": True, "removed": str(w.root)}
+    if read_manifest(w, "kiểm tra lại đường dẫn <work>") is None:
+        raise UsageError(f"không phải thư mục làm việc rosettex (thiếu manifest.json): {w.root}",
+                         next_action="kiểm tra lại đường dẫn <work>")
+    for name in OWNED:
+        p = w.root / name
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink(missing_ok=True)
+    for p in w.root.glob(".*.tmp"):  # file tạm của write_json bị bỏ dở
+        p.unlink(missing_ok=True)
+    kept = sorted(p.name for p in w.root.iterdir())
+    if not kept:
+        w.root.rmdir()
+    return 0, {"ok": True, "removed": str(w.root), "kept": kept, "next_action": None}
 
 
 def cmd_guide(a):

@@ -310,3 +310,30 @@ def test_extract_other_lang_gets_own_work_dir_and_conflict_is_refused(env, capsy
     code, r = run(capsys, "extract", src, "--lang", "fr", "--out", outdir, "-o", vi["work"], "--foreground", "--json")
     assert code == 2 and "vi" in r["error"] and "clean" in r["next_action"]
     assert read_json(Work(vi["work"]).manifest)["lang"] == "vi"
+
+
+def test_extract_refuses_nonempty_foreign_dir_and_clean_keeps_user_files(env, capsys, tmp_path):
+    src, outdir = env
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "keep.txt").write_text("x", encoding="utf-8")
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "-o", proj, "--foreground", "--json")
+    assert code == 2 and r["next_action"] and (proj / "keep.txt").exists()
+    assert not (proj / "manifest.json").exists()
+
+
+def test_clean_removes_only_owned_entries(env, capsys, tmp_path):
+    src, outdir = env
+    w = Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
+    (w.root / "keep.txt").write_text("x", encoding="utf-8")
+    code, r = run(capsys, "clean", w.root, "--json")
+    assert code == 0 and r["kept"] == ["keep.txt"] and (w.root / "keep.txt").exists()
+    assert sorted(p.name for p in w.root.iterdir()) == ["keep.txt"]
+
+
+def test_clean_foreign_hint_has_no_dash_o(capsys, tmp_path):
+    d = _foreign_dir(tmp_path)
+    code, r = run(capsys, "clean", d, "--json")
+    assert code == 2 and "-o" not in r["next_action"]
+    code, r = run(capsys, "status", d, "--json")
+    assert code == 2 and "-o" not in r["next_action"]

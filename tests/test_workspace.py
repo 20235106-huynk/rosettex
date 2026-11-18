@@ -59,3 +59,17 @@ def test_run_with_heartbeat_kills_hung_child(tmp_path):
     flag.unlink()
     time.sleep(0.3)
     assert not flag.exists()  # tiến trình con đã bị giết, không còn ghi file
+
+
+def test_retries_reset_after_failed_or_other_command(tmp_path):
+    w = Work(tmp_path)
+    beat(w, "extract", "r", "x", 0, 1)
+    p = read_json(w.progress)
+    p["updated"] -= 3600
+    write_json(w.progress, p)
+    beat(w, "extract", "r", "x", 0, 1)  # chạy lại thật sự
+    assert read_json(w.progress)["retries"] == 1
+    beat(w, "extract", "r", "lỗi", 0, 1, state="failed", error="e")
+    assert read_json(w.progress)["retries"] == 1  # vẫn thuộc lần chạy này
+    beat(w, "extract", "r", "x", 0, 1)  # lần chạy mới sau failed
+    assert read_json(w.progress)["retries"] == 0

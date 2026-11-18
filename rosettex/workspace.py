@@ -48,6 +48,11 @@ def read_json(path, default=None):
 SCHEMA = "rosettex.work/1"
 
 
+# Mọi tên rosettex tự tạo trong thư mục làm việc; `clean` chỉ xóa những tên này.
+OWNED = ("src.pdf", "manifest.json", "progress.json", "document.json", "terms.json", "flagged.json",
+         "report.json", "validate.json", "logs", "mineru", "pages", "batches", "out")
+
+
 class Work:
     def __init__(self, root):
         r = self.root = Path(root).expanduser().resolve()
@@ -72,7 +77,7 @@ class Work:
         return self.batches / f"{bid}.{lang}.json"
 
 
-def read_manifest(work: Work) -> dict | None:
+def read_manifest(work: Work, hint: str = "chọn thư mục làm việc khác") -> dict | None:
     """manifest.json của thư mục làm việc rosettex; None nếu chưa có; UsageError nếu là file của thứ khác."""
     try:
         m = read_json(work.manifest)
@@ -83,14 +88,15 @@ def read_manifest(work: Work) -> dict | None:
     # thư mục tạo trước khi có dấu schema: nhận qua bộ khóa đặc trưng
     if not (isinstance(m, dict) and (m.get("schema") == SCHEMA or {"sha256", "extract_cmd", "lang"} <= m.keys())):
         raise UsageError(f"{work.manifest} không phải manifest của rosettex; không đụng vào thư mục này",
-                         next_action="chọn thư mục làm việc khác bằng -o <thư mục>")
+                         next_action=hint)
     return m
 
 
 def beat(work: Work, command: str, resume: str, step: str, done: int, total: int,
          state: str = "running", error: str | None = None) -> None:
     prev = read_json(work.progress) or {}
-    retries = 0 if state == "done" else prev.get("retries", 0)
+    same = prev.get("state") == "running" and prev.get("command") == command
+    retries = prev.get("retries", 0) if same and state != "done" else 0
     # tiến trình mới bắt đầu khi bản ghi trước đã chết (nhịp tim quá hạn) = một lần chạy lại thật sự
     if prev.get("state") == "running" and time.time() - prev.get("updated", 0) > HEARTBEAT_DEAD_AFTER:
         retries += 1
