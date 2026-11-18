@@ -1,0 +1,20 @@
+[project]
+name = "rosettex"
+version = "0.1.0"
+description = "Tách, kiểm tra và dựng lại bài báo khoa học PDF để agent trong harness dịch"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pypdfium2>=4.30"]
+
+[project.scripts]
+rosettex = "rosettex.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
