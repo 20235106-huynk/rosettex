@@ -28,7 +28,7 @@
 - Font chính `texgyretermes` (nạp theo tên file, `Extension=.otf`). Font toán `latinmodern-math.otf`. `polyglossia` với `vietnamese`.
 - Tỉ lệ độ dài nội dung (tổng chiều cao dòng chữ của bản dịch / bản gốc) ≤ 1,3.
 
-**Lệch spec có chủ ý, cần người dùng xác nhận:** SG 14 và spec lát 1 mục 12 ghi "`accept` từ chối chuỗi NFD". Kế hoạch này **chuẩn hóa NFD về NFC rồi chấp nhận**, không từ chối. Lý do: agent thường không kiểm soát được dạng chuẩn hóa của chuỗi mình xuất ra, nên từ chối sẽ gây vòng lặp nộp lại vô tận. Spec cũng đã yêu cầu mọi so sánh chạy trên NFC. Bản lưu luôn là NFC (có kiểm thử ở Task 8).
+**Lệch spec có chủ ý, người dùng đã xác nhận (2026-11-18):** SG 14 và spec lát 1 mục 12 ghi "`accept` từ chối chuỗi NFD". Kế hoạch này **chuẩn hóa NFD về NFC rồi chấp nhận**, không từ chối. Lý do: agent thường không kiểm soát được dạng chuẩn hóa của chuỗi mình xuất ra, nên từ chối sẽ gây vòng lặp nộp lại vô tận. Spec cũng đã yêu cầu mọi so sánh chạy trên NFC. Bản lưu luôn là NFC (có kiểm thử ở Task 8).
 
 ## Review Focus
 

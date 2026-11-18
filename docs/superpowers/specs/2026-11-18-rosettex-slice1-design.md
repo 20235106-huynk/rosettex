@@ -261,7 +261,7 @@ Gói ngôn ngữ là JSON (font, ký tự kiểm tra, bảng chữ, từ chức 
   - gộp đoạn vắt qua cột và trang của `long`;
   - placeholder và liên kết, kể cả "Eq. (1)" nằm trong `\mathrm`;
   - bảng HTML có `rowspan`/`colspan`;
-  - `accept` từ chối: sửa số, `0.05` thành `0,05`, thiếu hoặc sửa placeholder, nộp nguyên văn tiếng Anh, chuỗi NFD;
+  - `accept` từ chối: sửa số, `0.05` thành `0,05`, thiếu hoặc sửa placeholder, nộp nguyên văn tiếng Anh;
   - `accept` chấp nhận: bản dịch tiếng Việt đúng, bản dịch có placeholder đổi thứ tự, bản dịch thêm số;
   - escape LaTeX;
   - tách tiến trình và phát hiện tác vụ chết bằng nhịp tim (giả lập tiến trình bị giết).

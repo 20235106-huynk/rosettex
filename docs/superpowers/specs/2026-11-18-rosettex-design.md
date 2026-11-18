@@ -340,7 +340,7 @@ Giai đoạn 1 được làm theo **lát dọc**, mỗi lát có spec và kế h
 - chạy tiếp sau khi tác vụ nền bị giết;
 - dùng lại tài nguyên có sẵn (mô hình, LaTeX, font);
 - tải nối tiếp sau lỗi mạng;
-- `accept` từ chối: sửa số liệu, hỏng/thiếu/đổi thứ tự placeholder, nộp nguyên văn tiếng Anh, chuỗi NFD;
+- `accept` từ chối: sửa số liệu, hỏng/thiếu/đổi thứ tự placeholder, nộp nguyên văn tiếng Anh;
 - `accept` chấp nhận: bản dịch tiếng Việt đúng (kiểm thử hồi quy cho lỗi đã gặp ở dự án khác);
 - bộ chuyển đổi MinerU → định dạng trung gian, chạy trên các file JSON mẫu đã lưu từ lần chạy MinerU thật.
 
