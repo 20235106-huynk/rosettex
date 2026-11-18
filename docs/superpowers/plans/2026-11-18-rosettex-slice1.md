@@ -3548,7 +3548,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("pdf")
     s.add_argument("--lang", required=True)
     s.add_argument("--out", required=True, help="file .pdf kết quả hoặc thư mục")
-    s.add_argument("-o", "--work", help="thư mục làm việc (mặc định <thư mục kết quả>/.rosettex/<tên>)")
+    s.add_argument("-o", "--work", help="thư mục làm việc (mặc định <thư mục kết quả>/.rosettex/<tên>.<mã ngôn ngữ>)")
     s.add_argument("--tier", choices=["standard", "basic"])
     s.add_argument("--pages-per-group", type=int, default=5)
     s.add_argument("--foreground", action="store_true")
@@ -3731,7 +3731,7 @@ Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần
 - các vấn đề trong `postcheck.problems`, nếu có.
 
 ## Bị gián đoạn hoặc mất ngữ cảnh
-Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>`.
+Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>.<mã ngôn ngữ>`.
 
 ## Quy tắc dịch
 {{RULES}}
@@ -3941,7 +3941,7 @@ Ghi lại vào biên bản:
 
 - [ ] **Step 4: Đo tỉ lệ lô bị từ chối ở lần nộp đầu (tiêu chí 4, SG 16 mục 7)**
 
-Lặp lại Step 3 với `long.pdf`. Sau đó chạy lệnh dưới, thay `<work>` bằng `~/dich-thu/.rosettex/long`:
+Lặp lại Step 3 với `long.pdf`. Sau đó chạy lệnh dưới, thay `<work>` bằng `~/dich-thu/.rosettex/long.vi`:
 ```bash
 uv run python -c "import json,sys; r=[json.loads(l) for l in open(sys.argv[1], encoding='utf-8')]; first={}; [first.setdefault(x['batch'], x['ok']) for x in r]; print(len(first), 'lô;', sum(not v for v in first.values()), 'bị từ chối ở lần nộp đầu')" <work>/logs/accept.jsonl
 ```

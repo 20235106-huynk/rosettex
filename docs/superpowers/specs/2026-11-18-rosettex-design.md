@@ -178,7 +178,7 @@ Thiếu ngôn ngữ hoặc nơi lưu: agent hỏi **một lần, gộp trong m�
 | `rosettex clean <work>` | Xóa thư mục làm việc |
 | `rosettex install-skill --harness <tên>` | Chép lớp hướng dẫn vào đúng chỗ của harness |
 
-**Thư mục làm việc:** mặc định `<thư-mục-kết-quả>/.rosettex/<tên-gốc>/`; giữ lại sau khi xong để dựng lại nhanh.
+**Thư mục làm việc:** mặc định `<thư-mục-kết-quả>/.rosettex/<tên-gốc>.<mã-ngôn-ngữ>/`; giữ lại sau khi xong để dựng lại nhanh.
 
 **Trạng thái và chạy tiếp:**
 - `manifest.json` ghi trạng thái từng bước, từng nhóm trang, từng mục đối chiếu, từng lô (chờ / đang chạy / xong / lỗi).

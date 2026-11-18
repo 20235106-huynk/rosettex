@@ -46,12 +46,12 @@ Toàn bộ SG 3.1 áp dụng. Cụ thể cho lát 1:
 
 - **Phụ thuộc runtime:** chỉ `pypdfium2`. Thư viện chuẩn lo phần còn lại: `argparse`, `json`, `html.parser`, `unicodedata`, `subprocess`, `zipfile`, `re`, `pathlib`. Không dùng PyMuPDF (AGPL). `pypdfium2` dùng để đếm trang, trích chữ từ PDF đầu ra cho kiểm tra sau dựng, và kết xuất ảnh trang cho `next`.
 - **Python:** `>=3.11`. Cài bằng `uv tool install` hoặc `pipx install`, hoặc chạy `python -m rosettex` từ mã nguồn.
-- **Chạy nền:** `rosettex extract` và `rosettex render` tự sinh tiến trình con tách rời (SG 3.1) rồi trả về ngay. Tiến trình con ghi nhịp tim mỗi ≤ 10 giây. `status` coi tác vụ là **chết** khi nhịp tim cũ hơn 60 giây và trạng thái chưa là `done`/`failed`. Cờ `--foreground` chạy đồng bộ, dùng cho kiểm thử và gỡ lỗi.
+- **Chạy nền:** `rosettex extract` và `rosettex render` tự sinh tiến trình con tách rời (SG 3.1) rồi trả về ngay. Tiến trình con ghi nhịp tim mỗi ≤ 10 giây. `status` coi tác vụ là **chết** khi nhịp tim cũ hơn 60 giây và trạng thái chưa là `done`/`failed`. Cờ `--foreground` chạy đồng bộ, dùng cho kiểm thử và gỡ lỗi. `status` **chỉ đọc**, không ghi file nào. Bộ đếm `retries` trong `progress.json` tăng khi tiến trình chạy tiếp thật sự khởi động sau một lần chết; tác vụ chết lần hai, hoặc lỗi không lường trước trong tiến trình con, thì `status` trả `next_action: null` kèm `error` và đường dẫn log (agent báo người dùng rồi dừng). Mỗi lần gọi MinerU hoặc TeX có giới hạn tổng thời gian (MinerU: 900 giây cộng 120 giây mỗi trang của nhóm; TeX: 300 giây mỗi lần chạy; nhân với biến môi trường `ROSETTEX_TIMEOUT_SCALE`). Quá hạn thì tiến trình con bị giết và tác vụ chuyển sang `failed`.
 - **Gọi MinerU và LaTeX:** chép PDF nguồn vào `work/src.pdf` (tên ASCII), chạy với `cwd=work/…` và tên file tương đối. Truyền cấu hình MinerU qua biến môi trường của tiến trình con (SG 8.1), không đọc hay ghi `~/.mineru/config.yaml`.
 
 ## 4. Thư mục làm việc
 
-Mặc định `<thư-mục-kết-quả>/.rosettex/<tên-gốc>/`, đổi bằng `-o`:
+Mặc định `<thư-mục-kết-quả>/.rosettex/<tên-gốc>.<mã-ngôn-ngữ>/` (có mã ngôn ngữ để dịch cùng một PDF sang nhiều ngôn ngữ không dùng chung thư mục), đổi bằng `-o`. `manifest.json` mang dấu `"schema": "rosettex.work/1"`; `clean`, `extract`, `status` và `render` chỉ nhận thư mục có manifest hợp lệ. `extract` từ chối (mã 2) thư mục đã có nội dung mà không phải thư mục làm việc của rosettex, và từ chối thư mục làm việc có `--lang` khác với manifest. Thư mục rỗng hoặc chưa có thì tự tạo. Thư mục chưa có manifest chỉ được nhận lại (và `clean` chỉ dọn) khi có `src.pdf` và mọi mục đều thuộc rosettex hoặc là file tạm `.*.tmp`: đó là dấu vết của một lần `extract` bị ngắt. `extract` kiểm tra PDF (đọc được số trang) trước khi tạo thư mục, nên PDF hỏng hoặc có mật khẩu không để lại thư mục nào:
 
 ```
 src.pdf                  bản sao PDF nguồn
@@ -68,7 +68,7 @@ out/main.tex, out/*.log, out/assets/
 report.json
 ```
 
-**Quy tắc ghi:** mỗi file chỉ do **một** lệnh ghi. Ghi luôn qua file tạm rồi `os.replace`. Lô đã dịch là file riêng (`bNNN.<lang>.json`), nên nhiều subagent `accept` song song không tranh nhau. `manifest.json` chỉ được ghi bởi `extract` và `render`. `status` tổng hợp tình trạng lô bằng cách liệt kê thư mục `batches/`.
+**Quy tắc ghi:** mỗi file chỉ do **một** lệnh ghi. Ghi luôn qua file tạm rồi `os.replace`. Lô đã dịch là file riêng (`bNNN.<lang>.json`), nên nhiều subagent `accept` song song không tranh nhau. `manifest.json` chỉ được ghi bởi `extract` và `render`. `status` tổng hợp tình trạng lô bằng cách liệt kê thư mục `batches/`, và không ghi file nào.
 
 ## 5. Lệnh
 
@@ -84,11 +84,11 @@ Mọi lệnh nhận `--json`. Mã thoát: `0` là thành công; `1` là lỗi ki
 | `rosettex accept <work> --batch <id> --file <f>` | Mục 8. Đạt thì ghi `bNNN.<lang>.json`; không đạt thì mã thoát 1, kèm lỗi theo `id` đoạn |
 | `rosettex validate <work>` | Mục 8, toàn bài |
 | `rosettex render <work> --out <đường-dẫn> [--overwrite] [--foreground]` | Mục 9. Đích đã tồn tại mà không có `--overwrite` thì mã thoát 2, và giao thức yêu cầu agent hỏi người dùng |
-| `rosettex clean <work>` | Xóa thư mục làm việc (`shutil.rmtree`) |
+| `rosettex clean <work>` | Chỉ xóa các mục do rosettex tạo (danh sách `OWNED` trong `workspace.py`, cộng file tạm `.*.tmp`); xóa `manifest.json` sau cùng; chỉ gỡ thư mục khi nó đã rỗng, còn file của người dùng thì giữ lại và liệt kê trong `kept` |
 
 **Tier mặc định:** `standard` (SG 8.3 đã sửa). Lát 1 chưa có `doctor`, nên `extract` hạ xuống `basic` theo quy tắc của SG 8.3, đọc RAM khả dụng bằng thư viện chuẩn trên từng HĐH. Nếu không đọc được RAM thì giữ `standard`. Mô hình của tier chưa đạt `verify` thì mã thoát 2, kèm lệnh tải thủ công.
 
-**Nhóm trang:** mặc định 5 trang (khoảng 90 giây/nhóm ở `standard` trên CPU, theo SG 4.1). Nhóm lỗi thì thử lại một lần. Lỗi lần hai thì đánh dấu `failed` trong `manifest.json`, và `status` đề xuất `extract --tier basic`.
+**Nhóm trang:** mặc định 5 trang (khoảng 90 giây/nhóm ở `standard` trên CPU, theo SG 4.1). Nhóm lỗi thì thử lại một lần. Lỗi lần hai thì đánh dấu `failed` trong `progress.json`, và `status` đề xuất `extract --tier basic` (đã ở `basic` thì dừng với `next_action: null`). Nhóm bị quá hạn (xem mục 3) không được thử lại. Nội dung MinerU trả về mà bộ chuyển đổi không hiểu (loại khối, span hoặc phần lạ) được ghi vào `document.json` ở `source.dropped` và đếm trong `report.json`, để agent báo người dùng; trang số, đầu trang và chân trang là nhiễu có chủ ý nên không ghi.
 
 ## 6. `extract`: MinerU → `document.json`
 
