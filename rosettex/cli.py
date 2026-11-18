@@ -296,7 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("guide", parents=[common], help="print the protocol for the agent")
-    s.add_argument("--lang", default="vi")
+    s.add_argument("--lang", default=None, help="add the translation rules of this target language")
     s.set_defaults(func=cmd_guide)
     s = sub.add_parser("extract", parents=[common], help="extract PDF content (runs in the background)")
     s.add_argument("pdf")

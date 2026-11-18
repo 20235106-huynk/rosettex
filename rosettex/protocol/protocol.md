@@ -8,7 +8,7 @@ You (the agent) are the translator. `rosettex` extracts the content, splits it i
 - `next_action` is null together with `error` → report the error to the user and stop.
 
 ## 0. Before running
-- You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language (no default to Vietnamese or English). If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
+- You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language and do not assume any default language. If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
 - The user names the target language in words. Use its BCP-47 code (`fr`, `zh-Hans`, `fa`); for a language written in several scripts add the script subtag (`sr-Latn`, `sr-Cyrl`). Ask the user only if the language itself is unclear.
 - If the `rosettex` command cannot be run, tell the user to install it following the rosettex README.
 

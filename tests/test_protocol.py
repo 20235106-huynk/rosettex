@@ -48,3 +48,10 @@ def test_protocol_covers_what_agents_got_wrong():
     for k in ("--foreground", "no other key", "⟦r1⟧", "reference list is not in any batch", "inside figures",
               "run `validate` again", "Never change the meaning", "floats_off_page", "| head"):
         assert k in t, k
+
+
+def test_skill_files_are_language_neutral():
+    from rosettex.protocol import agents_md, skill_md
+    for t in (skill_md(), agents_md()):
+        assert "Vietnamese" not in t and "Write natural academic prose in the target language" in t
+    assert "Vietnamese" in text("vi")  # `rosettex guide --lang vi` still prints the Vietnamese rules

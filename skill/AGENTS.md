@@ -1,4 +1,4 @@
-**When to use:** Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to translate a paper, article or research PDF, in any language (e.g. 'translate this paper to Vietnamese'). Needs a shell and file read/write; you do the translating and the rosettex CLI does extraction, checking and typesetting. Scanned or image-only PDFs are not supported yet.
+**When to use:** Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to translate a paper, article or research PDF, in any language (e.g. 'translate this paper into Japanese', '… into Arabic'). Needs a shell and file read/write; you do the translating and the rosettex CLI does extraction, checking and typesetting. Scanned or image-only PDFs are not supported yet.
 
 # rosettex — PDF paper translation protocol
 
@@ -10,7 +10,7 @@ You (the agent) are the translator. `rosettex` extracts the content, splits it i
 - `next_action` is null together with `error` → report the error to the user and stop.
 
 ## 0. Before running
-- You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language (no default to Vietnamese or English). If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
+- You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language and do not assume any default language. If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
 - The user names the target language in words. Use its BCP-47 code (`fr`, `zh-Hans`, `fa`); for a language written in several scripts add the script subtag (`sr-Latn`, `sr-Cyrl`). Ask the user only if the language itself is unclear.
 - If the `rosettex` command cannot be run, tell the user to install it following the rosettex README.
 
@@ -69,11 +69,11 @@ Read the `report.json` file (its path is in `status`) and give the user a short 
 Run `rosettex status "<work>" --json` and follow `next_action`. If you do not remember `<work>`, it is at `<directory containing the output file>/.rosettex/<source PDF file name>.<language code>`.
 
 ## Translation rules
-- Keep every placeholder ⟦…⟧ exactly as in the source (you may move it within the sentence to read naturally).
-- Keep every number and its notation exactly as in the source, including the decimal point: 0.05 stays 0.05, do not write 0,05.
+These rules hold for every target language. Each batch from `rosettex next` also carries `rules`: the rules of the target language (digits, number style, word separators, spacing). Follow them too; where they are more precise, they win. `rosettex guide --lang <code>` prints them in full.
+
+- Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).
+- Keep every number exactly as written in the source, including the decimal point.
 - Do not translate proper names, method/model/dataset names, units, emails, URLs.
-- Keep the level of certainty of the source sentence (may, might, suggest, likely, significant…).
-- Check negations and the direction of comparisons carefully (more/less, higher/lower, outperform, at least/at most).
-- Use the terms in terms.json exactly, consistently across the whole paper.
-- Table cells: translate the text, keep numbers and symbols unchanged.
-- Write natural academic Vietnamese; add no translator notes.
+- Keep the original level of certainty and the direction of comparisons and negations.
+- Use the terms in terms.json consistently.
+- Write natural academic prose in the target language; add no translator notes.

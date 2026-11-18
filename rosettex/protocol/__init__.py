@@ -8,7 +8,7 @@ from ..checks import load_pack
 DESCRIPTION = (
     "Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF "
     "that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to "
-    "translate a paper, article or research PDF, in any language (e.g. 'translate this paper to Vietnamese'). "
+    "translate a paper, article or research PDF, in any language (e.g. 'translate this paper into Japanese', '… into Arabic'). "
     "Needs a shell and file read/write; you do the translating and the rosettex CLI does extraction, checking and "
     "typesetting. Scanned or image-only PDFs are not supported yet."
 )
@@ -25,15 +25,26 @@ Run `rosettex guide` to see the latest version of the protocol below, then follo
 AGENTS_INTRO = f"**When to use:** {DESCRIPTION}\n\n"
 
 
-def text(lang: str = "vi") -> str:
+GENERIC_RULES = (
+    "These rules hold for every target language. Each batch from `rosettex next` also carries `rules`: the rules of "
+    "the target language (digits, number style, word separators, spacing). Follow them too; where they are more "
+    "precise, they win. `rosettex guide --lang <code>` prints them in full.\n"
+)
+
+
+def text(lang: str | None = None) -> str:
+    """The protocol; with a language code, its translation rules are those of that language's pack."""
     src = (files("rosettex") / "protocol" / "protocol.md").read_text(encoding="utf-8")
-    rules = "\n".join(f"- {r}" for r in load_pack(lang)["rules"])
+    pack = load_pack(lang or "default")
+    rules = "\n".join(f"- {r}" for r in pack["rules"])
+    if lang is None:
+        rules = GENERIC_RULES + "\n" + rules + "\n- Write natural academic prose in the target language; add no translator notes."
     return src.replace("{{RULES}}", rules)
 
 
 def skill_md() -> str:
-    return FRONTMATTER + text("vi")
+    return FRONTMATTER + text()
 
 
 def agents_md() -> str:
-    return AGENTS_INTRO + text("vi")
+    return AGENTS_INTRO + text()
