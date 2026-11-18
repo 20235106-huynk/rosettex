@@ -1,0 +1,31 @@
+{
+ "id": "hangul",
+ "layout": "cjk",
+ "direction": "ltr",
+ "otf_script": null,
+ "blocks": [
+  "1100-11FF",
+  "3130-318F",
+  "A960-A97F",
+  "AC00-D7AF",
+  "D7B0-D7FF",
+  "2E80-2FDF",
+  "3000-303F",
+  "3400-4DBF",
+  "4E00-9FFF",
+  "F900-FAFF",
+  "FF00-FFEF",
+  "20000-3134F"
+ ],
+ "linebreak": "cjk",
+ "layout_options": "CJKspace=true",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifKR-Regular.otf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

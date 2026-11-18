@@ -1,0 +1,23 @@
+{
+ "code": "bn",
+ "name": "বাংলা",
+ "tested": false,
+ "script": "bengali",
+ "polyglossia": "bengali",
+ "min_target_ratio": 0.3,
+ "labels": {
+  "fallback": "formula/table not rendered",
+  "missing_image": "missing image",
+  "figure": "চিত্র",
+  "table": "সারণি",
+  "references": "তথ্যসূত্র"
+ },
+ "rules": [
+  "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
+  "Keep every number exactly as written in the source, including the decimal point.",
+  "Write every number with the ASCII digits 0-9 exactly as in the source; do not use Bengali digits.",
+  "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
+  "Keep the original level of certainty and the direction of comparisons and negations.",
+  "Use the terms in terms.json consistently."
+ ]
+}

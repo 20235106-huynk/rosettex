@@ -2,22 +2,35 @@
  "code": "default",
  "name": "default",
  "tested": false,
+ "script": "latin",
  "polyglossia": "english",
- "font": {"main": "texgyretermes",
-          "options": "Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic"},
  "check_chars": "",
  "letters": "",
  "function_words": [],
  "min_len_check": 40,
- "min_diacritic_ratio": 0,
  "min_function_ratio": 0,
- "length_ratio": [0.5, 2.5],
- "labels": {"fallback": "formula/table not rendered", "missing_image": "missing image"},
+ "length_ratio": [
+  0.5,
+  2.5
+ ],
+ "labels": {
+  "fallback": "formula/table not rendered",
+  "missing_image": "missing image"
+ },
  "rules": [
   "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
   "Keep every number exactly as written in the source, including the decimal point.",
   "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
   "Keep the original level of certainty and the direction of comparisons and negations.",
   "Use the terms in terms.json consistently."
+ ],
+ "min_target_ratio": 0,
+ "fonts": [
+  {
+   "file": "NotoSerif-Regular.ttf",
+   "source": "bundle",
+   "license": "OFL-1.1",
+   "options": "Scale=0.9,BoldFont=NotoSerif-Bold.ttf,ItalicFont=NotoSerif-Italic.ttf,BoldItalicFont=NotoSerif-BoldItalic.ttf"
+  }
  ]
 }

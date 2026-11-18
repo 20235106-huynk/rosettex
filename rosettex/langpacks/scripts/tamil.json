@@ -1,0 +1,21 @@
+{
+ "id": "tamil",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Tamil",
+ "blocks": [
+  "0B80-0BFF",
+  "200C-200D"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifTamil-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

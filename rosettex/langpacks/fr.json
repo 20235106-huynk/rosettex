@@ -1,0 +1,37 @@
+{
+ "code": "fr",
+ "name": "Français",
+ "tested": false,
+ "script": "latin",
+ "polyglossia": "french",
+ "min_target_ratio": 0.01,
+ "letters": "éèêëàâçîïôûùüÿœæÉÈÊËÀÂÇÎÏÔÛÙÜŸŒÆ",
+ "function_words": [
+  "le",
+  "la",
+  "les",
+  "des",
+  "du",
+  "et",
+  "est",
+  "une",
+  "dans",
+  "pour",
+  "que",
+  "qui",
+  "sur",
+  "par",
+  "avec",
+  "nous",
+  "sont"
+ ],
+ "min_function_ratio": 0.08,
+ "rules": [
+  "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
+  "Keep every number exactly as written in the source, including the decimal point.",
+  "Write every number with the ASCII digits 0-9 exactly as in the source; do not use Latin digits.",
+  "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
+  "Keep the original level of certainty and the direction of comparisons and negations.",
+  "Use the terms in terms.json consistently."
+ ]
+}

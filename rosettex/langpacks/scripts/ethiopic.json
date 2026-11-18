@@ -1,0 +1,23 @@
+{
+ "id": "ethiopic",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Ethiopic",
+ "blocks": [
+  "1200-139F",
+  "2D80-2DDF",
+  "AB00-AB2F"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifEthiopic-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ],
+ "scale": 0.8
+}

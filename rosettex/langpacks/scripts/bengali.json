@@ -1,0 +1,23 @@
+{
+ "id": "bengali",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Bengali",
+ "blocks": [
+  "0980-09FF",
+  "0964-0965",
+  "200C-200D"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifBengali-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ],
+ "scale": 0.9
+}

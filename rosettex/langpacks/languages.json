@@ -1,0 +1,290 @@
+{
+ "am": {
+  "name": "አማርኛ",
+  "script": "ethiopic",
+  "polyglossia": "amharic"
+ },
+ "ar": {
+  "name": "العربية",
+  "script": "arabic",
+  "polyglossia": "arabic"
+ },
+ "as": {
+  "name": "Assamese",
+  "script": "bengali",
+  "polyglossia": null
+ },
+ "be": {
+  "name": "Belarusian",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "bg": {
+  "name": "Bulgarian",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "bn": {
+  "name": "বাংলা",
+  "script": "bengali",
+  "polyglossia": "bengali"
+ },
+ "ckb": {
+  "name": "Kurdish",
+  "script": "arabic",
+  "polyglossia": null
+ },
+ "cs": {
+  "name": "Czech",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "de": {
+  "name": "German",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "en": {
+  "name": "English",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "es": {
+  "name": "Spanish",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "fa": {
+  "name": "فارسی",
+  "script": "arabic",
+  "polyglossia": "persian"
+ },
+ "fr": {
+  "name": "Français",
+  "script": "latin",
+  "polyglossia": "french"
+ },
+ "gu": {
+  "name": "ગુજરાતી",
+  "script": "gujarati",
+  "polyglossia": null
+ },
+ "hi": {
+  "name": "हिन्दी",
+  "script": "devanagari",
+  "polyglossia": "hindi"
+ },
+ "id": {
+  "name": "Indonesian",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "it": {
+  "name": "Italian",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ja": {
+  "name": "日本語",
+  "script": "kana",
+  "polyglossia": null
+ },
+ "kk": {
+  "name": "Kazakh",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "kn": {
+  "name": "ಕನ್ನಡ",
+  "script": "kannada",
+  "polyglossia": "kannada"
+ },
+ "ko": {
+  "name": "한국어",
+  "script": "hangul",
+  "polyglossia": null
+ },
+ "ky": {
+  "name": "Kyrgyz",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "mai": {
+  "name": "Maithili",
+  "script": "devanagari",
+  "polyglossia": null
+ },
+ "mk": {
+  "name": "Macedonian",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "mn": {
+  "name": "Mongolian",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "mr": {
+  "name": "मराठी",
+  "script": "devanagari",
+  "polyglossia": "marathi"
+ },
+ "ms": {
+  "name": "Malay",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "my": {
+  "name": "မြန်မာ",
+  "script": "myanmar",
+  "polyglossia": null
+ },
+ "ne": {
+  "name": "Nepali",
+  "script": "devanagari",
+  "polyglossia": null
+ },
+ "nl": {
+  "name": "Dutch",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "pl": {
+  "name": "Polish",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ps": {
+  "name": "Pashto",
+  "script": "arabic",
+  "polyglossia": null
+ },
+ "pt": {
+  "name": "Portuguese",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ro": {
+  "name": "Romanian",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ru": {
+  "name": "Русский",
+  "script": "cyrillic",
+  "polyglossia": "russian"
+ },
+ "sa": {
+  "name": "Sanskrit",
+  "script": "devanagari",
+  "polyglossia": null
+ },
+ "sd": {
+  "name": "Sindhi",
+  "script": "arabic",
+  "polyglossia": null
+ },
+ "sr": {
+  "name": "Serbian",
+  "alias": "sr-Cyrl"
+ },
+ "sr-Cyrl": {
+  "name": "Serbian",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "sr-Latn": {
+  "name": "Serbian",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "sv": {
+  "name": "Swedish",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ta": {
+  "name": "தமிழ்",
+  "script": "tamil",
+  "polyglossia": "tamil"
+ },
+ "te": {
+  "name": "తెలుగు",
+  "script": "telugu",
+  "polyglossia": "telugu"
+ },
+ "tg": {
+  "name": "Tajik",
+  "script": "cyrillic",
+  "polyglossia": null
+ },
+ "th": {
+  "name": "ไทย",
+  "script": "thai",
+  "polyglossia": "thai"
+ },
+ "ti": {
+  "name": "Tigrinya",
+  "script": "ethiopic",
+  "polyglossia": null
+ },
+ "tr": {
+  "name": "Turkish",
+  "script": "latin",
+  "polyglossia": null
+ },
+ "ug": {
+  "name": "Uyghur",
+  "script": "arabic",
+  "polyglossia": null
+ },
+ "uk": {
+  "name": "Українська",
+  "script": "cyrillic",
+  "polyglossia": "ukrainian"
+ },
+ "ur": {
+  "name": "اردو",
+  "script": "arabic",
+  "polyglossia": "urdu"
+ },
+ "vi": {
+  "name": "Vietnamese",
+  "script": "latin",
+  "polyglossia": "vietnamese"
+ },
+ "zh": {
+  "name": "Chinese",
+  "alias": "zh-Hans"
+ },
+ "zh-CN": {
+  "name": "Chinese",
+  "alias": "zh-Hans"
+ },
+ "zh-HK": {
+  "name": "Chinese",
+  "alias": "zh-Hant"
+ },
+ "zh-Hans": {
+  "name": "简体中文",
+  "script": "han",
+  "polyglossia": null
+ },
+ "zh-Hant": {
+  "name": "繁體中文",
+  "script": "han",
+  "polyglossia": null
+ },
+ "zh-MO": {
+  "name": "Chinese",
+  "alias": "zh-Hant"
+ },
+ "zh-SG": {
+  "name": "Chinese",
+  "alias": "zh-Hans"
+ },
+ "zh-TW": {
+  "name": "Chinese",
+  "alias": "zh-Hant"
+ }
+}

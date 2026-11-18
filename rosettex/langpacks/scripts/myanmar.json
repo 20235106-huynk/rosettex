@@ -1,0 +1,23 @@
+{
+ "id": "myanmar",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Myanmar",
+ "blocks": [
+  "1000-109F",
+  "A9E0-A9FF",
+  "AA60-AA7F",
+  "200B-200B"
+ ],
+ "linebreak": "zwsp",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifMyanmar-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

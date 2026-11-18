@@ -1,0 +1,26 @@
+{
+ "id": "han",
+ "layout": "cjk",
+ "direction": "ltr",
+ "otf_script": null,
+ "blocks": [
+  "2E80-2FDF",
+  "3000-303F",
+  "3400-4DBF",
+  "4E00-9FFF",
+  "F900-FAFF",
+  "FF00-FFEF",
+  "20000-3134F"
+ ],
+ "linebreak": "cjk",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifSC-Regular.otf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

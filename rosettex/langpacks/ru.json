@@ -1,0 +1,33 @@
+{
+ "code": "ru",
+ "name": "Русский",
+ "tested": false,
+ "script": "cyrillic",
+ "polyglossia": "russian",
+ "min_target_ratio": 0.3,
+ "function_words": [
+  "и",
+  "в",
+  "на",
+  "с",
+  "что",
+  "для",
+  "по",
+  "из",
+  "не",
+  "это",
+  "как",
+  "от",
+  "к",
+  "при"
+ ],
+ "min_function_ratio": 0.08,
+ "rules": [
+  "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
+  "Keep every number exactly as written in the source, including the decimal point.",
+  "Write every number with the ASCII digits 0-9 exactly as in the source; do not use Cyrillic digits.",
+  "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
+  "Keep the original level of certainty and the direction of comparisons and negations.",
+  "Use the terms in terms.json consistently."
+ ]
+}

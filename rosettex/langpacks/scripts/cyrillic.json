@@ -1,0 +1,21 @@
+{
+ "id": "cyrillic",
+ "layout": "plain",
+ "direction": "ltr",
+ "otf_script": null,
+ "blocks": [
+  "0400-052F"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerif-Regular.ttf",
+   "source": "bundle",
+   "license": "OFL-1.1",
+   "options": "Scale=0.9,BoldFont=NotoSerif-Bold.ttf,ItalicFont=NotoSerif-Italic.ttf,BoldItalicFont=NotoSerif-BoldItalic.ttf"
+  }
+ ]
+}

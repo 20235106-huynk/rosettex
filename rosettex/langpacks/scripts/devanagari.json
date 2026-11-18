@@ -1,0 +1,22 @@
+{
+ "id": "devanagari",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Devanagari",
+ "blocks": [
+  "0900-097F",
+  "A8E0-A8FF",
+  "200C-200D"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifDevanagari-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

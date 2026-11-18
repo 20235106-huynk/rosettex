@@ -1,0 +1,35 @@
+{
+ "code": "zh-Hant",
+ "name": "繁體中文",
+ "tested": false,
+ "script": "han",
+ "polyglossia": null,
+ "min_target_ratio": 0.3,
+ "labels": {
+  "fallback": "formula/table not rendered",
+  "missing_image": "missing image",
+  "figure": "圖",
+  "table": "表",
+  "references": "參考文獻"
+ },
+ "length_ratio": [
+  0.2,
+  1.5
+ ],
+ "fonts": [
+  {
+   "file": "NotoSerifTC-Regular.otf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ],
+ "rules": [
+  "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
+  "Keep every number exactly as written in the source, including the decimal point.",
+  "Write every number with the ASCII digits 0-9 exactly as in the source; do not use Chinese digits.",
+  "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
+  "Keep the original level of certainty and the direction of comparisons and negations.",
+  "Use the terms in terms.json consistently.",
+  "Do not put spaces between CJK characters."
+ ]
+}

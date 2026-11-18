@@ -1,0 +1,19 @@
+{
+ "id": "latin",
+ "layout": "plain",
+ "direction": "ltr",
+ "otf_script": null,
+ "blocks": [],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.0,
+ "fonts": [
+  {
+   "file": "texgyretermes",
+   "source": "bundle",
+   "license": "GUST-Font-License",
+   "options": "Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic"
+  }
+ ]
+}

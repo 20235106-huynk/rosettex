@@ -1,0 +1,25 @@
+{
+ "id": "arabic",
+ "layout": "rtl",
+ "direction": "rtl",
+ "otf_script": "Arabic",
+ "blocks": [
+  "0600-06FF",
+  "0750-077F",
+  "08A0-08FF",
+  "FB50-FDFF",
+  "FE70-FEFF",
+  "200C-200F"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": "arabic",
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoNaskhArabic-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}

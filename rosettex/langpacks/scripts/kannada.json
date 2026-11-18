@@ -1,0 +1,23 @@
+{
+ "id": "kannada",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Kannada",
+ "blocks": [
+  "0C80-0CFF",
+  "0964-0965",
+  "200C-200D"
+ ],
+ "linebreak": "space",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifKannada-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ],
+ "scale": 0.75
+}

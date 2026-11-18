@@ -12,13 +12,72 @@ NUM_RE = re.compile(r"\d+(?:[.,]\d+)*")
 THOUSANDS = re.compile(r"\d{1,3}(?:,\d{3})+")
 
 
+CODE_RE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2,8})?")
+RAW_CODE_RE = re.compile(r"[A-Za-z]{2,3}(?:[-_][A-Za-z]{2,8})?")
+
+
+def normalize_code(code: str) -> list[str]:
+    """Candidate codes, most specific first: 'ja-JP' -> ['ja-JP', 'ja']; 'sr_latn' -> ['sr-Latn', 'sr']; 'VI' -> ['vi']."""
+    parts = code.replace("_", "-").split("-")
+    lang = parts[0].lower()
+    sub = parts[1] if len(parts) > 1 else ""
+    sub = sub.title() if len(sub) == 4 else sub.upper() if len(sub) == 2 else sub
+    return [f"{lang}-{sub}", lang] if sub else [lang]
+
+
+def parse_blocks(spec) -> list[tuple[int, int]]:
+    return [tuple(int(x, 16) for x in s.split("-")) for s in spec]
+
+
+def in_blocks(c: str, blocks) -> bool:
+    o = ord(c)
+    return any(a <= o <= b for a, b in blocks)
+
+
+def _read(p):
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def load_profile(sid: str) -> dict:
+    prof = _read(files("rosettex") / "langpacks" / "scripts" / f"{sid}.json")
+    prof["_blocks"] = parse_blocks(prof["blocks"])
+    return prof
+
+
+def load_languages() -> dict:
+    return _read(files("rosettex") / "langpacks" / "languages.json")
+
+
 def load_pack(code: str) -> dict:
     base = files("rosettex") / "langpacks"
-    f = base / f"{code}.json"
-    if re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z]{2,8})?", code) and f.is_file():
-        return json.loads(f.read_text(encoding="utf-8"))
-    pack = json.loads((base / "default.json").read_text(encoding="utf-8"))
-    pack["code"] = code
+    default = _read(base / "default.json")
+    langs = load_languages()
+    valid = code != "default" and bool(RAW_CODE_RE.fullmatch(code))
+    cands = normalize_code(code) if valid else []
+    # the first candidate that is a pack file or a languages.json entry; the requested code is kept as pack["code"]
+    key = next((c for c in cands if (base / f"{c}.json").is_file() or c in langs), None)
+    entry = langs.get(key) if key else None
+    target = key or code
+    if entry and "alias" in entry:  # zh -> zh-Hans, sr -> sr-Cyrl: use the target's pack or entry
+        target = entry["alias"]
+        entry = langs[target]
+    if key and (base / f"{target}.json").is_file() and target != "default":
+        pack = {k: v for k, v in default.items() if k != "fonts"}  # the default's fonts never leak into a pack
+        pack.update(_read(base / f"{target}.json"))
+        pack["code"], found = code, True
+    else:
+        pack, found = {**default, "code": code}, False
+        if entry:
+            prof = load_profile(entry["script"])
+            del pack["fonts"]
+            pack.update(script=entry["script"], name=entry["name"],
+                        polyglossia=entry.get("polyglossia") or prof["polyglossia_default"],
+                        min_target_ratio=prof["min_target_ratio"])
+            if prof["layout"] == "rtl":  # ASCII digits for generated numbers (polyglossia's Arabic default is Eastern)
+                pack["polyglossia_options"] = "numerals=maghrib"
+    pack["pack_found"], pack["script_known"] = found, found or entry is not None
+    pack["profile"] = load_profile(pack["script"])
+    pack.setdefault("fonts", pack["profile"]["fonts"])
     return pack
 
 
@@ -50,34 +109,65 @@ def looks_untranslated(src: str, dst: str, pack: dict, keep=()) -> bool:
     a, b = nfc(" ".join(src.split())), nfc(" ".join(dst.split()))
     rest = PH_RE.sub(" ", b)
     for k in keep:
-        rest = rest.replace(k, " ")
+        rest = rest.replace(nfc(k), " ")
     letters = [c for c in rest if c.isalpha()]
     if len(letters) < pack["min_len_check"]:
         return False
     if a == b:
         return True
-    if not pack.get("letters"):
+    special, blocks = set(pack.get("letters", "")), pack["profile"]["_blocks"]
+    if not special and not blocks:
         return False
-    special = set(pack["letters"])
-    diacritic = sum(c in special for c in letters) / len(letters)
-    words = re.findall(r"\w+", rest.lower())
+    target = sum(c in special or in_blocks(c, blocks) for c in letters) / len(letters)
     fw = set(pack["function_words"])
+    if not fw:
+        return target < pack["min_target_ratio"]
+    words = re.findall(r"\w+", rest.lower())
     function = sum(w in fw for w in words) / max(len(words), 1)
-    return diacritic < pack["min_diacritic_ratio"] and function < pack["min_function_ratio"]
+    return target < pack["min_target_ratio"] and function < pack["min_function_ratio"]
 
 
 def bad_chars(src: str, dst: str, pack: dict) -> list[str]:
     allowed = set(pack.get("letters", "")) | set(src)
+    blocks = pack["profile"]["_blocks"]
+    has_alphabet = bool(pack.get("letters") or blocks)
+    # a known Latin-script language without its own alphabet (de, es, pt, ...): any letter outside Latin/Greek is wrong
+    latin_only = pack["profile"]["id"] == "latin" and not has_alphabet and pack.get("script_known", False)
     bad = []
     for c in dst:
-        if c in allowed or (c.isascii() and (c.isprintable() or c in "\n\t")):
+        if c in allowed or in_blocks(c, blocks) or (c.isascii() and (c.isprintable() or c in "\n\t")):
             continue
         cat = unicodedata.category(c)
-        if c == "\ufffd" or cat.startswith("C"):
+        if c == "\ufffd" or (cat.startswith("C") and c not in "\u200b\u200c\u200d"):
             bad.append(c)
-        elif cat.startswith("L") and pack.get("letters") and not 0x0370 <= ord(c) <= 0x03FF:
+        elif cat.startswith("L") and has_alphabet and not 0x0370 <= ord(c) <= 0x03FF:
+            bad.append(c)
+        elif cat.startswith("L") and latin_only and not (0x00C0 <= ord(c) <= 0x024F or 0x1E00 <= ord(c) <= 0x1EFF
+                                                         or 0x0370 <= ord(c) <= 0x03FF):
             bad.append(c)
     return bad
+
+
+def foreign_digits(src: str, dst: str) -> list[str]:
+    return [c for c in dst if unicodedata.category(c) == "Nd" and not c.isascii() and c not in src]
+
+
+def missing_word_breaks(dst: str, pack: dict, limit: int = 25) -> bool:
+    if pack["profile"]["linebreak"] != "zwsp":
+        return False
+    blocks, run = pack["profile"]["_blocks"], 0
+    if "\u200b" not in dst and sum(in_blocks(c, blocks) and c.isalpha() for c in dst) >= 40:
+        return True  # spaces between every word are not enough: Tectonic cannot break Thai/Myanmar at spaces-less words
+    for c in dst:
+        if c in "\u200b \t\n":
+            run = 0
+        elif in_blocks(c, blocks):
+            run += 1
+            if run >= limit:
+                return True
+        else:
+            run = 0
+    return False
 
 
 def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[list[str], list[str]]:
@@ -94,6 +184,11 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
     if lost:
         errs.append("missing or changed number: " + " ".join(sorted(lost.elements()))
                     + " (keep numbers exactly as in the source, including the decimal point)")
+    fd = foreign_digits(src, dst)
+    if fd:
+        errs.append("use the ASCII digits 0-9 exactly as in the source: " + "".join(fd))
+    if missing_word_breaks(dst, pack):
+        errs.append("put U+200B between words")
     if looks_untranslated(src, dst, pack, (terms or {}).get("keep", [])):
         errs.append("looks untranslated")
     bad = bad_chars(src, dst, pack)
@@ -103,7 +198,7 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
     if len(src) >= pack["min_len_check"] and not lo <= len(dst) / len(src) <= hi:
         warns.append(f"length ratio {len(dst) / len(src):.2f} outside [{lo}, {hi}]")
     for t in (terms or {}).get("terms", []):
-        if t["src"].lower() in src.lower() and nfc(t["dst"]).lower() not in dst.lower():
+        if nfc(t["src"]).lower() in src.lower() and nfc(t["dst"]).lower() not in dst.lower():
             warns.append(f"term '{t['src']}' should be translated as '{t['dst']}'")
     return errs, warns
 

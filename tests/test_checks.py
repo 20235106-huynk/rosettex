@@ -79,3 +79,80 @@ def test_normalize_whitespace_per_unit_type():
     assert normalize_ws("cell", " a\nb ") == "a b"
     assert normalize_ws("footnote", "a\n\nb") == "a b"
     assert normalize_ws("paragraph", "a\n \n\n\nb  \nc") == "a\n\nb\nc"
+
+import pytest
+
+from rosettex.checks import foreign_digits, missing_word_breaks
+
+EN = ("The proposed model improves the accuracy of the baseline by a large margin on every benchmark "
+      "we evaluated, reaching 0.05 error with ⟦m1⟧ parameters as reported in ⟦c1⟧.")
+GOOD_BY_LANG = {
+    "fr": "Le modèle proposé améliore nettement la précision du modèle de référence sur chaque banc d'essai que nous avons évalué, avec une erreur de 0.05 pour ⟦m1⟧ paramètres, comme indiqué dans ⟦c1⟧.",
+    "ru": "Предложенная модель значительно улучшает точность базовой модели на всех тестах, достигая ошибки 0.05 при ⟦m1⟧ параметрах, как сообщается в ⟦c1⟧.",
+    "zh-Hans": "所提出的模型在我们评估的每个基准上都大幅提高了基线的准确率，误差达到 0.05，参数为 ⟦m1⟧，如 ⟦c1⟧ 所述。",
+    "ja": "提案モデルは評価したすべてのベンチマークでベースラインの精度を大きく改善し、⟦m1⟧ 個のパラメータで誤差 0.05 に達した（⟦c1⟧）。",
+    "ko": "제안된 모델은 우리가 평가한 모든 벤치마크에서 기준 모델의 정확도를 크게 향상시켜 ⟦m1⟧ 개의 매개변수로 0.05 오차에 도달했다 ⟦c1⟧.",
+    "ar": "يحسن النموذج المقترح دقة النموذج الأساسي بهامش كبير في كل معيار قمنا بتقييمه، إذ يبلغ خطأ 0.05 مع ⟦m1⟧ معامل كما ورد في ⟦c1⟧.",
+    "hi": "प्रस्तावित मॉडल हर बेंचमार्क पर आधार मॉडल की सटीकता में बड़ा सुधार करता है और ⟦m1⟧ मापदंडों के साथ 0.05 त्रुटि तक पहुँचता है, जैसा ⟦c1⟧ में बताया गया है।",
+    "th": "แบบจำลอง\u200bที่\u200bเสนอ\u200bช่วย\u200bเพิ่ม\u200bความ\u200bแม่นยำ\u200bของ\u200bแบบจำลอง\u200bพื้นฐาน\u200bอย่าง\u200bมาก ความ\u200bคลาดเคลื่อน 0.05 ด้วย\u200bพารามิเตอร์ ⟦m1⟧ ตาม\u200bที่\u200bรายงาน\u200bใน ⟦c1⟧",
+}
+# Task 9 extends this table to every pack from tests/script_samples.json.
+
+
+def batch_of(text):
+    return {"batch": "b001", "items": [{"id": "p1b1", "type": "paragraph", "page": 1, "text": text, "placeholders": {}}]}
+
+
+@pytest.mark.parametrize("code,good", sorted(GOOD_BY_LANG.items()))
+def test_script_pack_accepts_good_and_rejects_english(code, good):
+    pack = load_pack(code)
+    assert check_batch(batch_of(EN), {"p1b1": good}, pack, None)["errors"] == {}
+    assert "looks untranslated" in check_batch(batch_of(EN), {"p1b1": EN}, pack, None)["errors"]["p1b1"]
+    assert looks_untranslated(EN, EN.replace("The proposed", "A proposed"), pack)
+
+
+def test_alphabet():
+    assert bad_chars("x", "ক্\u200cষ", load_pack("bn")) == []
+    assert bad_chars("x", "परीक्षण привет", load_pack("hi")) == list("привет")
+
+
+def test_foreign_digits_rejected_everywhere():
+    assert foreign_digits("0.05", "٠٫٠٥ و 0.05") == ["٠", "٠", "٥"]
+    assert foreign_digits("x", "１２") == ["１", "２"]
+    e = check_batch(batch_of(EN), {"p1b1": GOOD_BY_LANG["ar"] + " ٣"}, load_pack("ar"), None)["errors"]["p1b1"]
+    assert any("ASCII digits" in x for x in e)
+
+
+def test_thai_needs_word_separators():
+    th = load_pack("th")
+    assert not missing_word_breaks(GOOD_BY_LANG["th"], th)
+    assert missing_word_breaks(GOOD_BY_LANG["th"].replace("\u200b", ""), th)
+    assert not missing_word_breaks("ไม่มี" * 10, load_pack("hi"))  # only zwsp profiles
+
+
+def test_vi_detector_unchanged():
+    assert looks_untranslated(SRC, SRC, VI) and not looks_untranslated(SRC, GOOD, VI)
+    assert looks_untranslated(SRC, "short", VI) is False
+
+
+SAMPLES = __import__("json").loads((__import__("pathlib").Path(__file__).parent / "script_samples.json").read_text(encoding="utf-8"))
+EN_PLAIN = "The proposed model improves the accuracy of the baseline on every dataset we evaluated, at a lower cost."
+
+
+@pytest.mark.parametrize("code", sorted(SAMPLES))
+def test_sample_translation_is_accepted(code):
+    pack = load_pack(code)
+    assert check_batch(batch_of(EN_PLAIN), {"p1b1": SAMPLES[code]}, pack, None)["errors"] == {}
+
+
+def test_known_latin_language_rejects_foreign_letters():
+    de = load_pack("de")
+    assert bad_chars("x", "Das Modell привет", de) == list("привет")
+    assert bad_chars("x", "Größe, façade, naïve, Ελλάδα", de) == []
+    assert bad_chars("x", "привет", load_pack("xx")) == []  # unknown code: script not known, no judgement
+
+
+def test_thai_spaces_without_zwsp_are_rejected():
+    th = load_pack("th")
+    long_spaced = " ".join(["แบบจำลอง"] * 8)
+    assert missing_word_breaks(long_spaced, th) and not missing_word_breaks("แบบจำลอง ที่ เสนอ", th)

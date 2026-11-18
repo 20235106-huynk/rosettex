@@ -1,0 +1,21 @@
+{
+ "id": "thai",
+ "layout": "runs",
+ "direction": "ltr",
+ "otf_script": "Thai",
+ "blocks": [
+  "0E00-0E7F",
+  "200B-200B"
+ ],
+ "linebreak": "zwsp",
+ "layout_options": "",
+ "polyglossia_default": null,
+ "min_target_ratio": 0.3,
+ "fonts": [
+  {
+   "file": "NotoSerifThai-Regular.ttf",
+   "source": "package",
+   "license": "OFL-1.1"
+  }
+ ]
+}
