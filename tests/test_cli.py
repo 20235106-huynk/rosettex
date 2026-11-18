@@ -214,20 +214,31 @@ def test_extract_failure_at_basic_tier_stops(env, capsys, monkeypatch):
     assert st["next_action"] is None and st["error"]
 
 
+def _die(w):
+    beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
+    p = read_json(w.progress)
+    p["updated"] -= 3600
+    w.progress.write_text(json.dumps(p), encoding="utf-8")
+
+
+def test_dead_job_status_is_read_only_and_repeatable(env, capsys):
+    src, outdir = env
+    w = Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
+    w.document.unlink()
+    _die(w)
+    before = w.progress.read_bytes()
+    for _ in range(3):
+        assert run(capsys, "status", w.root, "--json")[1]["next_action"] == "rosettex extract RESUME"
+    assert w.progress.read_bytes() == before
+
+
 def test_dead_job_resumed_once_then_stops(env, capsys):
     src, outdir = env
-    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
-    w = Work(r["work"])
+    w = Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
     w.document.unlink()
-
-    def die():
-        beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
-        p = read_json(w.progress)
-        p["updated"] -= 3600
-        w.progress.write_text(json.dumps(p), encoding="utf-8")
-    die()
+    _die(w)
     assert run(capsys, "status", w.root, "--json")[1]["next_action"] == "rosettex extract RESUME"
-    die()  # lần chạy lại cũng chết (beat giữ bộ đếm)
+    _die(w)  # tiến trình chạy lại thật sự khởi động (beat đếm lần chạy lại) rồi lại chết
     st = run(capsys, "status", w.root, "--json")[1]
     assert st["next_action"] is None and st["error"]
 

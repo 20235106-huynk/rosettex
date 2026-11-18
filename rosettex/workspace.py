@@ -89,7 +89,11 @@ def read_manifest(work: Work) -> dict | None:
 
 def beat(work: Work, command: str, resume: str, step: str, done: int, total: int,
          state: str = "running", error: str | None = None) -> None:
-    retries = 0 if state == "done" else (read_json(work.progress) or {}).get("retries", 0)
+    prev = read_json(work.progress) or {}
+    retries = 0 if state == "done" else prev.get("retries", 0)
+    # tiến trình mới bắt đầu khi bản ghi trước đã chết (nhịp tim quá hạn) = một lần chạy lại thật sự
+    if prev.get("state") == "running" and time.time() - prev.get("updated", 0) > HEARTBEAT_DEAD_AFTER:
+        retries += 1
     write_json(work.progress, {"command": command, "resume": resume, "pid": os.getpid(), "state": state,
                                "step": step, "done": done, "total": total, "error": error,
                                "retries": retries, "updated": time.time()})

@@ -119,7 +119,6 @@ def status(work: Work) -> dict:
         if job.get("retries", 0) >= 1:  # đã chạy lại một lần mà vẫn chết: dừng, không lặp vô hạn
             return {"state": job["command"] + "_dead", "error": f"tác vụ nền chết lần thứ hai; xem {log}",
                     "next_action": None}
-        write_json(work.progress, {k: v for k, v in job.items() if k != "dead"} | {"retries": 1})
         return {"state": job["command"] + "_dead", "message": "tác vụ nền đã dừng bất thường; chạy lại để làm tiếp",
                 "next_action": job["resume"]}
     if job and job["state"] == "failed":
