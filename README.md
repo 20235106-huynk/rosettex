@@ -28,6 +28,28 @@ Optional environment variables (the user sets them once): `ROSETTEX_MINERU` (pat
 
 After that, just say: *"Translate the paper ~/papers/attention.pdf into Vietnamese, save it in ~/translated/"*.
 
+## Languages and fonts
+
+`rosettex` ships 21 language packs in 15 scripts (only `vi` is tested; the others are reported as "not tested"):
+
+| Script | Packs |
+|---|---|
+| Latin | `vi`, `fr` |
+| Cyrillic | `ru`, `uk` |
+| Han | `zh-Hans`, `zh-Hant` |
+| Kana | `ja` |
+| Hangul | `ko` |
+| Arabic | `ar`, `fa`, `ur` (laid out right to left) |
+| Devanagari | `hi`, `mr` |
+| Bengali, Telugu, Tamil, Gujarati, Kannada | `bn`, `te`, `ta`, `gu`, `kn` |
+| Thai, Ethiopic, Myanmar | `th`, `am`, `my` |
+
+Other language codes map to their script through `rosettex/langpacks/languages.json` (for example `bg` → Cyrillic, `ps` → Arabic, `es` → Latin) and use generic checks (`pack_found: false`). An unknown code is reported with `script_known: false`.
+
+Every non-Latin font ships with rosettex (subset Noto fonts, SIL OFL 1.1, in `rosettex/fonts/`, with the licence texts in `rosettex/fonts/LICENSES/` and the exact sources in `rosettex/fonts/MANIFEST.json`); no font install is needed. Rebuild them with `uv run --with fonttools==4.68.0 python scripts/build_fonts.py --cache <dir>`.
+
+Known limitation: Arabic text copied out of the PDF can be garbled (a limitation of XeTeX); the printed text is correct.
+
 ## Development
 
 ```bash

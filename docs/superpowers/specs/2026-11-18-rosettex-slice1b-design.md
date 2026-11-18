@@ -358,3 +358,15 @@ Run-time font download, `setup`, `doctor` (slice 3); `review` (slice 2); OCR (sl
 11. Post-check adds missing glyphs per font, dotted circles (not for `rtl`), overfull lines for `cjk`/`zwsp`, a per-pack length threshold.
 12. Only Regular weights are packaged.
 13. Every new pack ships `tested: false`; only a reader's confirmation flips it.
+
+## 15. Amendments after implementation and cross-review (2026-11-18)
+These supersede the sections they name.
+1. **§5.3 codes.** `load_pack` accepts any case and `_`/`-` (`ja-JP`, `zh-cn`, `hi_IN`, `VI`, `sr_latn`). Candidates, most specific first: `lang-Script`/`lang-REGION`, then `lang`; the first that is a pack file or a `languages.json` entry wins. `pack["code"]` stays the code as given. `extract` accepts the same forms.
+2. **§10.2 Latin-script languages without a pack** (`de`, `es`, `pt`, …; `script_known: true`, no `letters`): `bad_chars` rejects letters outside Latin (U+00C0–024F, U+1E00–1EFF, ASCII) and Greek. Unknown codes (`script_known: false`) are not judged.
+3. **§10.4 Thai/Myanmar.** Besides the 25-character run rule, a text with 40 or more script letters and no U+200B at all is rejected (spaces between every word do not give Tectonic break points).
+4. **§6.4 build-time font errors** are stored in the job state (`progress.json`, key `extra`), so `status` returns `font_missing`, `script`, `fonts_needed` after `render_failed`. `render` returns them directly too. A missing or damaged `MANIFEST.json` is `FontMissing`, never a traceback.
+5. **§6.1 scale.** Script fonts are drawn larger than Termes. `runs`/`rtl` script fonts get `Scale=MatchLowercase`, or the profile's `scale` (Telugu 0.75, Kannada 0.75, Ethiopic 0.8, Bengali 0.9, Gujarati 0.9); Noto Serif (Cyrillic, `default`) `Scale=0.9`.
+6. **§5.1 `polyglossia_options`.** Languages of an `rtl` script without a pack get `numerals=maghrib`; `fa` and `ur` use `numerals=western` (from `gloss-persian.ldf`, `gloss-urdu.ldf`).
+7. **§7.3 and §8 right to left.** The English bibliography is `{\selectlanguage{english}\renewcommand{\refname}{\RL{\<lang>font …}} …}`; `otherlanguage{english}` around `thebibliography` fails in Tectonic (`Missing } inserted`). Noto Naskh Arabic has no Latin letters or parentheses, so `\text`, equation tags, `sup` spans and whole English verbatim spans (authors, e-mails, daggers) go through `\rxltr{}` / the Latin font.
+8. **§5 post-build log parsing.** TeX wraps log lines at 79 characters: "Missing character" and "undefined" warnings are parsed across line breaks.
+9. **Checked, no change.** A `\typeout{RX:id}` marker before a float attributes errors in the float body correctly (the body is boxed in place; reproduced with an injected undefined macro in a table, fallback went to the table block).

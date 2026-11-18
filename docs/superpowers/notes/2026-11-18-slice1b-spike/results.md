@@ -84,3 +84,13 @@ Arabic (the bundle font):
   `runs` layout (Termes main font, script runs in the script font loaded with `Path=fonts/`) with 0 missing glyphs;
   Thai and Myanmar only without `\XeTeXlinebreaklocale` (see above). Release URLs and checksums: `rosettex/fonts/MANIFEST.json`.
 - Gujarati compiles without polyglossia (plain fontspec family) with the packaged font.
+
+## Close-out: whole documents (2026-11-18)
+
+Done through the real renderer instead of hand-written mini papers (plan Task 9 builds, `short.pdf`, one column count of 2, tables with `\multirow`, cites, refs, footnotes, bibliography), all 21 packs, Tectonic 0.17.0, 0 missing glyphs.
+- XeLaTeX: not installed, not tested.
+- `numerals`: `ar` → `maghrib`; `fa`, `ur` → `western` (from `gloss-*.ldf`); section, table and page numbers print in ASCII digits (page images of `ar`, `ur` read).
+- Preamble per layout: as in `rosettex/render/latex.py:lang_lines`. Polyglossia names that compiled: `french`, `russian`, `ukrainian`, `arabic`, `persian`, `urdu`, `hindi`, `marathi`, `bengali`, `telugu`, `tamil`, `kannada`, `thai`, `amharic`; none for `zh-*`, `ja`, `ko`, `gu`, `my`.
+- Failure found and fixed: `\begin{otherlanguage}{english}` around `thebibliography` in `rtl` → `Missing } inserted`; `{\selectlanguage{english}…}`, `\begin{LTR}` and `\setLTR` compile. Chosen: `\selectlanguage{english}` group, `\refname` in `\RL{…}`.
+- Noto Naskh Arabic lacks Latin letters and parentheses: `\text`, equation tags and English verbatim spans go through the Latin font in `rtl`.
+- Licences of bundle fonts: not re-fetched (TeX Gyre and Latin Modern: GUST Font License; Noto: OFL, expected).

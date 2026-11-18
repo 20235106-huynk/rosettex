@@ -122,6 +122,18 @@ Compiling is not the same as correct: the `\dot{V}` error still compiles.
 
 **Three similar projects** (details in §18): their "untranslated" checkers rely on Chinese characters, so they flag a correct Vietnamese translation as an error. None of the projects matches figures and data outside formulas.
 
+#### Slice 1b results per script (Tectonic 0.17.0, Linux, 2026-11-18)
+
+All 21 packs build `tests/fixtures/papers/short.pdf` with 0 missing glyphs (test `test_render_short_in_every_script`); details in `docs/superpowers/notes/2026-11-18-slice1b-spike/results.md` and the acceptance record.
+
+| Script | Layout | Result |
+|---|---|---|
+| Latin, Cyrillic | plain | Termes has no Cyrillic: Noto Serif (bundle) for `ru`/`uk` |
+| Han, Kana, Hangul | cjk (xeCJK) | packaged Noto Serif CJK subsets; Hangul needs `CJKspace=true` |
+| Arabic | rtl (polyglossia + bidi, hyperref first) | two columns work; tables mirror; `numerals=maghrib` (`ar`) / `numerals=western` (`fa`, `ur`) give ASCII digits; Noto Naskh has no Latin letters or parentheses, so Latin runs, `\text` and equation tags go through the Latin font; bibliography via `\selectlanguage{english}` group (`otherlanguage` fails in Tectonic) |
+| Indic, Ethiopic | runs | script runs in `\rxs{}` in the script font; Gujarati and Myanmar without polyglossia |
+| Thai, Myanmar | runs + zwsp | no ICU line breaking in Tectonic: U+200B becomes `\hspace{0pt plus 1pt}` |
+
 ## 5. Approaches considered (settled)
 
 | Question | Chosen | Rejected and why |
@@ -322,7 +334,7 @@ The tool must produce correct PDFs for target languages written in these 15 scri
 | Myanmar | my | LTR | no spaces; complex stacking and reordering; Unicode only (not Zawgyi) |
 
 Cross-cutting rules (these extend §11.3 and §11.4 and the settled decisions of §19):
-1. **Fonts.** One body font per script (the Noto Serif family, SIL OFL, is the default candidate; TeX Gyre Termes covers only Latin, Cyrillic and Greek), found by file name like decision 16, with a fallback. Fonts a pack needs that the machine lacks are downloaded by `setup` (slice 3) or reported with a clear error before the build; rosettex ships in its package one font per non-Latin script (14 OFL files: Noto Serif for the Indic scripts, Thai, Ethiopic, Myanmar and CJK, Noto Naskh Arabic), subset and built reproducibly from the official releases, each with its licence text and checksum (amended 2026-11-18 per the user; slice 1b spec §6). Fonts whose licence does not allow redistribution are not shipped.
+1. **Fonts.** One body font per script (the Noto Serif family, SIL OFL, is the default candidate; TeX Gyre Termes covers Latin; Cyrillic uses Noto Serif), found by file name like decision 16, with a fallback. Fonts a pack needs that the machine lacks are downloaded by `setup` (slice 3) or reported with a clear error before the build; rosettex ships in its package one font per non-Latin script (14 OFL files: Noto Serif for the Indic scripts, Thai, Ethiopic, Myanmar and CJK, Noto Naskh Arabic), subset and built reproducibly from the official releases, each with its licence text and checksum (amended 2026-11-18 per the user; slice 1b spec §6). Fonts whose licence does not allow redistribution are not shipped.
 2. **Shaping, direction, line breaking** are handled by the TeX engine (XeTeX through Tectonic, or XeLaTeX) with OpenType shaping, a right-to-left mode, and language-aware line breaking. Which of these Tectonic's bundle offers offline must be verified in the slice 1b spike (§16 item 8) before the pack format is fixed.
 3. **Numbers keep the source digits and the decimal point** (decision 15). No localization of digits (no Arabic-Indic, Devanagari, Thai … digits); `accept` keeps comparing numbers as multisets.
 4. **Formulas, citations, references and URLs stay left-to-right** inside right-to-left paragraphs; placeholders keep working unchanged.
@@ -421,7 +433,7 @@ tests/fixtures/          # sample .tex papers, sample MinerU JSON
 5. The proportion of MinerU's LaTeX that compiles right away at tiers `basic` and `standard`.
 6. MinerU time on CPU for a 20-30 page paper at tiers `basic` and `standard` (to set the page-group size and the `status` cycle).
 7. The agent keeps placeholders and number formatting across many batches (measure the rate of batches rejected by `accept`).
-8. **Scripts (first task of slice 1b):** for each of the 15 scripts of §11.5, with Tectonic and XeLaTeX on all three OSes: which fonts are available offline from the bundle or must be downloaded, and their licenses; that OpenType shaping works (Indic, Arabic, Myanmar, Thai); a right-to-left mode that keeps formulas, numbers and placeholders left-to-right and works in two columns; line breaking for Han, Kana, Thai and Myanmar; whether `polyglossia` covers the target languages or per-language setup is needed; the missing-glyph warnings in the log. Output: a table in §4.1 and the final shape of the script profile.
+8. **Scripts (first task of slice 1b; status 2026-11-18: done, results in §4.1 and the slice 1b notes; XeLaTeX, macOS and Windows not yet exercised):** for each of the 15 scripts of §11.5, with Tectonic and XeLaTeX on all three OSes: which fonts are available offline from the bundle or must be downloaded, and their licenses; that OpenType shaping works (Indic, Arabic, Myanmar, Thai); a right-to-left mode that keeps formulas, numbers and placeholders left-to-right and works in two columns; line breaking for Han, Kana, Thai and Myanmar; whether `polyglossia` covers the target languages or per-language setup is needed; the missing-glyph warnings in the log. Output: a table in §4.1 and the final shape of the script profile.
 
 Items 1-3 and 6 need a machine with network access to Hugging Face/ModelScope. If your environment is blocked, stop and ask the user to run the following commands on their machine:
 

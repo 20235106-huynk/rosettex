@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**Slice 1 is implemented and merged into `main`** (end-to-end flow for text-layer PDFs; `vi` and `default` language packs; 114 tests pass, 2 are skipped because they need real MinerU and `ROSETTEX_REAL=1`). Its acceptance run on 2026-11-18 is recorded in `docs/superpowers/notes/2026-11-18-slice1-acceptance.md`. Read in this order before doing anything:
+**Slice 1 is implemented and merged into `main`** (end-to-end flow for text-layer PDFs; `vi` and `default` language packs; 233 tests pass, 2 are skipped because they need real MinerU and `ROSETTEX_REAL=1`). Its acceptance run on 2026-11-18 is recorded in `docs/superpowers/notes/2026-11-18-slice1-acceptance.md`. Read in this order before doing anything:
 
 1. `docs/superpowers/specs/2026-11-18-rosettex-design.md`: the original spec (called **SG**). Section 4.1 holds the facts verified by spikes, section 19 holds the decisions already made. If you want to change something already decided, ask the user first.
 2. `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md`: the slice 1 spec (implemented).
@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Phase 1 is built as **vertical slices**, each with its own spec and plan:
 - Slice 1: the end-to-end flow for PDFs with a text layer. **Done.**
-- **Slice 1b (next, added 2026-11-18): script coverage.** The tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Ge'ez), Myanmar (SG §2, §11.5, decision 24, spike in §16 item 8). Needs its own spec and plan; start with the spike. Until then only `vi` is optimized and tested, and every other language runs with the `default` pack and is reported as "untested".
-- Slice 2: `review`.
+- **Slice 1b: script coverage. Done** (21 packs in 15 scripts, all `tested: false` except `vi`; fonts for the non-Latin scripts ship inside the package, `rosettex/fonts/`). Spec `docs/superpowers/specs/2026-11-18-rosettex-slice1b-design.md`, plan `docs/superpowers/plans/2026-11-18-rosettex-slice1b.md`, record `docs/superpowers/notes/2026-11-18-slice1b-acceptance.md` (reader checks per pack are open; the real-agent run with MinerU was not done). 233 tests pass, 2 skipped. Open items of slice 1b: `docs/superpowers/notes/2026-11-18-slice1b-open-items.md` (reader check, real agent run, threshold tuning, XeLaTeX/macOS/Windows).
+- **Slice 2 (next): `review`.**
 - Slice 3: `setup`, `doctor`, auto-download (including fonts per script), GPU.
 - Slice 4: scan/OCR.
 
@@ -28,6 +28,7 @@ uv run pytest -q                                # all tests
 uv run pytest tests/test_checks.py::test_changed_number_rejected -v   # a single test
 ROSETTEX_REAL=1 uv run pytest tests/test_cli.py -k real -v            # end-to-end with real MinerU (slow)
 uv run python scripts/get_tectonic.py           # Tectonic 0.17.0 → ~/.rosettex/bin (PDF-building tests need it)
+uv run --with fonttools==4.68.0 python scripts/build_fonts.py --cache <dir>   # rebuild rosettex/fonts (dev only)
 uv run python -m rosettex.protocol.build        # regenerate skill/SKILL.md and skill/AGENTS.md after editing protocol.md
 ```
 
@@ -79,4 +80,5 @@ Ideas that cut across several files:
 - Forcing the device needs **two** variables: `MINERU_MODEL_ONNX_DEVICE ∈ {auto,cpu,gpu}` and `MINERU_LLAMA_CPP_BACKEND ∈ {auto,cpu,vulkan,metal}`. To read the hardware use `mineru-kit hardware detect --json`; the version without `--json` prints Chinese.
 - With Tectonic, fonts must be loaded **by file name**: `texgyretermes` with `Extension=.otf`, and `latinmodern-math.otf`. The first Tectonic run needs the network; its Rust client fails intermittently when IPv6 is broken, so just rerun.
 - On this dev machine, Python libraries that download from Hugging Face hang because IPv6 is broken. Use `--source modelscope`, or `curl -4`.
+- Tectonic reads fonts only from its bundle or relative paths: packaged fonts are copied to `out/fonts/` and loaded with `Path=fonts/`. TeX Gyre Termes has no Cyrillic (Noto Serif is used). Tectonic has no ICU line breaking: Thai/Myanmar need U+200B between words (turned into `\hspace{0pt plus 1pt}`). polyglossia Arabic needs `numerals=maghrib` (`western` for Persian/Urdu) for ASCII digits. Arabic text extracted from the PDF is unreliable.
 - `tests/fixtures/` holds **real** MinerU 4.2.3 output, the ground truth to compare against. If a test is wrong, fix the test to match the fixture, not the fixture.
