@@ -105,3 +105,27 @@ def test_blank_line_in_heading_recovers_via_fallback(tmp_path):
     write_json(w.translation_path(bid, "vi"), tr)
     rep = render_core(w, tmp_path / "out.pdf")
     assert (tmp_path / "out.pdf").is_file() and h["block"] in {f["id"] for f in rep["fallback"]}
+
+
+@needs_tex
+def test_fallback_table_with_citation_keeps_postcheck_ok(tmp_path):
+    from rosettex.extract.segment import build_units, make_batches
+    w = make_work(tmp_path)
+    doc = read_json(w.document)
+    tb = next(b for b in doc["blocks"] if b["kind"] == "table")
+    cell = next(c for c in tb["cells"] if c["text"] and not c["text"][0].isdigit())
+    cell["text"] += " [4]"
+    doc["units"] = build_units(doc)
+    assert any(n[0] == "c" for u in doc["units"] if u["id"] == cell["id"] for n in u["ph"])
+    for p in w.batches.glob("b*.json"):
+        p.unlink()
+    for b in make_batches(doc["units"]):
+        write_json(w.batch_path(b["batch"]), b)
+    write_json(w.document, doc)
+    translate_all(w)
+    m = read_json(w.manifest)
+    m["fallback"] = [tb["id"]]
+    write_json(w.manifest, m)
+    rep = render_core(w, tmp_path / "out.pdf")
+    assert tb["id"] in {f["id"] for f in rep["fallback"]}
+    assert rep["postcheck"]["ok"], rep["postcheck"]
