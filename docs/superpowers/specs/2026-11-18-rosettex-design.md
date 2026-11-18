@@ -340,8 +340,8 @@ Giai đoạn 1 được làm theo **lát dọc**, mỗi lát có spec và kế h
 - chạy tiếp sau khi tác vụ nền bị giết;
 - dùng lại tài nguyên có sẵn (mô hình, LaTeX, font);
 - tải nối tiếp sau lỗi mạng;
-- `accept` từ chối: sửa số liệu, hỏng/thiếu/đổi thứ tự placeholder, nộp nguyên văn tiếng Anh;
-- `accept` chấp nhận: bản dịch tiếng Việt đúng (kiểm thử hồi quy cho lỗi đã gặp ở dự án khác), kể cả bản dịch ở dạng NFD (chuẩn hóa về NFC, bản lưu luôn là NFC);
+- `accept` từ chối: sửa số liệu (`0.05` thành `0,05`), hỏng/thiếu/đổi giá trị placeholder, nộp nguyên văn tiếng Anh;
+- `accept` chấp nhận: bản dịch tiếng Việt đúng (kiểm thử hồi quy cho lỗi đã gặp ở dự án khác), kể cả bản dịch đổi thứ tự placeholder (so theo đa tập), bản dịch thêm số, và bản dịch ở dạng NFD (chuẩn hóa về NFC, bản lưu luôn là NFC);
 - bộ chuyển đổi MinerU → định dạng trung gian, chạy trên các file JSON mẫu đã lưu từ lần chạy MinerU thật.
 
 **Tiêu chí nghiệm thu giai đoạn 1:**
