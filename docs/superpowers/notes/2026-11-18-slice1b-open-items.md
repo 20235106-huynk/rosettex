@@ -16,6 +16,7 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 
 ## Known and left on purpose
 - Hyphenation is lost for packs without polyglossia (`zh-*`, `ja`, `ko`, `gu`, `my`).
+- Arabic punctuation is mirrored by hand (spec §15 item 11); check on real texts with nested brackets and quotes.
 - Thai headings look loose (stretch of `\hspace{0pt plus 1pt}`).
 - CJK `scale` and the `\LARGE` title are not tuned.
 - `scripts/build_fonts.py` writes the manifest without a temp file and calls `subprocess` (dev only); `fonts.py` rehashes fonts on every resolve (milliseconds).

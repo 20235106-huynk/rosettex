@@ -111,7 +111,8 @@ def test_zwsp_becomes_a_break_point():
 
 
 def test_rtl_wraps_latin_and_digits_not_parentheses():
-    assert wrap_runs("يحقق 28.4 BLEU (تقريبا) و 5%", AR) == r"يحقق \rxltr{28.4 BLEU} (تقريبا) و \rxltr{5\%}"
+    assert wrap_runs("يحقق 28.4 BLEU (تقريبا) و 5%", AR) == r"يحقق \rxltr{28.4 BLEU} \rxltr{)}تقريبا\rxltr{(} و \rxltr{5\%}"
+    assert wrap_runs("نص [4] – «س» ؟", AR) == r"نص \rxltr{]}\rxltr{4}\rxltr{[} \rxltr{–} \rxltr{»}س\rxltr{«} ؟"
     assert wrap_runs("2 المقدمة", AR) == r"\rxltr{2} المقدمة"
 
 

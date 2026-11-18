@@ -32,6 +32,9 @@ Labels and pack rules were written by the builder and are unconfirmed. **No pack
 ## Font size (fix after first reading of the samples)
 Script fonts drew larger than Termes (box height 5.5–6.8 pt against 4.7 pt). Now one visual size: `Scale=MatchLowercase` for `runs`/`rtl` script fonts, an explicit profile `scale` where that has no effect (Telugu 0.75, Kannada 0.75, Ethiopic 0.8, Bengali 0.9, Gujarati 0.9), `Scale=0.9` for Noto Serif (Cyrillic). Median body box height is now about 4.6–5.0 pt in most packs; Telugu, Kannada, Bengali and Gujarati stay at 5.4–5.9 pt (tall glyph boxes) and need the reader's eye. `vi` unchanged.
 
+## Real run with MinerU 4.2.3 (2026-11-18)
+Run by the builder session acting as the agent (not a fresh session). `short.pdf` → Arabic: 1 batch accepted at the first submission; first render failed `postcheck` because Noto Naskh Arabic has no brackets, quotes, en dash (the corrected log parsing found it); fixed (spec §15 item 11), second render `ok`, 0 missing glyphs, length ratio 0.91 (`~/Desktop/Learn/rosettex-ar-demo/short.ar.pdf`). `2611.23202v1.pdf` (13 pages) → Vietnamese: 21 batches, all accepted at the first submission except one (two cells not in the batch), PDF of 16 pages, `postcheck` only complains of length ratio 1.33 > 1.3; MinerU dropped 6 items (aside text and caption parts) and merged the last row of Table I. Chinese/Japanese, Hindi and "Klingon" were not run.
+
 ## Not done / open
 - **Real agent run** (Arabic, Chinese/Japanese, Hindi, "Klingon") needs real MinerU and a fresh agent session: not run. Thresholds (`min_target_ratio`, `max_length_ratio`, Thai U+200B run limit) are therefore initial values.
 - XeLaTeX (not installed), macOS, Windows: not tested.

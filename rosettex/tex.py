@@ -22,6 +22,27 @@ def _cls(blocks) -> str:
     return "".join(f"\\U{a:08X}-\\U{b:08X}" for a, b in blocks)
 
 
+# Noto Naskh Arabic has no brackets, quotes or most ASCII punctuation. In rtl text they come from the Latin font
+# (\rxltr). Brackets and quotes are written mirrored: the Latin glyph is not mirrored by the bidi engine, so a logical
+# "(" (drawn at the right, opening) must use the ")" glyph.
+_MIRROR = {"(": ")", ")": "(", "[": "]", "]": "[", "<": ">", ">": "<", "{": "}", "}": "{",
+           "\u201c": "\u201d", "\u201d": "\u201c", "\u2018": "\u2019", "\u2019": "\u2018", "\u00ab": "\u00bb", "\u00bb": "\u00ab"}
+_LATIN_PUNCT = set(";?-'\"%/+=*&#@$_~^|\\\u2013\u2014\u2026\u00b7\u2022\u00b0\u00d7")
+
+
+def _neutrals(seg: str) -> str:
+    out, plain = [], []
+    for c in seg:
+        if c in _MIRROR or c in _LATIN_PUNCT:
+            out.append(escape_latex("".join(plain)))
+            plain = []
+            out.append("\\rxltr{%s}" % escape_latex(_MIRROR.get(c, c)))
+        else:
+            plain.append(c)
+    out.append(escape_latex("".join(plain)))
+    return "".join(out)
+
+
 def wrap_runs(s: str, prof: dict) -> str:
     """Escape s. 'runs': target-script runs → \\rxs{}; 'rtl': Latin/digit runs → \\rxltr{}; 'zwsp': U+200B → break point."""
     mode, blocks = prof["layout"], prof["_blocks"]
@@ -38,9 +59,10 @@ def wrap_runs(s: str, prof: dict) -> str:
         e = escape_latex(t)
         return e.replace("\u200b", "\\hspace{0pt plus 1pt}") if zw else e
 
+    rtl = mode == "rtl"
     out, pos = [], 0
     for m in pat.finditer(s):
-        out += [escape_latex(s[pos:m.start()]), macro + "{" + run(m.group()) + "}"]
+        out += [_neutrals(s[pos:m.start()]) if rtl else escape_latex(s[pos:m.start()]), macro + "{" + run(m.group()) + "}"]
         pos = m.end()
-    out.append(escape_latex(s[pos:]))
+    out.append(_neutrals(s[pos:]) if rtl else escape_latex(s[pos:]))
     return "".join(out)
