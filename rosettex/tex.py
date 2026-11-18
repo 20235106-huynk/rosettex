@@ -1,6 +1,8 @@
 """Escape plain text for LaTeX (XeLaTeX + unicode-math)."""
 import re
 
+from .checks import in_blocks
+
 _ESC = {"\\": r"\textbackslash{}", "{": r"\{", "}": r"\}", "#": r"\#", "$": r"\$", "%": r"\%",
         "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
 
@@ -27,18 +29,22 @@ def _cls(blocks) -> str:
 # "(" (drawn at the right, opening) must use the ")" glyph.
 _MIRROR = {"(": ")", ")": "(", "[": "]", "]": "[", "<": ">", ">": "<", "{": "}", "}": "{",
            "\u201c": "\u201d", "\u201d": "\u201c", "\u2018": "\u2019", "\u2019": "\u2018", "\u00ab": "\u00bb", "\u00bb": "\u00ab"}
-_LATIN_PUNCT = set(";?-'\"%/+=*&#@$_~^|\\\u2013\u2014\u2026\u00b7\u2022\u00b0\u00d7")
 
 
-def _neutrals(seg: str) -> str:
+_ARABIC_FONT_OK = set(".,:!")  # the only ASCII punctuation Noto Naskh Arabic has
+
+
+def _neutrals(seg: str, blocks=()) -> str:
+    """rtl text outside Latin runs: the Arabic font keeps its own script, spaces and . , : !; every other character
+    (brackets, quotes, dashes, %, µ, ±, …) is set by the Latin font in \\rxltr{}, brackets and quotes mirrored."""
     out, plain = [], []
     for c in seg:
-        if c in _MIRROR or c in _LATIN_PUNCT:
-            out.append(escape_latex("".join(plain)))
-            plain = []
-            out.append("\\rxltr{%s}" % escape_latex(_MIRROR.get(c, c)))
-        else:
+        if c.isspace() or c in _ARABIC_FONT_OK or (blocks and in_blocks(c, blocks)):
             plain.append(c)
+            continue
+        out.append(escape_latex("".join(plain)))
+        plain = []
+        out.append("\\rxltr{%s}" % escape_latex(_MIRROR.get(c, c)))
     out.append(escape_latex("".join(plain)))
     return "".join(out)
 
@@ -62,7 +68,7 @@ def wrap_runs(s: str, prof: dict) -> str:
     rtl = mode == "rtl"
     out, pos = [], 0
     for m in pat.finditer(s):
-        out += [_neutrals(s[pos:m.start()]) if rtl else escape_latex(s[pos:m.start()]), macro + "{" + run(m.group()) + "}"]
+        out += [_neutrals(s[pos:m.start()], blocks) if rtl else escape_latex(s[pos:m.start()]), macro + "{" + run(m.group()) + "}"]
         pos = m.end()
-    out.append(_neutrals(s[pos:]) if rtl else escape_latex(s[pos:]))
+    out.append(_neutrals(s[pos:], blocks) if rtl else escape_latex(s[pos:]))
     return "".join(out)

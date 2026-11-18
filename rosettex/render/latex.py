@@ -32,6 +32,8 @@ def lang_lines(pack) -> tuple[list[str], list[str]]:
         return main, [r"\usepackage{polyglossia}", r"\setdefaultlanguage%s{%s}" % ("[%s]" % po if po else "", poly),
                       r"\setotherlanguage{english}", r"\newfontfamily\%sfont{%s}[%s]" % (poly, f, o),
                       r"\newcommand{\rxltr}[1]{\textenglish{#1}}",
+                      # generated numbers in Latin letters (IEEE tables: I, II, …) come from the Latin font too
+                      r"\AtBeginDocument{\let\rxthetable\thetable\renewcommand{\thetable}{\protect\rxltr{\rxthetable}}}",
                       # Naskh has no Latin letters or parentheses: math \text and equation tags go through the Latin font
                       r"\let\rxtext\text\renewcommand{\text}[1]{\rxtext{\textenglish{#1}}}",
                       r"\makeatletter\def\tagform@#1{\maketag@@@{\rxltr{(\ignorespaces#1\unskip\@@italiccorr)}}}\makeatother"]
@@ -361,7 +363,8 @@ class Renderer:
             i = out.find("\u2014")
             if self.style == "ieee" and IEEE_LEAD.match(src) and 0 < i < 40:  # IEEE: bold abstract with an italic lead-in
                 self._abstract = src.lstrip().startswith("Abstract")
-                return "\\noindent{\\small\\bfseries\\textit{%s}\u2014%s}" % (out[:i], out[i + 1:])
+                dash = "\\rxltr{\u2014}" if self.rtl else "\u2014"  # the Arabic font has no em dash
+                return "\\noindent{\\small\\bfseries\\textit{%s}%s%s}" % (out[:i], dash, out[i + 1:])
             if self.style == "ieee" and self._abstract:  # later paragraphs of the abstract, up to Index Terms
                 return "{\\small\\bfseries %s}" % out
             return out

@@ -160,3 +160,11 @@ def test_rtl_language_without_pack_gets_ascii_digits():
 def test_region_and_case_variants(raw, script, found):
     p = load_pack(raw)
     assert p["profile"]["id"] == script and p["pack_found"] is found and p["code"] == raw
+
+
+def test_rtl_sets_every_non_arabic_character_in_the_latin_font():
+    ur = load_pack("ur")["profile"]
+    assert wrap_runs("زمان 174 µs — ± مقدمه.", ur) == r"زمان \rxltr{174} \rxltr{µ}\rxltr{s} \rxltr{—} \rxltr{±} مقدمه."
+    doc, tr = doc_and_tr("نص")
+    tex = Renderer(doc, tr, load_pack("ar"), set(), {}).document()
+    assert r"\renewcommand{\thetable}{\protect\rxltr{\rxthetable}}" in tex  # generated Roman table numbers
