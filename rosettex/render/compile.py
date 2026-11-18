@@ -136,7 +136,8 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
               "key_terms": terms.get("terms", [])[:10], "tier": m.get("tier"), "tier_reason": m.get("tier_reason"),
               "device": "MinerU tự chọn (lát 1 chưa ép thiết bị)", "tex": tool[0],
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],
-              "flagged": read_json(work.flagged, []), "unreviewed": True, "postcheck": pc}
+              "flagged": read_json(work.flagged, []), "dropped": len(doc["source"].get("dropped", [])),
+              "unreviewed": True, "postcheck": pc}
     write_json(work.report, report)
     m["fallback"] = sorted(fb)
     write_json(work.manifest, m)

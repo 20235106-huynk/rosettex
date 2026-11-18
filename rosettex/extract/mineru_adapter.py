@@ -11,6 +11,7 @@ from .tables import parse_table_html
 
 KIND = {"doc_title": "heading", "paragraph_title": "heading", "text": "paragraph", "equation": "equation",
         "table": "table", "chart": "figure", "image": "figure", "page_footnote": "footnote", "ref_text": "reference"}
+NOISE = {"page_number", "header", "footer"}  # bỏ có chủ ý, không báo là mất nội dung
 NUM_HEAD = re.compile(r"^\s*(\d+(?:\.\d+)*)\.?\s+(?=\S)")
 CAPTION = re.compile(r"^\s*(?:Figure|Fig\.|Table|Tab\.)\s*(\d+)\s*[:.]\s*", re.I)
 TAG = re.compile(r"\\tag\s*\{([^{}]*)\}")
@@ -107,6 +108,29 @@ def _block(b, kind, page, gdir, root) -> dict:
     return out
 
 
+def _dropped(b, kind, page) -> list[dict]:
+    """Ghi lại những gì adapter không đọc: loại khối lạ, loại span lạ, phần của bảng/hình bị bỏ hoặc bị ghi đè."""
+    bid = f"p{page}b{b.get('index')}"
+    mk = lambda what, t: {"what": what, "type": t, "page": page, "block": bid}  # noqa: E731
+    if kind is None:
+        return [] if b["type"] in NOISE else [mk("block", b["type"])]
+    c, out, spans = b["content"], [], []
+    if kind in ("table", "figure"):
+        seen = set()
+        for p in (x for x in c if isinstance(x, dict)):
+            key = p["type"].rsplit("_", 1)[-1]
+            if key not in ("caption", "body") or key in seen:
+                out.append(mk("part", p["type"]))
+            seen.add(key)
+            if key == "caption" and isinstance(p.get("content"), list):
+                spans += p["content"]
+    elif kind != "equation" and isinstance(c, list):
+        spans = c
+    out += [mk("span", x.get("type")) for x in spans
+            if isinstance(x, dict) and x.get("type") not in ("equation_inline", "text")]
+    return out
+
+
 def _columns(blocks) -> int:
     paras = [b for b in blocks if b["kind"] == "paragraph"]
     half = sum(1 for b in paras if b["bbox"][2] <= 0.52 or b["bbox"][0] >= 0.48)
@@ -118,6 +142,7 @@ def adapt(groups, root) -> dict:
     blocks: list[dict] = []
     seen: set[str] = set()
     counts = {"tables": 0, "figures": 0, "tagged_equations": 0, "references": 0}
+    dropped: list[dict] = []
     npages, producer, tier = 0, "mineru", "?"
     for middle, gdir in groups:
         npages = max(npages, middle["metadata"]["document"]["page_count"])
@@ -134,6 +159,7 @@ def adapt(groups, root) -> dict:
                 counts["references"] += t == "ref_text"
                 counts["tagged_equations"] += t == "equation" and bool(TAG.search(str(b["content"])))
                 kind = KIND.get(t)
+                dropped += _dropped(b, kind, page["page_idx"] + 1)
                 if kind is None:
                     continue
                 blk = _block(b, kind, page["page_idx"] + 1, gdir, root)
@@ -155,5 +181,6 @@ def adapt(groups, root) -> dict:
     default = sizes[min(sizes)] if sizes else [612.0, 792.0]
     return {"schema": "rosettex.document/1",
             "source": {"pages": npages, "page_size_pt": [sizes.get(i, default) for i in range(1, npages + 1)],
-                       "columns": cols, "parser": f"{producer}/{tier}", "counts": counts},
+                       "columns": cols, "parser": f"{producer}/{tier}", "counts": counts,
+                       "dropped": dropped},
             "blocks": blocks}

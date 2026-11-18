@@ -62,3 +62,32 @@ def test_adapt_long_dedupes_labels_and_counts():
     assert len(labels) == len(set(labels)) and labels.count("eq:1") == 1
     assert doc["source"]["counts"] == {"tables": 28, "figures": 28, "tagged_equations": 56, "references": 4}
     assert doc["source"]["pages"] == 20
+
+
+def _synthetic():
+    m, d = load("standard", "short")
+    page = m["pages"][0]
+    page["blocks"] += [
+        {"type": "list", "index": 90, "bbox": [0.1, 0.1, 0.4, 0.2], "content": "a list"},
+        {"type": "text", "index": 91, "bbox": [0.1, 0.3, 0.4, 0.4],
+         "content": [{"type": "text", "content": "x"}, {"type": "footnote_ref", "content": "1"}]},
+        {"type": "table", "index": 92, "bbox": [0.1, 0.5, 0.4, 0.6],
+         "content": [{"type": "table_body", "content": "<table><tr><td>a</td></tr></table>"},
+                     {"type": "table_footnote", "content": [{"type": "text", "content": "note"}]}]},
+    ]
+    return m, d, page["page_idx"] + 1
+
+
+def test_dropped_content_is_recorded():
+    m, d, pg = _synthetic()
+    doc = adapt([(m, d)], d)
+    dropped = doc["source"]["dropped"]
+    assert {"what": "block", "type": "list", "page": pg, "block": f"p{pg}b90"} in dropped
+    assert {"what": "span", "type": "footnote_ref", "page": pg, "block": f"p{pg}b91"} in dropped
+    assert {"what": "part", "type": "table_footnote", "page": pg, "block": f"p{pg}b92"} in dropped
+    assert not any(x["type"] == "page_number" for x in dropped)  # nhiễu có chủ ý, không tính
+
+
+def test_clean_fixture_records_nothing_dropped():
+    m, d = load("standard", "short")
+    assert adapt([(m, d)], d)["source"]["dropped"] == []

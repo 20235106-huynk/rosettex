@@ -52,6 +52,7 @@ Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần
 - tier đã dùng;
 - các mục trong `fallback`, kèm trang: công thức hoặc bảng đang hiển thị dạng mã LaTeX;
 - các mục trong `flagged`, kèm trang: công thức đáng ngờ;
+- `dropped`: số mục nội dung của bản gốc mà bộ tách không đọc được và nên không có trong bản dịch (loại khối, span hoặc phần bảng/hình lạ; chi tiết trong `document.json`, `source.dropped`). Nếu khác 0, nói rõ với người dùng rằng bản dịch có thể thiếu những phần đó;
 - câu "công thức và bảng chưa được đối chiếu với bản gốc";
 - các vấn đề trong `postcheck.problems`, nếu có.
 
