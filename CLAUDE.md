@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Phase 1 is built as **vertical slices**, each with its own spec and plan:
 - Slice 1: the end-to-end flow for PDFs with a text layer. **Done.**
-- **Slice 1b: script coverage. Done** (21 packs in 15 scripts, all `tested: false` except `vi`; fonts for the non-Latin scripts ship inside the package, `rosettex/fonts/`). Spec `docs/superpowers/specs/2026-11-18-rosettex-slice1b-design.md`, plan `docs/superpowers/plans/2026-11-18-rosettex-slice1b.md`, record `docs/superpowers/notes/2026-11-18-slice1b-acceptance.md` (reader checks per pack are open). Real runs with MinerU 4.2.3 (installed in `~/.rosettex/mineru-venv`): 2611.23202 translated into all 21 packs (20 by Haiku subagents), PDFs in `~/Desktop/Learn/rosettex-demos/`. Later additions on the branch: IEEE venue style (`IEEEtran`), figure crops from the source PDF, floats placed on the page that first mentions them, decimal-comma numbers for `fr`/`ru`/`uk`, length ratio as a warning (SG decision 5 amended). 248 tests pass, 2 skipped. Branch `slice1b` is not merged into `main` yet. Open items of slice 1b: `docs/superpowers/notes/2026-11-18-slice1b-open-items.md` (reader check, threshold tuning, XeLaTeX/macOS/Windows, other venue styles).
+- **Slice 1b: script coverage. Done** (21 packs in 15 scripts, all `tested: false` except `vi`; fonts for the non-Latin scripts ship inside the package, `rosettex/fonts/`). Spec `docs/superpowers/specs/2026-11-18-rosettex-slice1b-design.md`, plan `docs/superpowers/plans/2026-11-18-rosettex-slice1b.md`, record `docs/superpowers/notes/2026-11-18-slice1b-acceptance.md` (reader checks per pack are open). Real runs with MinerU 4.2.3 (installed in `~/.rosettex/mineru-venv`): 2611.23202 translated into all 21 packs (20 by Haiku subagents), PDFs in `~/Desktop/Learn/rosettex-demos/`. Later additions on the branch: IEEE venue style (`IEEEtran`), figure crops from the source PDF, floats placed on the page that first mentions them, decimal-comma numbers for `fr`/`ru`/`uk`, length ratio as a warning (SG decision 5 amended). 252 tests pass, 2 skipped. Branch `slice1b` is not merged into `main` yet. Open items of slice 1b: `docs/superpowers/notes/2026-11-18-slice1b-open-items.md` (reader check, threshold tuning, XeLaTeX/macOS/Windows, other venue styles).
 - **Slice 2 (next): `review`.**
 - Slice 3: `setup`, `doctor`, auto-download (including fonts per script), GPU.
 - Slice 4: scan/OCR.
@@ -31,6 +31,8 @@ uv run python scripts/get_tectonic.py           # Tectonic 0.17.0 → ~/.rosette
 uv run --with fonttools==4.68.0 python scripts/build_fonts.py --cache <dir>   # rebuild rosettex/fonts (dev only)
 uv run python -m rosettex.protocol.build        # regenerate skill/SKILL.md and skill/AGENTS.md after editing protocol.md
 ```
+
+XeLaTeX (TeX Live 2026, installed in user mode in `~/texlive`) can replace Tectonic: `PATH=~/texlive/2026/bin/x86_64-linux:$PATH ROSETTEX_TEX=~/texlive/2026/bin/x86_64-linux/xelatex uv run pytest tests/test_render.py -q` (slice 1b spec §15 item 23 lists the extra TeX packages). Venue styles (IEEE, Springer LNCS, Elsevier CAS, ACM) use the venue's own class when the TeX distribution has it, else fall back to the generic build.
 
 Tests that need TeX skip themselves when neither Tectonic nor XeLaTeX is found. End-to-end tests use `tests/fake_mineru.py` by default (set via `ROSETTEX_MINERU`), so real MinerU is not needed.
 
