@@ -230,3 +230,32 @@ def test_dead_job_resumed_once_then_stops(env, capsys):
     die()  # lần chạy lại cũng chết (beat giữ bộ đếm)
     st = run(capsys, "status", w.root, "--json")[1]
     assert st["next_action"] is None and st["error"]
+
+
+# ---------------- đợt sửa sau review ----------------
+def _foreign_dir(tmp_path):
+    d = tmp_path / "dự án khác"
+    d.mkdir()
+    (d / "manifest.json").write_text('{"name": "app", "version": 1}', encoding="utf-8")
+    (d / "keep.txt").write_text("x", encoding="utf-8")
+    return d
+
+
+def test_clean_refuses_foreign_manifest(capsys, tmp_path):
+    d = _foreign_dir(tmp_path)
+    code, r = run(capsys, "clean", d, "--json")
+    assert code == 2 and r["next_action"] is not None and (d / "keep.txt").exists()
+
+
+def test_extract_into_foreign_manifest_dir_is_usage_error(env, capsys, tmp_path):
+    src, outdir = env
+    d = _foreign_dir(tmp_path)
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "-o", d, "--foreground", "--json")
+    assert code == 2 and r["next_action"] and (d / "keep.txt").exists()
+
+
+def test_extract_writes_schema_marker_and_clean_works(env, capsys):
+    src, outdir = env
+    w = Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
+    assert read_json(w.manifest)["schema"] == "rosettex.work/1"
+    assert run(capsys, "clean", w.root, "--json")[0] == 0 and not w.root.exists()

@@ -8,11 +8,11 @@ from pathlib import Path
 
 from .checks import check_batch, load_pack, nfc
 from .pdf import render_page_png
-from .workspace import UsageError, Work, q, read_json, write_json
+from .workspace import UsageError, Work, q, read_json, read_manifest, write_json
 
 
 def manifest(work: Work) -> dict:
-    m = read_json(work.manifest)
+    m = read_manifest(work)
     if m is None:
         raise UsageError(f"không phải thư mục làm việc rosettex: {work.root}")
     return m

@@ -15,7 +15,8 @@ from .extract.run import ExtractError, extract_core
 from .pdf import page_count
 from .render.compile import RenderError, render_core
 from .tools import available_ram_bytes, choose_tier, find_mineru, find_tex, verify_models
-from .workspace import UsageError, Work, beat, job_state, q, read_json, spawn_detached, write_json
+from .workspace import (SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
+                        write_json)
 
 
 def emit(obj, as_json: bool) -> None:
@@ -45,7 +46,7 @@ def cmd_extract(a):
     out = resolve_out(pdf, a.lang, a.out)
     work = Work(a.work or out.parent / ".rosettex" / pdf.stem)
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
-    m = read_json(work.manifest)
+    m = read_manifest(work)
     if m and m["sha256"] != digest:
         raise UsageError(f"thư mục làm việc {work.root} thuộc một bài khác",
                          next_action=f"rosettex clean {q(work.root)} --json")
@@ -62,7 +63,7 @@ def cmd_extract(a):
                              next_action=f"mineru-kit models download --tier {tier}", detail=log[-2000:])
         work.root.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(pdf, work.src_pdf)
-        m = {"lang": a.lang, "out": str(out), "source": str(pdf), "sha256": digest,
+        m = {"schema": SCHEMA, "lang": a.lang, "out": str(out), "source": str(pdf), "sha256": digest,
              "pages": page_count(work.src_pdf), "tier": tier, "tier_reason": reason,
              "pages_per_group": a.pages_per_group, "extract_cmd": resume}
         write_json(work.manifest, m)
@@ -105,7 +106,7 @@ def cmd_extract(a):
 
 # ---------------- status ----------------
 def status(work: Work) -> dict:
-    m = read_json(work.manifest)
+    m = read_manifest(work)
     if m is None:
         return {"state": "missing", "message": "chưa có thư mục làm việc; chạy rosettex extract", "next_action": None}
     r = q(work.root)
@@ -223,7 +224,7 @@ def cmd_render(a):
 # ---------------- khác ----------------
 def cmd_clean(a):
     w = Work(a.work)
-    if not w.manifest.exists():
+    if read_manifest(w) is None:
         raise UsageError(f"không phải thư mục làm việc rosettex (thiếu manifest.json): {w.root}")
     shutil.rmtree(w.root)
     return 0, {"ok": True, "removed": str(w.root)}

@@ -45,6 +45,9 @@ def read_json(path, default=None):
         return default
 
 
+SCHEMA = "rosettex.work/1"
+
+
 class Work:
     def __init__(self, root):
         r = self.root = Path(root).expanduser().resolve()
@@ -67,6 +70,21 @@ class Work:
 
     def translation_path(self, bid: str, lang: str) -> Path:
         return self.batches / f"{bid}.{lang}.json"
+
+
+def read_manifest(work: Work) -> dict | None:
+    """manifest.json của thư mục làm việc rosettex; None nếu chưa có; UsageError nếu là file của thứ khác."""
+    try:
+        m = read_json(work.manifest)
+    except ValueError:
+        m = "?"
+    if m is None:
+        return None
+    # thư mục tạo trước khi có dấu schema: nhận qua bộ khóa đặc trưng
+    if not (isinstance(m, dict) and (m.get("schema") == SCHEMA or {"sha256", "extract_cmd", "lang"} <= m.keys())):
+        raise UsageError(f"{work.manifest} không phải manifest của rosettex; không đụng vào thư mục này",
+                         next_action="chọn thư mục làm việc khác bằng -o <thư mục>")
+    return m
 
 
 def beat(work: Work, command: str, resume: str, step: str, done: int, total: int,
