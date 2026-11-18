@@ -108,14 +108,8 @@ def _block(b, kind, page, gdir, root) -> dict:
                 cell["id"] = f"{out['id']}r{cell['r']}c{cell['c']}"
             out["cells"] = cells
         out["image"] = _img(body, gdir, root)
-        if kind == "figure" and body.get("bbox"):
-            crop = list(body["bbox"])
-            caps = [p for p in c if isinstance(p, dict) and p["type"].endswith("_caption") and p.get("bbox")]
-            if caps:  # MinerU cuts the body short of notes drawn between the figure and its caption
-                top = caps[-1]["bbox"][1]
-                if 0 < top - crop[3] < 0.08:
-                    crop[3] = top - 0.004
-            out["crop"] = crop
+        if kind == "figure" and _crop_of(c):
+            out["crop"] = _crop_of(c)
     elif kind == "footnote":
         spans = spans_of(c)
         if spans and spans[0]["t"] == "sup":  # the footnote mark is its own superscript span
@@ -131,6 +125,20 @@ def _block(b, kind, page, gdir, root) -> dict:
     return out
 
 
+def _crop_of(c) -> list[float] | None:
+    """The picture box of a figure: MinerU's body, down to just above the real (last) caption when notes are drawn
+    between them (MinerU cuts the body short of those)."""
+    parts = [p for p in c if isinstance(p, dict)]
+    body = next((p for p in parts if p["type"].endswith("_body")), None)
+    if not body or not body.get("bbox"):
+        return None
+    crop = list(body["bbox"])
+    caps = [p for p in parts if p["type"].endswith("_caption") and p.get("bbox")]
+    if caps and 0 < caps[-1]["bbox"][1] - crop[3] < 0.08:
+        crop[3] = caps[-1]["bbox"][1] - 0.004
+    return crop
+
+
 def _dropped(b, kind, page) -> list[dict]:
     """Record what the adapter does not read: unknown block types, unknown span types, table/figure parts that are dropped or overwritten."""
     bid = f"p{page}b{b.get('index')}"
@@ -144,7 +152,10 @@ def _dropped(b, kind, page) -> list[dict]:
             key = p["type"].rsplit("_", 1)[-1]
             label_part = kind == "table" and key == "caption" and _table_no([p]) is not None  # read as the table number
             caps = [x for x in c if isinstance(x, dict) and x["type"].endswith("_caption")]
-            note = kind == "figure" and key == "caption" and len(caps) > 1 and p is not caps[-1]  # drawn in the crop
+            crop = _crop_of(c) if kind == "figure" else None
+            pb = p.get("bbox") or [0, 0, 0, 0]
+            note = (crop is not None and key == "caption" and len(caps) > 1 and p is not caps[-1]  # drawn in the picture
+                    and pb[1] >= crop[1] - 0.01 and pb[3] <= crop[3] + 0.01)
             label_part = label_part or note
             if (key not in ("caption", "body") or key in seen) and not label_part:
                 out.append(mk("part", p["type"]))
@@ -190,6 +201,7 @@ def _figure_text(blocks) -> tuple[list[dict], list[dict]]:
     """Headings/paragraphs that are text of a diagram: inside a figure's box, or a heading sitting right on top of a
     figure in the same column (MinerU reads a diagram's title as a heading). They are dropped and reported."""
     figs = [b for b in blocks if b["kind"] == "figure" and b.get("bbox")]
+    numbered = sum(1 for b in blocks if b["kind"] == "heading" and b.get("number"))
     keep, gone = [], []
     for b in blocks:
         bb = b.get("bbox")
@@ -198,8 +210,11 @@ def _figure_text(blocks) -> tuple[list[dict], list[dict]]:
             for f in (f for f in figs if f["page"] == b["page"]):
                 fb = f["bbox"]
                 inside = fb[0] - 0.01 <= bb[0] and bb[2] <= fb[2] + 0.01 and fb[1] - 0.01 <= bb[1] and bb[3] <= fb[3] + 0.01
-                above = (b["kind"] == "heading" and 0 <= fb[1] - bb[3] < 0.03 and abs(bb[0] - fb[0]) < 0.02
-                         and bb[2] <= fb[2] + 0.01)
+                # a numbered heading counts as a diagram title only when the paper's own headings are not numbered
+                # that way (a real "4 Results" above a column-wide figure stays a section)
+                real = bool(b.get("number")) and numbered >= 3
+                above = (b["kind"] == "heading" and not real and 0 <= fb[1] - bb[3] < 0.03
+                         and abs(bb[0] - fb[0]) < 0.02 and bb[2] <= fb[2] + 0.01)
                 if above and f.get("crop"):  # the diagram's title is part of the picture
                     f["crop"] = [min(f["crop"][0], bb[0]), min(f["crop"][1], bb[1] - 0.004), max(f["crop"][2], bb[2]),
                                  f["crop"][3]]

@@ -179,3 +179,18 @@ def test_decimal_comma_languages_may_localise_numbers():
 def test_narrow_spaces_are_typeset_by_tex():
     from rosettex.tex import escape_latex
     assert escape_latex("1 000 et 5 000") == r"1\,000 et 5~000"
+
+
+def test_english_thousands_with_decimals_may_be_localised():
+    from rosettex.checks import missing_numbers
+    fr = load_pack("fr")
+    src = "latency 1,234.5 ms"
+    for ok in ("latence 1 234,5 ms", "latence 1.234,5 ms", "latence 1 234,5 ms", "latence 1,234.5 ms"):
+        assert not missing_numbers(src, ok, fr), ok
+    assert missing_numbers(src, "latence 1,234 ms", fr) == {"1234.5": 1}
+
+
+def test_decimal_comma_packs_have_no_conflicting_number_rule():
+    for code in ("fr", "ru", "uk", "vi", "de"):
+        assert "1 000" in " ".join(load_pack(code)["rules"]), code
+        assert sum("number" in r.lower() and "digits" in r.lower() for r in load_pack(code)["rules"]) == 1, code

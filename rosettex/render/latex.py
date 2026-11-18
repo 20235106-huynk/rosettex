@@ -430,12 +430,15 @@ class Renderer:
         flow = [b for b in blocks if b["kind"] not in ("table", "figure")]
         pos = {b["id"]: i for i, b in enumerate(flow)}
         before = defaultdict(list)  # flow index -> floats emitted just before that block
+        last = {"figure": 0, "table": 0}  # LaTeX numbers floats in emission order: never put one before an earlier one
         for i, b in enumerate(blocks):
             if b["kind"] in ("table", "figure"):
                 rb = first_ref.get(b.get("label"))
                 nxt = next((x["id"] for x in blocks[i + 1:] if x["kind"] not in ("table", "figure")), None)
                 anchor = pos.get(rb, pos.get(nxt, len(flow)))  # the paragraph that first mentions it, else where it was
                 anchor = pos.get(self.place.get(b.get("label") or ""), anchor)
+                anchor = max(anchor, last[b["kind"]])  # keep the source order inside each kind (caption numbers)
+                last[b["kind"]] = anchor
                 before[anchor].append(b)
         body, front, in_front, auth = [], [], True, []
         for j, b in enumerate(flow + [None]):

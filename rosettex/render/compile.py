@@ -151,6 +151,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     fb = set(m.get("fallback", []))
     beat = lambda: on_beat("compiling")  # noqa: E731
 
+    own_fonts = {e["file"] for e in fonts_res.values()} | {e["file"] for e in pack["fonts"]}
     style = paper_style(doc)  # the venue's class; falls back to the generic build if that class cannot compile
     venue_failed = []
 
@@ -170,12 +171,12 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         if ok:
             break
         bad = font_error(output + log)
-        if bad:
+        if bad and (bad in own_fonts or style not in VENUE_STYLES):  # not ours: maybe the venue class's own font
             raise FontMissing(pack["profile"]["id"], [e for e in pack["fonts"] if e["file"] == bad] or [{"file": bad, "license": None}],
                               message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
                                       "with Tectonic rerun when the network works")
         c = culprit(log)
-        if c is None and retreat(output + log):  # an error before any item: the venue class itself
+        if (bad or c is None or c in fb) and retreat(output + log):  # the venue class itself fails: generic build
             continue
         if c is None or c in fb:
             raise RenderError("trial compile failed and the failing item could not be identified: " + _tail(output + log))
@@ -189,14 +190,17 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         if ok:
             break
         bad = font_error(output + log)
-        if bad:
+        if bad and (bad in own_fonts or style not in VENUE_STYLES):
             raise FontMissing(pack["profile"]["id"], [e for e in pack["fonts"] if e["file"] == bad] or [{"file": bad, "license": None}],
                               message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
                                       "with Tectonic rerun when the network works")
         c = culprit(log)
-        if not c and retreat(output + log):
+        if bad and retreat(output + log):
             continue
-        if not c or not expand_fallback(doc, c, fb):
+        fixed = bool(c) and expand_fallback(doc, c, fb)  # item-level repair first
+        if not fixed:
+            if retreat(output + log):  # a class error that no single block explains (also after the first mark)
+                continue
             raise RenderError("compiling main.tex failed: " + _tail(output + log))
     else:
         raise RenderError("more than 20 repair passes compiling main.tex")
@@ -220,7 +224,10 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         r.place = dict(place)
         tex2 = r.document()
         (work.out / "main.tex").write_text(tex2, encoding="utf-8", newline="\n")
-        ok2, output2, log2 = run_tex(tool, work.out, "main.tex", beat)
+        try:
+            ok2, output2, log2 = run_tex(tool, work.out, "main.tex", beat)
+        except RenderError:  # an improvement pass must never turn a finished build into a failure (e.g. a timeout)
+            break
         if not ok2:
             break
         log, pages = log2, float_pages(log2)

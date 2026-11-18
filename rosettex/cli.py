@@ -13,6 +13,7 @@ from . import __version__, translate
 from .checks import load_pack
 from .extract.run import ExtractError, extract_core
 from .pdf import page_count
+from .checks import RAW_CODE_RE
 from .fonts import FontMissing, resolve_fonts
 from .render.compile import RenderError, render_core
 from .tools import available_ram_bytes, choose_tier, find_mineru, find_tex, verify_models
@@ -53,7 +54,7 @@ def script_info(lang: str, strict: bool = True) -> dict:
 
 # ---------------- extract ----------------
 def cmd_extract(a):
-    if not re.fullmatch(r"[A-Za-z]{2,3}(?:[-_][A-Za-z]{2,8})?", a.lang):
+    if not RAW_CODE_RE.fullmatch(a.lang):
         raise UsageError(f"invalid language code: {a.lang} (for example: vi, en, fr)")
     pdf = Path(a.pdf).expanduser().resolve()
     if not pdf.is_file():

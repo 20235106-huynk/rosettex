@@ -302,3 +302,72 @@ def test_length_ratio_is_a_warning_not_a_problem(tmp_path, monkeypatch):
         tex = "".join("\\ref{%s}" % n for u in doc["units"] for n in u["ph"] if n[0] in "cr")
         r = pcm.postcheck(w, w.src_pdf, "", tex, {**doc, "source": {**doc["source"], "counts": {}}}, {}, load_pack(code), set())
         assert not any("length" in p for p in r["problems"]) and bool(r["warnings"]) is warn, (code, ratio, r)
+
+
+def test_numbered_section_above_a_figure_stays_a_section():
+    from rosettex.extract.mineru_adapter import _figure_text
+    fig = {"kind": "figure", "id": "f", "page": 4, "bbox": [0.08, 0.30, 0.48, 0.50]}
+    sec = {"kind": "heading", "id": "h", "page": 4, "bbox": [0.08, 0.27, 0.30, 0.29], "number": "4"}
+    others = [{"kind": "heading", "id": f"x{i}", "page": 1, "bbox": [0, 0, 1, 1], "number": str(i)} for i in (1, 2, 3)]
+    keep, gone = _figure_text(others + [sec, fig])
+    assert "h" in [b["id"] for b in keep] and not gone                 # a paper with numbered sections: a real heading
+    keep, gone = _figure_text([sec, fig])
+    assert [g["block"] for g in gone] == ["h"]                         # no numbered sections: it is the diagram's title
+
+
+def test_figure_parts_outside_the_picture_are_still_reported_as_dropped():
+    from rosettex.extract.mineru_adapter import _dropped
+    cap = lambda y0, y1, t: {"type": "image_caption", "bbox": [0.1, y0, 0.5, y1], "content": [{"type": "text", "content": t}]}  # noqa: E731
+    body = {"type": "image_body", "bbox": [0.1, 0.30, 0.5, 0.50], "content": ""}
+    inside = {"type": "image", "index": 3, "content": [body, cap(0.51, 0.53, "note"), cap(0.55, 0.57, "Fig. 1. Real.")]}
+    far = {"type": "image", "index": 4, "content": [cap(0.10, 0.12, "title"), body, cap(0.55, 0.57, "Fig. 1. Real.")]}
+    assert not [d for d in _dropped(inside, "figure", 1) if d["what"] == "part"]
+    assert [d["type"] for d in _dropped(far, "figure", 1) if d["what"] == "part"] == ["image_caption"]
+
+
+def test_floats_keep_their_source_order_within_a_kind():
+    from rosettex.render.latex import Renderer
+    para = lambda i, t: {"id": i, "kind": "paragraph", "page": 1, "spans": [{"t": "text", "v": t}]}  # noqa: E731
+    tab = lambda i, n: {"id": i, "kind": "table", "page": 1, "label": f"tab:{n}", "caption": [], "cells": [], "bbox": [0, 0, 1, 1]}  # noqa: E731
+    doc = {"blocks": [para("p1", "x"), para("p2", "x"), tab("t1", 1), tab("t3", 3)], "source": {"columns": 1, "page_size_pt": [[612, 792]]},
+           "units": [{"id": "p1", "type": "paragraph", "block": "p1", "src": "As Table 3 shows", "ph": {"r1": {"src": "3", "tex": "\\ref{tab:3}"}}},
+                     {"id": "p2", "type": "paragraph", "block": "p2", "src": "Table 1 and ⟦r1⟧", "ph": {"r1": {"src": "1", "tex": "\\ref{tab:1}"}}}]}
+    from rosettex.checks import load_pack
+    tex = Renderer(doc, {"p1": "Table ⟦r1⟧", "p2": "Table ⟦r1⟧"}, load_pack("fr"), set(), {}).document()
+    assert tex.index("label{tab:1}") < tex.index("label{tab:3}")  # Table 3 is mentioned first but must stay after Table 1
+
+
+@needs_tex
+def test_venue_class_font_error_falls_back_to_the_generic_build(tmp_path, monkeypatch):
+    from rosettex.render import compile as C
+    real, calls = C.run_tex, [0]
+
+    def fake(tool, d, name, beat=None):
+        calls[0] += 1
+        if calls[0] == 1:  # the venue class asks for a font the TeX install does not have
+            return False, 'Package fontspec Error: The font "LinLibertine_R" cannot be found.', ""
+        return real(tool, d, name, beat)
+    monkeypatch.setattr(C, "run_tex", fake)
+    monkeypatch.setattr(C, "paper_style", lambda doc: "llncs")
+    w = make_work(tmp_path)
+    translate_all(w)
+    rep = render_core(w, tmp_path / "o.pdf")
+    assert rep["style"] == "generic" and rep["style_fallback"][0]["style"] == "llncs" and rep["postcheck"]["ok"]
+
+
+@needs_tex
+def test_a_failing_float_pass_keeps_the_finished_build(tmp_path, monkeypatch):
+    from rosettex.render import compile as C
+    real = C.run_tex
+
+    def fake(tool, d, name, beat=None):
+        if (d / "main.best.pdf").exists():  # only the float passes run with a best build on disk
+            raise C.RenderError("compiling main.tex timed out")
+        return real(tool, d, name, beat)
+    monkeypatch.setattr(C, "run_tex", fake)
+    monkeypatch.setattr(C, "place_floats", lambda doc, log, place: {**place, "fig:1": "p1b0"})  # force a re-pass
+    monkeypatch.setattr(C, "_off", lambda pages: 1)
+    w = make_work(tmp_path)
+    translate_all(w)
+    rep = render_core(w, tmp_path / "o.pdf")
+    assert (tmp_path / "o.pdf").is_file() and rep["postcheck"]["ok"]

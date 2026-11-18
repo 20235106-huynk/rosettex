@@ -16,8 +16,15 @@ def package_dir() -> Path:
     return Path(str(files("rosettex") / "fonts"))
 
 
+_SHA: dict = {}
+
+
 def _sha(p: Path) -> str:
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+    st = p.stat()
+    key = (str(p), st.st_size, st.st_mtime_ns)  # a font file is hashed once per process, not once per compile
+    if key not in _SHA:
+        _SHA[key] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return _SHA[key]
 
 
 def _manifest() -> dict:

@@ -61,7 +61,7 @@
   "Keep the level of certainty of the source sentence (may, might, suggest, likely, significant…).",
   "Check negations and the direction of comparisons carefully (more/less, higher/lower, outperform, at least/at most).",
   "Use the terms in terms.json exactly, consistently across the whole paper.",
-  "Table cells: translate the text, keep numbers and symbols unchanged.",
+  "Table cells: translate the text, keep the values of numbers and the symbols.",
   "Write natural academic Vietnamese; add no translator notes."
  ],
  "min_target_ratio": 0.03

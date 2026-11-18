@@ -9,10 +9,9 @@ from importlib.resources import files
 
 PH_RE = re.compile(r"⟦([a-z])(\d+)⟧")
 NUM_RE = re.compile(r"\d+(?:[.,]\d+)*")
-THOUSANDS = re.compile(r"\d{1,3}(?:,\d{3})+")
+THOUSANDS = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?")
 
 
-CODE_RE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2,8})?")
 RAW_CODE_RE = re.compile(r"[A-Za-z]{2,3}(?:[-_][A-Za-z]{2,8})?")
 
 
@@ -84,7 +83,9 @@ def load_pack(code: str) -> dict:
                 pack["polyglossia_options"] = "numerals=maghrib"
     pack["decimal_comma"] = bool((entry or {}).get("decimal_comma"))
     if pack["decimal_comma"]:  # the number rule becomes the language's own style (spec: slice 1b §15 item 18)
-        pack["rules"] = [DECIMAL_COMMA_RULE if r == DEFAULT_NUMBER_RULE else r for r in pack["rules"]]
+        pack["rules"] = [DECIMAL_COMMA_RULE if r == DEFAULT_NUMBER_RULE else r for r in pack["rules"]
+                         if not (("exactly as in the source" in r or "exactly as written" in r) and "digits" in r.lower()
+                                 and r != DEFAULT_NUMBER_RULE)]  # pack lines like "ASCII digits … exactly as in the source"
     pack["pack_found"], pack["script_known"] = found, found or entry is not None
     pack["profile"] = load_profile(pack["script"])
     pack.setdefault("fonts", pack["profile"]["fonts"])
@@ -123,7 +124,8 @@ def _local_values(tok: str) -> set[str]:
     """Readings of a number written by a decimal-comma language: '0,05' -> 0.05, '1 000' / '1.000' -> 1000.
     The source reading stays possible ("0.05" kept as is), except English thousands with commas: "1,000" means 1 in
     these languages, so it must be rewritten ("1 000")."""
-    out = set() if THOUSANDS.fullmatch(tok) else {tok}
+    # English "1,000" reads as 1 here and is out; "1,234.5" (comma and point) is unambiguous English: its value stays
+    out = ({tok.replace(",", "")} if "." in tok else set()) if THOUSANDS.fullmatch(tok) else {tok}
     t = re.sub(r"[ \u00a0\u202f]", "", tok)
     if GROUP_DOT.fullmatch(t):
         t = t.replace(".", "")
@@ -229,7 +231,7 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
         errs.append("extra or wrong placeholder: " + " ".join(sorted((pd - ps).elements())))
     lost = missing_numbers(src, dst, pack)
     if lost:
-        how = ("keep every number's value; write it as in the source or in the target style"
+        how = ("keep every number's value, in the target style (0,05; 1 000), or as in the source except 1,000"
                if pack.get("decimal_comma") else "keep numbers exactly as in the source, including the decimal point")
         errs.append("missing or changed number: " + " ".join(sorted(lost.elements())) + f" ({how})")
     fd = foreign_digits(src, dst)
