@@ -41,3 +41,10 @@ def test_protocol_covers_scripts_and_fonts():
     t = text("vi")
     for k in ("BCP-47", "script_known", "pack_found", "font_missing", "missing_glyphs", "lang_tested", "sr-Latn"):
         assert k in t
+
+
+def test_protocol_covers_what_agents_got_wrong():
+    t = text("vi")
+    for k in ("--foreground", "no other key", "⟦r1⟧", "reference list is not in any batch", "inside figures",
+              "run `validate` again", "Never change the meaning", "floats_off_page", "| head"):
+        assert k in t, k
