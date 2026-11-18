@@ -54,8 +54,9 @@ OWNED = ("src.pdf", "manifest.json", "progress.json", "document.json", "terms.js
 
 
 def is_leftover(root: Path) -> bool:
-    """Thư mục chưa có manifest mà mọi mục đều của rosettex (hoặc file .*.tmp): dấu vết của lần chạy bị ngắt."""
-    return all(p.name in OWNED or (p.name.startswith(".") and p.name.endswith(".tmp")) for p in root.iterdir())
+    """Chưa có manifest, có src.pdf (thứ đầu tiên extract ghi) và mọi mục đều của rosettex (hoặc file .*.tmp):
+    dấu vết của lần chạy bị ngắt. Thư mục trống hay chỉ có `out/` của người dùng thì không tính."""
+    return (root / "src.pdf").is_file() and all(p.name in OWNED or (p.name.startswith(".") and p.name.endswith(".tmp")) for p in root.iterdir())
 
 
 class Work:

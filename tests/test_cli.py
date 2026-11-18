@@ -428,3 +428,26 @@ def test_clean_reports_removed_truthfully(env, capsys):
     w2 = _extracted(env, capsys)
     code, r = run(capsys, "clean", w2.root, "--json")
     assert r["removed"] == str(w2.root) and r["kept"] == []
+
+
+def test_user_out_dir_is_not_adopted_or_cleaned(env, capsys, tmp_path):
+    src, outdir = env
+    d = tmp_path / "build"
+    (d / "out").mkdir(parents=True)
+    (d / "out" / "userfile").write_text("x", encoding="utf-8")
+    code, _ = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "-o", d, "--foreground", "--json")
+    assert code == 2 and (d / "out" / "userfile").exists()
+    code, _ = run(capsys, "clean", d, "--json")
+    assert code == 2 and (d / "out" / "userfile").exists()
+
+
+def test_clean_refuses_empty_dir(capsys, tmp_path):
+    d = tmp_path / "empty"
+    d.mkdir()
+    assert run(capsys, "clean", d, "--json")[0] == 2 and d.exists()
+
+
+def test_leftover_with_src_and_logs_is_cleanable(env, capsys):
+    d = _leftover(env, ["src.pdf"])
+    (d / "logs").mkdir()
+    assert run(capsys, "clean", d, "--json")[0] == 0 and not d.exists()
