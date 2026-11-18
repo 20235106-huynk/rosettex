@@ -65,6 +65,48 @@ def expand_fallback(doc, key: str, fb: set) -> int:
     return len(fb) - before
 
 
+RXP = re.compile(r"^RXP:([rfb]):(.+):(\d+)$", re.M)
+
+
+def float_pages(log: str) -> dict[str, list[int]]:
+    """label -> [page of its first mention, page of the float], for floats that are mentioned."""
+    seen: dict[str, dict[str, int]] = {}
+    for kind, lab, page in RXP.findall(log):
+        if kind != "b":
+            seen.setdefault(lab, {}).setdefault(kind, int(page))
+    return {lab: [v["r"], v["f"]] for lab, v in seen.items() if "r" in v and "f" in v}
+
+
+def block_pages(log: str) -> dict[str, int]:
+    """paragraph id -> the page it ends on."""
+    return {lab: int(page) for kind, lab, page in RXP.findall(log) if kind == "b"}
+
+
+def _off(pages: dict) -> int:
+    """Distance from the page of first mention; a float before its mention breaks the convention and costs double."""
+    return sum(f - r if f >= r else 2 * (r - f) for r, f in pages.values())
+
+
+def place_floats(doc, log: str, place: dict) -> dict:
+    """Emit each float that is not on the page of its first mention before the first paragraph that starts on that
+    page (one page earlier for two-column floats: LaTeX puts those on the page after the one where they are issued)."""
+    pages, ends = float_pages(log), block_pages(log)
+    paras = [b["id"] for b in doc["blocks"] if b["id"] in ends]
+    wide = {b.get("label"): b.get("wide") for b in doc["blocks"] if b["kind"] in ("table", "figure")}
+    place = dict(place)
+    for lab, (r, f) in pages.items():
+        if f == r:
+            continue
+        t = r - 1 if wide.get(lab) else r
+        prev_end = 0
+        for pid in paras:
+            if prev_end >= t:  # this paragraph starts on page t
+                place[lab] = pid
+                break
+            prev_end = ends[pid]
+    return place
+
+
 def _tail(s: str, n: int = 1500) -> str:
     return s[-n:]
 
@@ -144,6 +186,38 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     else:
         raise RenderError("more than 20 repair passes compiling main.tex")
 
+    # Put each figure/table on the page that first mentions it: emit a float that landed later one block earlier and
+    # rebuild (at most 3 more compiles); keep the best build. Wide (two-column) floats need this most: LaTeX puts them
+    # on the page after the one where they are issued.
+    on_beat("floats")
+    place: dict[str, str] = {}
+    pages = float_pages(log)
+    best = (_off(pages), tex, output, log)
+    shutil.copyfile(work.out / "main.pdf", work.out / "main.best.pdf")
+    for _ in range(3):
+        if not _off(pages):
+            break
+        new = place_floats(doc, log, place)
+        if new == place:
+            break
+        place = new
+        r = Renderer(doc, tr, pack, fb, images)
+        r.place = dict(place)
+        tex2 = r.document()
+        (work.out / "main.tex").write_text(tex2, encoding="utf-8", newline="\n")
+        ok2, output2, log2 = run_tex(tool, work.out, "main.tex", beat)
+        if not ok2:
+            break
+        log, pages = log2, float_pages(log2)
+        if _off(pages) < best[0]:
+            best = (_off(pages), tex2, output2, log2)
+            shutil.copyfile(work.out / "main.pdf", work.out / "main.best.pdf")
+    _, tex, output, log = best
+    (work.out / "main.tex").write_text(tex, encoding="utf-8", newline="\n")
+    shutil.copyfile(work.out / "main.best.pdf", work.out / "main.pdf")
+    (work.out / "main.best.pdf").unlink()
+    pages = float_pages(log)
+
     on_beat("postcheck")
     pdf = work.out / "main.pdf"
     pc = postcheck(work, pdf, log, tex, doc, tr, pack, fb)
@@ -156,7 +230,8 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
               "device": "MinerU chooses (slice 1 does not force a device)", "tex": tool[0],
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],
               "flagged": read_json(work.flagged, []), "dropped": len(doc["source"].get("dropped", [])),
-              "unreviewed": True, "postcheck": pc}
+              "unreviewed": True, "postcheck": pc,
+              "floats_off_page": [{"label": lab, "mentioned_on": r, "placed_on": f} for lab, (r, f) in sorted(pages.items()) if f != r]}
     write_json(work.report, report)
     m["fallback"] = sorted(fb)
     write_json(work.manifest, m)

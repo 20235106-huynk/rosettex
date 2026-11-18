@@ -11,6 +11,9 @@
 \usepackage[hidelinks]{hyperref}
 \makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother
 \setlength{\emergencystretch}{3em}
+\renewcommand{\topfraction}{.9}\renewcommand{\dbltopfraction}{.9}\renewcommand{\textfraction}{.07}
+\renewcommand{\floatpagefraction}{.8}\renewcommand{\dblfloatpagefraction}{.8}\setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{4}
+\newcommand{\rxpage}[1]{\write16{RXP:#1:\thepage}}
 \begin{document}
 \twocolumn[{\typeout{RX:p1b0}
 \begin{center}{\LARGE\bfseries của việc việc của việc việc}\end{center}
@@ -25,40 +28,37 @@
 \section*{của}
 
 \typeout{RX:p1b5}
-của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc 28.4 việc việc của việc việc của việc việc của việc 2.0 của việc việc của việc việc của việc
+của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc 28.4 việc việc của việc việc của việc việc của việc 2.0 của việc việc của việc việc của việc\rxpage{b:p1b5}
 
 \typeout{RX:p1b6}
 \section*{1\quad của}\rxlabel{1}{sec:1}
 
 \typeout{RX:p1b7}
-của việc \cite{ref4} của việc việc của việc việc của việc việc của việc việc của việc
+của việc \cite{ref4} của việc việc của việc việc của việc việc của việc việc của việc\rxpage{b:p1b7}
 
 \typeout{RX:p1b8}
 \section*{2\quad của}\rxlabel{2}{sec:2}
 
 \typeout{RX:p1b9}
-của việc việc của $x = (x_{1},\dots ,x_{n})$ việc $x_{i}\in\mathbb{R}^{d}$ việc việc của việc $Q = XW^{Q}$ của việc $K = XW^{K}$ của việc $V = XW^{V}$ của việc $W^{Q}\in\mathbb{R}^{d\times d_{k}}$ của việc việc của việc việc
+của việc việc của $x = (x_{1},\dots ,x_{n})$ việc $x_{i}\in\mathbb{R}^{d}$ việc việc của việc $Q = XW^{Q}$ của việc $K = XW^{K}$ của việc $V = XW^{V}$ của việc $W^{Q}\in\mathbb{R}^{d\times d_{k}}$ của việc việc của việc việc\rxpage{b:p1b9}
 
 \typeout{RX:p1b10}
 \begin{equation}\text{Attention} (Q, K, V) = \text{softmax} \left(\frac {Q K ^ {\top}}{\sqrt {d _ {k}}}\right) V.\tag{1}\label{eq:1}\end{equation}
 
 \typeout{RX:p1b11}
-của việc việc của \eqref{eq:1} việc của việc $1 / \sqrt{d_k}$ của việc việc của việc việc $d_{k}$ việc việc của $d_{k} = 64$ việc \cite{ref1,ref2} việc việc của việc việc của việc $y = x + f(x)$ của việc việc của việc
+của việc việc của \eqref{eq:1} việc của việc $1 / \sqrt{d_k}$ của việc việc của việc việc $d_{k}$ việc việc của $d_{k} = 64$ việc \cite{ref1,ref2} việc việc của việc việc của việc $y = x + f(x)$ của việc việc của việc\rxpage{b:p1b11}
 
 \typeout{RX:p1b12}
 \begin{equation}\mathcal {L} (\theta) = - \frac {1}{N} \sum_ {i = 1} ^ {N} \log p _ {\theta} (y _ {i} \mid x _ {i}) + \lambda \| \theta \| _ {2} ^ {2},\tag{2}\label{eq:2}\end{equation}
 
 \typeout{RX:p1b13}
-của $\lambda = 0.01$ việc của việc việc của $\eta_t = d^{-0.5}$ việc $(t^{-0.5}, t \cdot w^{-1.5})$ việc việc $w = 4000$ steps.\textsuperscript{1}
+của $\lambda = 0.01$ việc của việc việc của $\eta_t = d^{-0.5}$ việc $(t^{-0.5}, t \cdot w^{-1.5})$ việc việc $w = 4000$ steps.\textsuperscript{1}\rxpage{b:p1b13}
 
 \typeout{RX:p1b14}
 \section*{3\quad của}\rxlabel{3}{sec:3}
 
-\typeout{RX:p1b15}
-của việc việc của 2014 việc của việc việc 4.5 việc việc của việc việc của việc việc \ref{tab:1} việc việc của việc 28.4 của việc việc của việc việc của 2.0 việc của việc việc $3.3\times 10^{18}$ việc việc \ref{fig:1} việc việc của việc việc của việc việc của việc việc của $(p <   0.05)$ việc của việc việc của việc việc của việc việc của việc việc \ref{sec:2} việc
-
 \typeout{RX:p1b17}
-\begin{table}[tbp]\centering\caption{của việc việc của việc việc newstest2014.}\label{tab:1}
+\begin{table}[!htbp]\centering\caption{của việc việc của việc việc newstest2014.}\label{tab:1}\rxpage{f:tab:1}
 \begin{adjustbox}{max width=\linewidth}\begin{tabular}{lccc}\toprule
 \multirow{2}{*}{của} & \multirow{2}{*}{của} & \multicolumn{2}{c}{của} \\
  &  & của & của \\
@@ -69,10 +69,13 @@ của việc & 213M & 28.4 & 41.8 \\
 \bottomrule\end{tabular}\end{adjustbox}\end{table}
 
 \typeout{RX:p1b18}
-\begin{figure}[tbp]\centering\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright\ttfamily\small [thiếu ảnh]\\ images/page\_0\_chart\_18.jpg}}\end{center}\caption{của việc việc của việc việc của việc}\label{fig:1}\end{figure}
+\begin{figure}[!htbp]\centering\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright\ttfamily\small [thiếu ảnh]\\ images/page\_0\_chart\_18.jpg}}\end{center}\caption{của việc việc của việc việc của việc}\label{fig:1}\rxpage{f:fig:1}\end{figure}
+
+\typeout{RX:p1b15}
+của việc việc của 2014 việc của việc việc 4.5 việc việc của việc việc của việc việc \ref{tab:1}\rxpage{r:tab:1} việc việc của việc 28.4 của việc việc của việc việc của 2.0 việc của việc việc $3.3\times 10^{18}$ việc việc \ref{fig:1}\rxpage{r:fig:1} việc việc của việc việc của việc việc của việc việc của $(p <   0.05)$ việc của việc việc của việc việc của việc việc của việc việc \ref{sec:2} việc\rxpage{b:p1b15}
 
 \typeout{RX:p1b21}
-của việc việc của việc việc của việc việc của việc việc của $N = 6$ việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc $d_{ff} = 2048$ việc việc của việc việc của việc việc của việc việc của việc việc của \cite{ref3} việc của việc việc của việc việc của việc $\operatorname{LayerNorm}(x + \operatorname{Sublayer}(x))$ của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc $d_{model} = 512$ việc việc của việc việc của việc việc của việc $N = 6$ của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc
+của việc việc của việc việc của việc việc của việc việc của $N = 6$ việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc $d_{ff} = 2048$ việc việc của việc việc của việc việc của việc việc của việc việc của \cite{ref3} việc của việc việc của việc việc của việc $\operatorname{LayerNorm}(x + \operatorname{Sublayer}(x))$ của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc $d_{model} = 512$ việc việc của việc việc của việc việc của việc $N = 6$ của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc của việc việc\rxpage{b:p1b21}
 
 \typeout{RX:p1b22}
 {\renewcommand{\thefootnote}{}\footnotetext{\textsuperscript{\ensuremath{∗}}University of Example, alice@example.edu}}

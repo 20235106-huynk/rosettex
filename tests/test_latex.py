@@ -29,7 +29,7 @@ def test_placeholders_filled_and_front_matter():
     assert r"\rxlabel{2}{sec:2}" in tex and r"\bibitem{ref4}" in tex
     assert "Alice Nguyen" in tex  # author kept unchanged
     assert "References" not in tex  # the references heading is printed by thebibliography
-    assert tex.index("RX:p1b15") < tex.index(r"\begin{table")
+    assert tex.index(r"\begin{table") < tex.index("RX:p1b15")  # a float goes just before the paragraph that first mentions it
 
 
 def test_escape_of_translated_text():  # Review Focus 3

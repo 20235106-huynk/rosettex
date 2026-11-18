@@ -277,3 +277,14 @@ def test_figure_crop_stops_at_the_caption_above(tmp_path):
     doc = adapt([(m, src)], src)
     crop = [b for b in doc["blocks"] if b["id"] == "p1b901"][0]["crop"]
     assert crop[1] >= 0.17  # never reaches into the caption of the figure above
+
+
+def test_float_pages_from_log():
+    from rosettex.render.compile import _off, float_pages, place_floats
+    log = "RXP:r:fig:3:4\\nother\nRXP:r:fig:3:4\nRXP:f:fig:3:5\nRXP:r:tab:I:9\nRXP:f:tab:I:9\nRXP:f:fig:9:2\n"
+    p = float_pages(log)
+    assert p == {"fig:3": [4, 5], "tab:I": [9, 9]} and _off(p) == 1
+    doc = {"blocks": [{"id": "a", "kind": "paragraph"}, {"id": "b", "kind": "paragraph"}, {"id": "c", "kind": "paragraph"},
+                      {"id": "f", "kind": "figure", "label": "fig:3", "wide": True}]}
+    log2 = "RXP:b:a:3\nRXP:b:b:4\nRXP:b:c:5\nRXP:r:fig:3:5\nRXP:f:fig:3:6\n"
+    assert place_floats(doc, log2, {}) == {"fig:3": "c"}  # two-column: issued on page 4 (c starts there), lands on 5

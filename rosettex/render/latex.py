@@ -115,6 +115,11 @@ def preamble(doc, pack, twocolumn=None, packages=()) -> str:
         *(lang if rtl else []),
         r"\makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother",
         r"\setlength{\emergencystretch}{3em}",
+        # floats may fill more of a page, so a figure can sit on the page that mentions it instead of drifting on
+        r"\renewcommand{\topfraction}{.9}\renewcommand{\dbltopfraction}{.9}\renewcommand{\textfraction}{.07}",
+        r"\renewcommand{\floatpagefraction}{.8}\renewcommand{\dblfloatpagefraction}{.8}"
+        r"\setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{4}",
+        r"\newcommand{\rxpage}[1]{\write16{RXP:#1:\thepage}}",  # written at shipout: the page an item landed on
         *([r"\renewcommand{\thetable}{\Roman{table}}"] if roman_tables(doc) else []),  # IEEE: TABLE I, II, ...
         r"\begin{document}",
         *label_lines(pack),
@@ -129,6 +134,8 @@ class Renderer:
         self.prof = pack["profile"]
         self.style = paper_style(doc)
         self._sec, self._abstract = 0, False  # IEEE: last section number seen; inside the (bold) abstract
+        self.place: dict[str, str] = {}  # float label -> flow block it is emitted before (set by render from page marks)
+        self._ref_seen: set[str] = set()
         self.packages = set()  # extra LaTeX packages the body needs (array for wrapped table columns)
         self.rtl = self.prof["layout"] == "rtl"
 
@@ -180,6 +187,10 @@ class Renderer:
                 out.append("\\rxltr{%s}" % p["tex"])
             else:
                 out.append(p["tex"])
+            for lab in re.findall(r"\\ref\{((?:fig|tab):[^}]*)\}", p["tex"] if p else ""):
+                if lab not in self._ref_seen:  # the page of the first mention, read back from the log
+                    self._ref_seen.add(lab)
+                    out.append("\\rxpage{r:%s}" % lab)
             pos = m.end()
         out.append(wrap_runs(t[pos:], self.prof))
         return "".join(out)
@@ -298,21 +309,27 @@ class Renderer:
         return "\\begin{tabular}{%s}\\toprule\n%s\n\\bottomrule\\end{tabular}" % (
             spec, "\n".join(lines))
 
+    @staticmethod
+    def _spec(b) -> str:
+        # here first: a float issued just before the paragraph that mentions it stays on that page if it fits;
+        # two-column floats cannot be 'here' (LaTeX: top of a later page), render moves them earlier instead
+        return "!tp" if b.get("wide") else "!htbp"
+
     def float_(self, b) -> str:
         env = ("table" if b["kind"] == "table" else "figure") + ("*" if b.get("wide") else "")
         cap = self.text(b["id"] + ".cap", b.get("caption") or [])
-        lab = "\\label{%s}" % b["label"] if b.get("label") else ""
+        lab = "\\label{%s}\\rxpage{f:%s}" % (b["label"], b["label"]) if b.get("label") else ""
         if b["kind"] == "table":
             tab = self.tabular(b)
             # a table with wrapped columns may be taller than the page: also cap its height instead of losing content
             cap_h = ",max totalheight=0.9\\textheight" if r"\raggedright\arraybackslash}p{" in tab else ""
             body = (self.box_display(tab) if b["id"] in self.fb
                     else "\\begin{adjustbox}{max width=\\linewidth%s}%s\\end{adjustbox}" % (cap_h, tab))
-            return "\\begin{%s}[tbp]\\centering\\caption{%s}%s\n%s\\end{%s}" % (env, cap, lab, body, env)
+            return "\\begin{%s}[%s]\\centering\\caption{%s}%s\n%s\\end{%s}" % (env, self._spec(b), cap, lab, body, env)
         img = self.images.get(b["id"])
         body = ("\\includegraphics[width=\\linewidth]{%s}" % img if img and b["id"] not in self.fb
                 else self.box_display(b.get("image") or "", self.pack["labels"]["missing_image"]))
-        return "\\begin{%s}[tbp]\\centering%s\\caption{%s}%s\\end{%s}" % (env, body, cap, lab, env)
+        return "\\begin{%s}[%s]\\centering%s\\caption{%s}%s\\end{%s}" % (env, self._spec(b), body, cap, lab, env)
 
     def footnote(self, b) -> str:
         t = self.verbatim(b["spans"], b["id"]) if b.get("role") else self.text(b["id"], b["spans"])
@@ -366,30 +383,41 @@ class Renderer:
                 for lab in re.findall(r"\\ref\{((?:fig|tab):[^}]*)\}", p["tex"]):
                     first_ref.setdefault(lab, u["block"])
         refs = [b for b in blocks if b["kind"] == "reference"]
-        held, body, front, in_front = defaultdict(list), [], [], True
+        self._ref_seen = set()
+        flow = [b for b in blocks if b["kind"] not in ("table", "figure")]
+        pos = {b["id"]: i for i, b in enumerate(flow)}
+        before = defaultdict(list)  # flow index -> floats emitted just before that block
         for i, b in enumerate(blocks):
-            k = b["kind"]
-            if in_front and b["page"] == 1 and ((k == "heading" and b["level"] == 1) or b.get("role") == "authors"):
-                inner = self.heading(b) if k == "heading" else "\\begin{center}%s\\end{center}" % self.verbatim(b["spans"], b["id"])
+            if b["kind"] in ("table", "figure"):
+                rb = first_ref.get(b.get("label"))
+                nxt = next((x["id"] for x in blocks[i + 1:] if x["kind"] not in ("table", "figure")), None)
+                anchor = pos.get(rb, pos.get(nxt, len(flow)))  # the paragraph that first mentions it, else where it was
+                anchor = pos.get(self.place.get(b.get("label") or ""), anchor)
+                before[anchor].append(b)
+        body, front, in_front = [], [], True
+        for j, b in enumerate(flow + [None]):
+            if b is not None and in_front and b["page"] == 1 and ((b["kind"] == "heading" and b["level"] == 1)
+                                                                 or b.get("role") == "authors"):
+                inner = self.heading(b) if b["kind"] == "heading" else "\\begin{center}%s\\end{center}" % self.verbatim(b["spans"], b["id"])
                 front.append(self.mark(b) + inner)
+                before[j + 1] = before.pop(j, []) + before.get(j + 1, [])  # nothing floats into the title block
                 continue
             in_front = False
-            if k in ("table", "figure"):
-                rb = first_ref.get(b.get("label"))
-                if rb in order and order[rb] > i:
-                    held[rb].append(b)
-                    continue
+            body += [self.mark(f) + self.float_(f) for f in before.pop(j, [])]
+            if b is None:
+                break
+            k = b["kind"]
             if k == "reference":
                 if b is refs[0]:
                     body.append(self.bibliography(refs))
                 continue
+            i = order[b["id"]]
             if k == "heading" and i + 1 < len(blocks) and blocks[i + 1]["kind"] == "reference":
                 continue  # thebibliography prints its own heading in the target language
-            body.append(self.mark(b) + self.render_block(b))
-            for f in held.pop(b["id"], []):
-                body.append(self.mark(f) + self.float_(f))
-        for fs in held.values():
-            body += [self.mark(f) + self.float_(f) for f in fs]
+            out = self.render_block(b)
+            if k == "paragraph" and out.strip():
+                out += "\\rxpage{b:%s}" % b["id"]  # the page this paragraph ends on (no vertical-mode whatsit)
+            body.append(self.mark(b) + out)
         fr = "\n".join(front)
         if fr and self.doc["source"]["columns"] == 2:
             fr = "\\twocolumn[{%s}]" % fr
