@@ -6,7 +6,7 @@ import shutil
 import zipfile
 
 from ..pdf import text_in_bbox
-from ..workspace import Work, read_json, run_with_heartbeat, write_json
+from ..workspace import Work, read_json, run_with_heartbeat, timeout_for, write_json
 from .mineru_adapter import adapt
 from .segment import segment
 
@@ -52,11 +52,14 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
             if gdir.exists():
                 shutil.rmtree(gdir)
             gdir.mkdir(parents=True)
-            rc = run_with_heartbeat(
-                cmd + ["parse", "src.pdf", "-o", gdir.relative_to(work.root).as_posix(), "--format", "zip",
-                       "--tier", m["tier"], "--pages", f"{a}-{b}"],
-                cwd=work.root, log=work.logs / f"mineru-g{gi:03d}.log",
-                on_beat=lambda: on_beat(gi - 1, len(groups)))
+            try:
+                rc = run_with_heartbeat(
+                    cmd + ["parse", "src.pdf", "-o", gdir.relative_to(work.root).as_posix(), "--format", "zip",
+                           "--tier", m["tier"], "--pages", f"{a}-{b}"],
+                    cwd=work.root, log=work.logs / f"mineru-g{gi:03d}.log",
+                    on_beat=lambda: on_beat(gi - 1, len(groups)), timeout=timeout_for(900 + 120 * (b - a + 1)))
+            except TimeoutError as e:  # treo thì chạy lại cũng treo: dừng ngay, không thử lần hai
+                raise ExtractError(f"MinerU quá thời gian ở trang {a}-{b}: {e}; xem {work.logs / f'mineru-g{gi:03d}.log'}")
             zips = sorted(gdir.glob("*.zip"))
             if rc == 0 and len(zips) == 1:
                 with zipfile.ZipFile(zips[0]) as z:

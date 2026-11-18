@@ -270,3 +270,33 @@ def test_extract_writes_schema_marker_and_clean_works(env, capsys):
     w = Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
     assert read_json(w.manifest)["schema"] == "rosettex.work/1"
     assert run(capsys, "clean", w.root, "--json")[0] == 0 and not w.root.exists()
+
+
+def test_extract_hang_times_out_and_fails(env, capsys, monkeypatch):
+    src, outdir = env
+    monkeypatch.setenv("FAKE_MINERU_HANG", "1")
+    monkeypatch.setenv("ROSETTEX_TIMEOUT_SCALE", "0.0005")
+    t0 = time.time()
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert time.time() - t0 < 30
+    assert code == 2 and "quá" in r["error"] and r["next_action"].startswith("rosettex extract")
+    st = _fail_status(capsys, outdir / ".rosettex" / "short paper")
+    assert st["state"] == "extract_failed"
+
+
+@needs_tex
+def test_render_hang_times_out_and_fails(env, capsys, tmp_path, monkeypatch):
+    import rosettex.cli as cli
+    import rosettex.render.compile as comp
+    src, outdir = env
+    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    translate_via_cli(capsys, r["work"], tmp_path)
+    assert run(capsys, "validate", r["work"], "--json")[0] == 0
+    hang = ("tectonic", [sys.executable, "-c", "import time; time.sleep(60)"])
+    monkeypatch.setattr(cli, "find_tex", lambda: hang)
+    monkeypatch.setattr(comp, "find_tex", lambda: hang)
+    monkeypatch.setenv("ROSETTEX_TIMEOUT_SCALE", "0.005")
+    code, res = run(capsys, "render", r["work"], "--foreground", "--json")
+    assert code == 2 and "quá" in res["error"]
+    st = _fail_status(capsys, r["work"])
+    assert st["state"] == "render_failed" and st["next_action"] is None

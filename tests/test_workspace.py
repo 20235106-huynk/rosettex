@@ -44,3 +44,18 @@ def test_run_with_heartbeat_beats_while_waiting(tmp_path):
     rc = run_with_heartbeat([sys.executable, "-c", "import time; time.sleep(0.5)"], cwd=tmp_path,
                             log=tmp_path / "logs" / "l.log", on_beat=lambda: beats.append(1), interval=0.1)
     assert rc == 0 and len(beats) >= 2
+
+
+def test_run_with_heartbeat_kills_hung_child(tmp_path):
+    import pytest
+    flag = tmp_path / "sống.txt"
+    code = f"import time\nwhile True:\n    open(r'{flag}', 'w').write('x'); time.sleep(0.05)"
+    t0 = time.time()
+    with pytest.raises(TimeoutError):
+        run_with_heartbeat([sys.executable, "-c", code], cwd=tmp_path, log=tmp_path / "l.log",
+                           on_beat=lambda: None, interval=0.1, timeout=0.6)
+    assert time.time() - t0 < 10
+    time.sleep(0.3)
+    flag.unlink()
+    time.sleep(0.3)
+    assert not flag.exists()  # tiến trình con đã bị giết, không còn ghi file

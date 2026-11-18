@@ -8,7 +8,7 @@ from pathlib import Path
 from ..checks import load_pack
 from ..tools import find_tex
 from ..translate import manifest, translations
-from ..workspace import Work, read_json, run_with_heartbeat, write_json
+from ..workspace import Work, read_json, run_with_heartbeat, timeout_for, write_json
 from .latex import Renderer
 from .postcheck import postcheck
 
@@ -26,7 +26,11 @@ def run_tex(tool, workdir: Path, name: str, on_beat=None) -> tuple[bool, str, st
     for argv in runs:
         logf.unlink(missing_ok=True)
         runf.unlink(missing_ok=True)
-        rc = run_with_heartbeat(argv, cwd=workdir, log=runf, on_beat=on_beat or (lambda: None))
+        try:
+            rc = run_with_heartbeat(argv, cwd=workdir, log=runf, on_beat=on_beat or (lambda: None),
+                                    timeout=timeout_for(300))
+        except TimeoutError as e:
+            raise RenderError(f"biên dịch {name} quá thời gian: {e}")
         out = runf.read_text(encoding="utf-8", errors="replace") if runf.exists() else ""
         log = logf.read_text(encoding="utf-8", errors="replace") if logf.exists() else ""
         if rc != 0:

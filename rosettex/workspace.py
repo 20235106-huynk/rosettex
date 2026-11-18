@@ -122,15 +122,34 @@ def spawn_detached(argv: list[str], log: Path) -> int:
     return p.pid
 
 
-def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5.0) -> int:
-    """Chạy lệnh, gọi on_beat() mỗi `interval` giây trong lúc chờ; trả mã thoát."""
+def timeout_for(seconds: float) -> float:
+    """Giới hạn thời gian; ROSETTEX_TIMEOUT_SCALE nhân giới hạn (kiểm thử dùng giá trị rất nhỏ)."""
+    try:
+        return seconds * float(os.environ.get("ROSETTEX_TIMEOUT_SCALE", "1"))
+    except ValueError:
+        return seconds
+
+
+def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5.0, timeout: float | None = None) -> int:
+    """Chạy lệnh, gọi on_beat() mỗi `interval` giây trong lúc chờ; trả mã thoát.
+    Quá `timeout` giây (tổng) thì giết tiến trình con và ném TimeoutError."""
     log = Path(log)
     log.parent.mkdir(parents=True, exist_ok=True)
+    deadline = None if timeout is None else time.monotonic() + timeout
     with open(log, "ab") as fh:
         p = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=fh,
                              stderr=subprocess.STDOUT)
         while True:
+            left = None if deadline is None else deadline - time.monotonic()
+            if left is not None and left <= 0:
+                p.terminate()
+                try:
+                    p.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+                    p.wait()
+                raise TimeoutError(f"tiến trình con chạy quá {timeout:g} giây nên bị dừng: {Path(argv[0]).name}")
             try:
-                return p.wait(timeout=interval)
+                return p.wait(timeout=interval if left is None else min(interval, left))
             except subprocess.TimeoutExpired:
                 on_beat()

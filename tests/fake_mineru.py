@@ -13,6 +13,9 @@ def main(argv):
         print("MinerU-4_models_onnx: ok")
         return 0
     assert argv[0] == "parse", argv
+    if os.environ.get("FAKE_MINERU_HANG"):
+        import time
+        time.sleep(60)
     if os.environ.get("FAKE_MINERU_FAIL_ALWAYS"):
         return 1
     flag = os.environ.get("FAKE_MINERU_FAIL_ONCE")
