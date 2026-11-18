@@ -9,7 +9,7 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 - [x] **SG amended** with the slice 1b details (end of SG §11.5).
 
 ## Needs a real environment
-- [ ] **Real agent run** (acceptance Task 12 step 2; `mineru-kit` is not installed on this machine, so it cannot be automated here): fresh Claude Code session, real MinerU, `ROSETTEX_REAL=1`: translate `tests/fixtures/papers/short.pdf` into Arabic, Simplified Chinese (or Japanese), Hindi by name; then "Klingon" (expect: asks for the writing system and stops). Record the code and script reported, questions asked, `lang_tested: false` reported, `postcheck`, rejected batches, `length_ratio`, overfull lines.
+- [x] **Real agent run**: done 2026-11-18 with MinerU 4.2.3 (it is installed in `~/.rosettex/mineru-venv`): 2611.23202 → Vietnamese and Arabic by the builder session, → the 20 other packs by Haiku subagents (see the acceptance record). "Klingon" (unknown language) was not run.
 - [ ] **Tune thresholds from real translations:** `min_target_ratio` per pack, `max_length_ratio`, Thai/Myanmar U+200B run limit (25) and 40-letter rule, per-profile `scale` (Telugu 0.75, Kannada 0.75, Ethiopic 0.8, Bengali 0.9, Gujarati 0.9).
 - [ ] **XeLaTeX** (not installed here), **macOS**, **Windows**: run `tests/test_render.py -k every_script`.
 - [x] **Licences of the 3 bundle fonts** re-checked on CTAN 2026-11-18 (`tex-gyre`: gfl, `lm-math`: gfl, `noto`: ofl + lppl): the strings in the profiles are correct.
@@ -22,7 +22,7 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 
 ## 20-language run (2026-11-18)
 - [x] 2611.23202 translated into the 20 other packs by Haiku subagents, PDFs in `~/Desktop/Learn/rosettex-demos/`; RTL glyphs, Thai/Myanmar overflow, decimal commas and split paragraphs fixed (spec §15 items 16–19).
-- [ ] Decide whether the content length ratio (SG decision 5, ≤ 1.3) stays a pass/fail check: `ta` 1.53 and `my` 2.0 exceed it with correct translations.
+- [x] Content length ratio: a warning, not a failure (SG decision 5 amended 2026-11-18; Tamil 1.7, Myanmar 2.3 ceilings).
 - [ ] Native readers for all 20 (Haiku translations, unreviewed).
 
 ## Known and left on purpose
