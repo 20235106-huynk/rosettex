@@ -108,6 +108,14 @@ def _block(b, kind, page, gdir, root) -> dict:
                 cell["id"] = f"{out['id']}r{cell['r']}c{cell['c']}"
             out["cells"] = cells
         out["image"] = _img(body, gdir, root)
+        if kind == "figure" and body.get("bbox"):
+            crop = list(body["bbox"])
+            caps = [p for p in c if isinstance(p, dict) and p["type"].endswith("_caption") and p.get("bbox")]
+            if caps:  # MinerU cuts the body short of notes drawn between the figure and its caption
+                top = caps[-1]["bbox"][1]
+                if 0 < top - crop[3] < 0.08:
+                    crop[3] = top - 0.004
+            out["crop"] = crop
     elif kind == "footnote":
         spans = spans_of(c)
         if spans and spans[0]["t"] == "sup":  # the footnote mark is its own superscript span
@@ -135,6 +143,9 @@ def _dropped(b, kind, page) -> list[dict]:
         for p in (x for x in c if isinstance(x, dict)):
             key = p["type"].rsplit("_", 1)[-1]
             label_part = kind == "table" and key == "caption" and _table_no([p]) is not None  # read as the table number
+            caps = [x for x in c if isinstance(x, dict) and x["type"].endswith("_caption")]
+            note = kind == "figure" and key == "caption" and len(caps) > 1 and p is not caps[-1]  # drawn in the crop
+            label_part = label_part or note
             if (key not in ("caption", "body") or key in seen) and not label_part:
                 out.append(mk("part", p["type"]))
             if label_part:
@@ -189,6 +200,9 @@ def _figure_text(blocks) -> tuple[list[dict], list[dict]]:
                 inside = fb[0] - 0.01 <= bb[0] and bb[2] <= fb[2] + 0.01 and fb[1] - 0.01 <= bb[1] and bb[3] <= fb[3] + 0.01
                 above = (b["kind"] == "heading" and 0 <= fb[1] - bb[3] < 0.03 and abs(bb[0] - fb[0]) < 0.02
                          and bb[2] <= fb[2] + 0.01)
+                if above and f.get("crop"):  # the diagram's title is part of the picture
+                    f["crop"] = [min(f["crop"][0], bb[0]), min(f["crop"][1], bb[1] - 0.004), max(f["crop"][2], bb[2]),
+                                 f["crop"][3]]
                 hit = hit or inside or above
         if hit:
             gone.append({"what": "block", "type": "text inside figure", "page": b["page"], "block": b["id"]})
@@ -223,6 +237,13 @@ def adapt(groups, root) -> dict:
                 if kind is None:
                     continue
                 blk = _block(b, kind, page["page_idx"] + 1, gdir, root)
+                if blk.get("crop"):  # titles drawn above the figure body that MinerU discarded: reach up to the block above
+                    cr = blk["crop"]
+                    boxes = [x["bbox"] for o in page["blocks"] if o is not b
+                             for x in [o, *(o["content"] if isinstance(o.get("content"), list) else [])]
+                             if isinstance(x, dict) and x.get("bbox")]  # blocks and their parts (a caption above)
+                    above = [x[3] for x in boxes if x[3] <= cr[1] + 0.002 and min(x[2], cr[2]) - max(x[0], cr[0]) > 0]
+                    cr[1] = max(max(above, default=0.04) + 0.004, cr[1] - 0.06)
                 lab = blk.get("label")
                 if lab in seen:
                     blk["label"] = None

@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from ..checks import load_pack
+from ..pdf import render_region_png
 from ..fonts import FontMissing, font_error, resolve_fonts, stage_fonts
 from ..tools import find_tex
 from ..translate import manifest, translations
@@ -77,7 +78,11 @@ def copy_assets(work: Work, doc) -> dict:
     images = {}
     (work.out / "assets").mkdir(parents=True, exist_ok=True)
     for b in doc["blocks"]:
-        if b["kind"] == "figure" and b.get("image"):
+        if b["kind"] == "figure" and b.get("crop") and work.src_pdf.is_file():
+            dst = work.out / "assets" / f"{b['id']}.png"
+            render_region_png(work.src_pdf, b["page"], b["crop"], dst)  # whole figure, not MinerU's shorter body
+            images[b["id"]] = f"assets/{dst.name}"
+        elif b["kind"] == "figure" and b.get("image"):
             src = work.root / b["image"]
             if src.is_file():
                 dst = work.out / "assets" / f"{b['id']}{src.suffix.lower()}"

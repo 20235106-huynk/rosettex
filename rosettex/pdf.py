@@ -46,6 +46,27 @@ def render_page_png(pdf_path, page_no: int, out, dpi: int = 150) -> Path:
     return Path(out)
 
 
+def render_region_png(pdf_path, page_no: int, bbox, out, dpi: int = 220) -> Path:
+    """Render the normalised box (x0, y0, x1, y1; top-left origin) of a page to a PNG."""
+    x0, y0, x1, y1 = bbox
+    with _open(pdf_path) as pdf:
+        page = pdf[page_no - 1]
+        w, h = page.get_size()
+        crop = (max(0.0, x0 * w), max(0.0, (1 - y1) * h), max(0.0, (1 - x1) * w), max(0.0, y0 * h))  # left, bottom, right, top
+        bm = page.render(scale=dpi / 72, crop=crop, rev_byteorder=True)
+        channels = 4 if bm.mode in ("RGBA", "RGBX") else 3
+        buf, stride, row = bytes(bm.buffer), bm.stride, bm.width * channels
+        blank = lambda y: min(buf[y * stride: y * stride + row]) >= 245  # noqa: E731  (white or near white)
+        top, bottom = 0, bm.height
+        while top < bottom - 1 and blank(top):  # the box may reach into empty space above or below the figure
+            top += 1
+        while bottom - 1 > top and blank(bottom - 1):
+            bottom -= 1
+        top, bottom = max(0, top - 4), min(bm.height, bottom + 4)
+        write_png(out, bm.width, bottom - top, buf[top * stride: bottom * stride], stride, channels)
+    return Path(out)
+
+
 def text_in_bbox(pdf_path, page_no: int, bbox) -> str:
     x0, y0, x1, y1 = bbox
     with _open(pdf_path) as pdf:

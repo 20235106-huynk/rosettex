@@ -241,3 +241,39 @@ def test_diagram_text_is_not_a_section():
     real = {"kind": "heading", "id": "r", "page": 4, "bbox": [0.076, 0.655, 0.359, 0.67]}
     keep, gone = _figure_text([above, fig, inside, real])
     assert [b["id"] for b in keep] == ["f", "r"] and {g["block"] for g in gone} == {"h", "p"}
+
+
+def test_figure_crop_reaches_the_caption_and_the_diagram_title(tmp_path):
+    from rosettex.extract.mineru_adapter import _block, _figure_text
+    from conftest import FIX
+    from rosettex.pdf import render_region_png
+    raw = {"type": "image", "index": 2, "bbox": [0.085, 0.233, 0.483, 0.546], "content": [
+        {"type": "image_body", "bbox": [0.085, 0.233, 0.483, 0.546], "image_path": "x.jpg", "content": ""},
+        {"type": "image_caption", "bbox": [0.075, 0.59, 0.493, 0.627], "content": [{"type": "text", "content": "Fig. 2. Cap."}]}]}
+    fig = _block(raw, "figure", 4, tmp_path, tmp_path)
+    assert abs(fig["crop"][3] - 0.586) < 1e-9  # down to just above the caption
+    title = {"kind": "heading", "id": "h", "page": 4, "bbox": [0.09, 0.205, 0.40, 0.222]}
+    _figure_text([title, fig])
+    assert abs(fig["crop"][1] - 0.201) < 1e-9  # up to the diagram's own title
+    out = render_region_png(FIX / "papers" / "short.pdf", 1, [0.1, 0.1, 0.5, 0.3], tmp_path / "r.png", dpi=72)
+    assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_figure_crop_stops_at_the_caption_above(tmp_path):
+    from rosettex.extract.mineru_adapter import adapt
+    import copy
+    from conftest import FIX
+    src = FIX / "mineru-4.2.3-standard"
+    middle = json.loads((src / "short.middle.json").read_text(encoding="utf-8"))
+    page = middle["pages"][0]
+    cap_above = {"type": "image", "index": 900, "bbox": [0.08, 0.10, 0.92, 0.14], "content": [
+        {"type": "image_body", "bbox": [0.08, 0.10, 0.92, 0.14], "content": ""},
+        {"type": "image_caption", "bbox": [0.08, 0.15, 0.92, 0.17], "content": [{"type": "text", "content": "Fig. 9. Above."}]}]}
+    fig = {"type": "image", "index": 901, "bbox": [0.08, 0.20, 0.48, 0.40], "content": [
+        {"type": "image_body", "bbox": [0.08, 0.20, 0.48, 0.40], "content": ""},
+        {"type": "image_caption", "bbox": [0.08, 0.42, 0.48, 0.44], "content": [{"type": "text", "content": "Fig. 10. Mine."}]}]}
+    m = copy.deepcopy(middle)
+    m["pages"][0]["blocks"] = [cap_above, fig]
+    doc = adapt([(m, src)], src)
+    crop = [b for b in doc["blocks"] if b["id"] == "p1b901"][0]["crop"]
+    assert crop[1] >= 0.17  # never reaches into the caption of the figure above
