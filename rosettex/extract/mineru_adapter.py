@@ -16,6 +16,18 @@ NUM_HEAD = re.compile(r"^\s*(\d+(?:\.\d+)*)\.?\s+(?=\S)")
 CAPTION = re.compile(r"^\s*(?:Figure|Fig\.|Table|Tab\.)\s*(\d+)\s*[:.]\s*", re.I)
 TAG = re.compile(r"\\tag\s*\{([^{}]*)\}")
 REFKEY = re.compile(r"^\s*\[(\d+)\]\s*")
+TABLE_NO = re.compile(r"^\s*TABLE\s+([IVXLC]+|\d+)\s*\.?\s*$", re.I)  # IEEE: "TABLE I" is a caption part of its own
+
+
+def _table_no(c) -> str | None:
+    """The number of a table whose label is a separate caption part ('TABLE I'), else None."""
+    for p in c:
+        if isinstance(p, dict) and p.get("type") == "table_caption" and isinstance(p.get("content"), list):
+            txt = "".join(x.get("content", "") for x in p["content"] if isinstance(x, dict))
+            m = TABLE_NO.match(txt)
+            if m:
+                return m.group(1).upper()
+    return None
 FOOTMARK = re.compile(r"^\s*([∗*†‡§¶]+|\d{1,2})(?=[^\d\s])")
 _DIGIT_DOT = re.compile(r"(?<=\d)\s*\.\s*(?=\d)")
 _DIGIT_GAP = re.compile(r"(?<=\d)\s+(?=\d)")
@@ -86,6 +98,9 @@ def _block(b, kind, page, gdir, root) -> dict:
         cap = spans_of(parts["caption"]["content"]) if "caption" in parts else []
         m = _strip(cap, CAPTION)
         out.update(caption=cap, label=(f"{'tab' if kind == 'table' else 'fig'}:{m.group(1)}" if m else None))
+        no = _table_no(c) if kind == "table" else None
+        if no and not m:  # the number printed in the source; Roman numerals stay Roman (see Renderer, preamble)
+            out.update(number=no, label=f"tab:{no}")
         body = parts.get("body", {})
         if kind == "table":
             cells = parse_table_html(body.get("content") or "")
@@ -119,8 +134,11 @@ def _dropped(b, kind, page) -> list[dict]:
         seen = set()
         for p in (x for x in c if isinstance(x, dict)):
             key = p["type"].rsplit("_", 1)[-1]
-            if key not in ("caption", "body") or key in seen:
+            label_part = kind == "table" and key == "caption" and _table_no([p]) is not None  # read as the table number
+            if (key not in ("caption", "body") or key in seen) and not label_part:
                 out.append(mk("part", p["type"]))
+            if label_part:
+                continue
             seen.add(key)
             if key == "caption" and isinstance(p.get("content"), list):
                 spans += p["content"]
@@ -135,6 +153,26 @@ def _columns(blocks) -> int:
     paras = [b for b in blocks if b["kind"] == "paragraph"]
     half = sum(1 for b in paras if b["bbox"][2] <= 0.52 or b["bbox"][0] >= 0.48)
     return 2 if paras and half / len(paras) >= 0.6 else 1
+
+
+def _fold_table_titles(blocks) -> list[dict]:
+    """'TABLE IV' as a heading, its caption as a paragraph, then a table without caption: one table with its caption."""
+    out, i = [], 0
+    while i < len(blocks):
+        b = blocks[i]
+        if i + 2 < len(blocks) and b["kind"] == "heading" and blocks[i + 1]["kind"] == "paragraph" \
+                and blocks[i + 2]["kind"] == "table" and not blocks[i + 2].get("caption"):
+            m = TABLE_NO.match("".join(x.get("v", "") for x in b["spans"]))
+            if m:
+                tab = blocks[i + 2]
+                no = m.group(1).upper()
+                tab.update(caption=blocks[i + 1]["spans"], number=no, label=f"tab:{no}")
+                out.append(tab)
+                i += 3
+                continue
+        out.append(b)
+        i += 1
+    return out
 
 
 def adapt(groups, root) -> dict:
@@ -169,6 +207,7 @@ def adapt(groups, root) -> dict:
                 elif lab:
                     seen.add(lab)
                 blocks.append(blk)
+    blocks = _fold_table_titles(blocks)
     nref = 0
     for blk in blocks:
         if blk["kind"] == "reference":

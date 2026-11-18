@@ -63,6 +63,11 @@ def page_geometry(doc) -> tuple:
     return w, h, left, right, top, bottom
 
 
+def roman_tables(doc) -> bool:
+    nums = [b["number"] for b in doc["blocks"] if b["kind"] == "table" and b.get("number")]  # unnumbered ones are skipped
+    return bool(nums) and all(re.fullmatch(r"[IVXLC]+", n) for n in nums)
+
+
 def preamble(doc, pack, twocolumn=None, packages=()) -> str:
     w, h, left, right, top, bottom = page_geometry(doc)
     two = doc["source"]["columns"] == 2 if twocolumn is None else twocolumn
@@ -84,6 +89,7 @@ def preamble(doc, pack, twocolumn=None, packages=()) -> str:
         *(lang if rtl else []),
         r"\makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother",
         r"\setlength{\emergencystretch}{3em}",
+        *([r"\renewcommand{\thetable}{\Roman{table}}"] if roman_tables(doc) else []),  # IEEE: TABLE I, II, ...
         r"\begin{document}",
         *label_lines(pack),
         "",

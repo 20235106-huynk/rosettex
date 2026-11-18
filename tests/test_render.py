@@ -214,3 +214,20 @@ def test_long_table_cells_wrap_instead_of_shrinking(tmp_path, code):
     tex = (w.out / "main.tex").read_text(encoding="utf-8")
     assert r"\usepackage{array}" in tex and r"\raggedright\arraybackslash}p{" in tex
     assert rep["postcheck"]["missing_glyphs"] == []
+
+
+def test_roman_table_labels_are_kept(tmp_path):
+    from rosettex.extract.mineru_adapter import _table_no
+    assert _table_no([{"type": "table_caption", "content": [{"type": "text", "content": "TABLE IV"}]},
+                      {"type": "table_caption", "content": [{"type": "text", "content": "Summary of results."}]}]) == "IV"
+    assert _table_no([{"type": "table_caption", "content": [{"type": "text", "content": "Table results show"}]}]) is None
+
+
+def test_table_title_blocks_fold_into_the_table():
+    from rosettex.extract.mineru_adapter import _fold_table_titles
+    h = {"kind": "heading", "id": "h", "spans": [{"t": "text", "v": "TABLE IV"}]}
+    c = {"kind": "paragraph", "id": "c", "spans": [{"t": "text", "v": "Summary."}]}
+    t = {"kind": "table", "id": "t", "caption": [], "label": None}
+    out = _fold_table_titles([h, c, t])
+    assert [b["id"] for b in out] == ["t"] and out[0]["number"] == "IV" and out[0]["caption"][0]["v"] == "Summary."
+    assert len(_fold_table_titles([c, t])) == 2
