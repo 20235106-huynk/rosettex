@@ -11,7 +11,7 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 ## Needs a real environment
 - [x] **Real agent run**: done 2026-11-18 with MinerU 4.2.3 (it is installed in `~/.rosettex/mineru-venv`): 2611.23202 → Vietnamese and Arabic by the builder session, → the 20 other packs by Haiku subagents (see the acceptance record). "Klingon" (unknown language) was not run.
 - [ ] **Tune thresholds from real translations:** `min_target_ratio` per pack, `max_length_ratio`, Thai/Myanmar U+200B run limit (25) and 40-letter rule, per-profile `scale` (Telugu 0.75, Kannada 0.75, Ethiopic 0.8, Bengali 0.9, Gujarati 0.9).
-- [x] XeLaTeX (TeX Live 2026, Linux): the render tests pass (spec §15 item 23). [ ] macOS and Windows: for the user to test.
+- [x] XeLaTeX (TeX Live 2026, Linux): the render tests pass (spec §15 item 23). [x] CI (GitHub Actions, Tectonic, fake MinerU): all 6 jobs (Ubuntu, macOS, Windows × Python 3.11, 3.12) pass on `main` (run 44317746745, 2026-11-18). [ ] A real translation with MinerU on macOS and Windows, and XeLaTeX there: for the user to test.
 - [x] **Licences of the 3 bundle fonts** re-checked on CTAN 2026-11-18 (`tex-gyre`: gfl, `lm-math`: gfl, `noto`: ofl + lppl): the strings in the profiles are correct.
 
 ## Venue style (approach B, started 2026-11-18)

@@ -19,7 +19,7 @@ Phase 1 is built as **vertical slices**, each with its own spec and plan:
 - Slice 3: `setup`, `doctor`, auto-download (including fonts per script), GPU.
 - Slice 4: scan/OCR.
 
-Do not build the parts of later slices ahead of time. Open items (none block use; details in the open-items note): native-speaker reading of the 20 Haiku translations and of the labels and rules of every pack (only then may a pack become `tested: true`); macOS and Windows not yet exercised; full-length papers of the ACM/Springer/Elsevier styles (one page of each was tried), Elsevier `elsarticle` and ACM single-column; thresholds (`min_target_ratio`, Thai/Myanmar U+200B limits, per-profile `scale`) still initial values; duplicate `\bibitem` keys and citation labels; the adapter not yet supporting list/code blocks; the MinerU timeout killing only the `mineru-kit` client.
+Do not build the parts of later slices ahead of time. Open items (none block use; details in the open-items note): native-speaker reading of the 20 Haiku translations and of the labels and rules of every pack (only then may a pack become `tested: true`); CI passes on Ubuntu, macOS and Windows (Python 3.11 and 3.12, Tectonic, fake MinerU), but a real MinerU run and XeLaTeX on macOS/Windows are not exercised; full-length papers of the ACM/Springer/Elsevier styles (one page of each was tried), Elsevier `elsarticle` and ACM single-column; thresholds (`min_target_ratio`, Thai/Myanmar U+200B limits, per-profile `scale`) still initial values; duplicate `\bibitem` keys and citation labels; the adapter not yet supporting list/code blocks; the MinerU timeout killing only the `mineru-kit` client.
 
 ## Commands
 
