@@ -342,6 +342,16 @@ Cross-cutting rules (these extend §11.3 and §11.4 and the settled decisions of
 6. **Post-build check** gains a missing-glyph check: any "Missing character" or tofu warning in the TeX log for the target script is a problem reported to the agent.
 7. **A language pack is `tested: true` only after** a sample paper of that script has been built and read by someone who can read it; until then the agent keeps telling the user "this language has not been tested".
 
+**Details amended by slice 1b (2026-11-18, after implementation and cross-review; full text in slice 1b spec §15; no §19 decision changed):**
+- Language codes are matched case-insensitively with `-` or `_`, most specific candidate first (`ja-JP` → `ja`, `sr_latn` → `sr-Latn`); the requested code is kept for file names.
+- A known Latin-script language without a pack rejects letters outside Latin and Greek; an unknown code is not judged.
+- Thai and Myanmar: a text with 40 or more script letters and no U+200B is rejected.
+- Script fonts are scaled to the Latin font's visual size (`MatchLowercase`, or a per-profile `scale`).
+- Right to left: the English bibliography uses a `\selectlanguage{english}` group (not `otherlanguage`), and `\text`, equation tags and English spans go through the Latin font because Noto Naskh Arabic has no Latin letters or parentheses; ASCII digits via `numerals=maghrib` (`ar`, packless Arabic-script languages) or `numerals=western` (`fa`, `ur`).
+- Tables: while a table fits its column it is laid out as before (`l` + `c` columns, shrunk at most 15 %); a table whose long cells would force a shrink gets wrapping `p{}` columns (long columns share the width, short ones keep their natural width), wrapped multirow/multicolumn cells, and its height is capped at 0.9 of the text height. `vi` output for short cells is unchanged.
+- A build-time font error is kept in the job state so `status` reports `font_missing`; a damaged `MANIFEST.json` is `FontMissing`.
+- The post-check parses TeX log lines wrapped at 79 characters.
+
 ## 12. The agent protocol (content of `SKILL.md`)
 0. Determine the file, target language, save location. Language or save location missing → ask (one sentence, combined) and stop to wait. Result file already exists → ask before overwriting. `rosettex` not installed → the 8.2 flow.
 1. `rosettex status --setup`: if `setup` is not finished, continue it; if the device cache has expired, run `rosettex doctor`.

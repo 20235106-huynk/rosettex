@@ -200,3 +200,17 @@ def test_parse_missing_survives_tex_line_wrapping():
     from rosettex.render import postcheck as pc
     assert pc.re.search(r"LaTeX Warning: (?:Reference|Citation) `[^']*'[\s\S]{0,80}?undefined",
                         "LaTeX Warning: Reference `tab:long-label-name' on page 3\nundefined on input line 120.")
+
+
+@needs_tex
+@pytest.mark.parametrize("code", ["vi", "ar", "ko"])
+def test_long_table_cells_wrap_instead_of_shrinking(tmp_path, code):
+    from conftest import fake_script, fake_vi
+    long_cell = SAMPLES[code]
+    w = make_work(tmp_path, lang=code)
+    tr = (lambda s: fake_vi(s) if code == "vi" else fake_script(s, SAMPLES[code]))
+    translate_all(w, lambda s: (long_cell + " " + tr(s)) if len(s) <= 40 else tr(s))  # long text in every short unit
+    rep = render_core(w, tmp_path / "o.pdf")
+    tex = (w.out / "main.tex").read_text(encoding="utf-8")
+    assert r"\usepackage{array}" in tex and r"\raggedright\arraybackslash}p{" in tex
+    assert rep["postcheck"]["missing_glyphs"] == []

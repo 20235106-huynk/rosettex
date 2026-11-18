@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import defaultdict
 
 from ..checks import PH_RE, in_blocks
@@ -47,7 +48,7 @@ def label_lines(pack) -> list[str]:
     return [r"\renewcommand{\%s}{%s}" % (m, wrap_runs(lab[k], prof)) for k, m in names if k in lab]
 
 
-def preamble(doc, pack, twocolumn=None) -> str:
+def page_geometry(doc) -> tuple:
     sizes = doc["source"]["page_size_pt"]
     w, h = sizes[0] if sizes else (612, 792)
     bbs = [b["bbox"] for b in doc["blocks"] if b.get("bbox")]
@@ -59,6 +60,11 @@ def preamble(doc, pack, twocolumn=None) -> str:
     right = clamp((1 - max((x[2] for x in bbs), default=0.9)) * w)
     top = clamp(min((x[1] for x in bbs), default=0.1) * h)
     bottom = clamp((1 - max((x[3] for x in bbs), default=0.9)) * h)
+    return w, h, left, right, top, bottom
+
+
+def preamble(doc, pack, twocolumn=None, packages=()) -> str:
+    w, h, left, right, top, bottom = page_geometry(doc)
     two = doc["source"]["columns"] == 2 if twocolumn is None else twocolumn
     main, lang = lang_lines(pack)
     rtl = pack["profile"]["layout"] == "rtl"
@@ -73,6 +79,7 @@ def preamble(doc, pack, twocolumn=None) -> str:
         r"\setmathfont{latinmodern-math.otf}",
         *([] if rtl else lang),
         r"\usepackage{graphicx,booktabs,multirow,adjustbox,url}",
+        *[r"\usepackage{%s}" % p for p in packages],
         r"\usepackage[hidelinks]{hyperref}",
         *(lang if rtl else []),
         r"\makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother",
@@ -88,6 +95,7 @@ class Renderer:
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
         self.prof = pack["profile"]
+        self.packages = set()  # extra LaTeX packages the body needs (array for wrapped table columns)
         self.rtl = self.prof["layout"] == "rtl"
 
     # ---------- text ----------
@@ -163,11 +171,51 @@ class Renderer:
             return "\\begin{equation}%s\\tag{%s}%s\\end{equation}" % (b["tex"], escape_latex(b["tag"]), lab)
         return "\\begin{equation*}%s\\end{equation*}" % b["tex"]
 
-    def tabular(self, b) -> str:
+    @staticmethod
+    def _em(t: str) -> float:
+        """Rough text width in em: full-width characters 1, others 0.5, a placeholder 3 characters."""
+        t = PH_RE.sub("xxx", t)
+        return sum(1.0 if unicodedata.east_asian_width(c) in "WF" else 0.5 for c in t)
+
+    def col_spec(self, b, cells, cols, probe=False):
+        """'l' + 'c'*n while the table fits its column (kept for vi); otherwise long columns wrap (p{}) instead of the
+        whole table shrinking to unreadable size."""
+        nat = [0.0] * cols
+        for c in cells:
+            if c["colspan"] == 1:
+                u = self.units.get(c["id"])
+                nat[c["c"]] = max(nat[c["c"]], self._em(self.tr.get(c["id"], u["src"] if u else c["text"])))
+        w, _, left, right, _, _ = page_geometry(self.doc)
+        two = self.doc["source"]["columns"] == 2 and not probe
+        line_pt = (w - left - right) if (not two or b.get("wide")) else (w - left - right - 10) / 2
+        avail = line_pt / 10  # em at 10 pt
+        default = "l" + "c" * (cols - 1)
+        if sum(nat) + 1.2 * cols <= avail * 1.15:
+            return default, None
+        longc = [i for i in range(cols) if nat[i] > 5]
+        if not longc:
+            return default, None
+        self.packages.add("array")
+        fixed = sum(nat[i] + 1.2 for i in range(cols) if i not in longc) + 1.2 * len(longc)
+        rest = max(avail * 0.95 - fixed, 3.0 * len(longc))
+        tot = sum(nat[i] for i in longc)
+        spec, widths = [], []
+        for i in range(cols):
+            if i in longc:
+                frac = max(rest * nat[i] / tot, 3.0) / avail
+                spec.append(r">{\raggedright\arraybackslash}p{%.3f\linewidth}" % frac)
+                widths.append(frac)
+            else:
+                spec.append("l" if i == 0 else "c")
+                widths.append((nat[i] + 1.2) / avail)
+        return "".join(spec), (widths, set(longc))
+
+    def tabular(self, b, probe: bool = False) -> str:
         cells = b.get("cells") or []
         rows, cols = table_shape(cells)
         if not rows:
             return ""
+        spec, wrap = self.col_spec(b, cells, cols, probe)
         origin = {(c["r"], c["c"]): c for c in cells}
         cover = {}
         for c in cells:
@@ -182,10 +230,14 @@ class Renderer:
                 c = origin.get((r, col))
                 if c is not None:
                     x = self.text(c["id"], [{"t": "text", "v": c["text"]}])
+                    span = range(c["c"], c["c"] + c["colspan"])
+                    wrapped = wrap and any(i in wrap[1] for i in span)  # the cell lies on a wrapping (p{}) column
                     if c["rowspan"] > 1:
-                        x = "\\multirow{%d}{*}{%s}" % (c["rowspan"], x)
+                        x = "\\multirow{%d}{%s}{%s}" % (c["rowspan"], "=" if wrapped and c["colspan"] == 1 else "*", x)
                     if c["colspan"] > 1:
-                        x = "\\multicolumn{%d}{c}{%s}" % (c["colspan"], x)
+                        cs = ("{>{\\centering\\arraybackslash}p{%.3f\\linewidth}}" % (0.97 * sum(wrap[0][i] for i in span))
+                              if wrapped else "{c}")
+                        x = "\\multicolumn{%d}%s{%s}" % (c["colspan"], cs, x)
                     parts.append(x)
                     col += c["colspan"]
                 elif (r, col) in cover:
@@ -198,15 +250,18 @@ class Renderer:
                     col += 1
             lines.append(" & ".join(parts) + r" \\")
         return "\\begin{tabular}{%s}\\toprule\n%s\n\\bottomrule\\end{tabular}" % (
-            "l" + "c" * (cols - 1), "\n".join(lines))
+            spec, "\n".join(lines))
 
     def float_(self, b) -> str:
         env = ("table" if b["kind"] == "table" else "figure") + ("*" if b.get("wide") else "")
         cap = self.text(b["id"] + ".cap", b.get("caption") or [])
         lab = "\\label{%s}" % b["label"] if b.get("label") else ""
         if b["kind"] == "table":
-            body = (self.box_display(self.tabular(b)) if b["id"] in self.fb
-                    else "\\begin{adjustbox}{max width=\\linewidth}%s\\end{adjustbox}" % self.tabular(b))
+            tab = self.tabular(b)
+            # a table with wrapped columns may be taller than the page: also cap its height instead of losing content
+            cap_h = ",max totalheight=0.9\\textheight" if r"\raggedright\arraybackslash}p{" in tab else ""
+            body = (self.box_display(tab) if b["id"] in self.fb
+                    else "\\begin{adjustbox}{max width=\\linewidth%s}%s\\end{adjustbox}" % (cap_h, tab))
             return "\\begin{%s}[tbp]\\centering\\caption{%s}%s\n%s\\end{%s}" % (env, cap, lab, body, env)
         img = self.images.get(b["id"])
         body = ("\\includegraphics[width=\\linewidth]{%s}" % img if img and b["id"] not in self.fb
@@ -282,7 +337,7 @@ class Renderer:
         fr = "\n".join(front)
         if fr and self.doc["source"]["columns"] == 2:
             fr = "\\twocolumn[{%s}]" % fr
-        return preamble(self.doc, self.pack) + fr + "\n\n" + "\n\n".join(body) + "\n\\end{document}\n"
+        return preamble(self.doc, self.pack, packages=self.packages) + fr + "\n\n" + "\n\n".join(body) + "\n\\end{document}\n"
 
     def probe(self) -> str:
         items = []
@@ -292,11 +347,11 @@ class Renderer:
             if b["kind"] == "equation":
                 items.append(self.mark(b) + "\\begin{equation*}%s\\end{equation*}" % b["tex"])
             elif b["kind"] == "table":
-                items.append(self.mark(b) + self.tabular(b))
+                items.append(self.mark(b) + self.tabular(b, probe=True))
         for u in self.doc["units"]:
             for name, p in u["ph"].items():
                 key = f"{u['id']}:{name}"
                 if p["tex"].startswith("$") and key not in self.fb:
                     items.append("\\typeout{RX:%s}%s" % (key, p["tex"]))
-        return (preamble(self.doc, self.pack, twocolumn=False) + "\n\n".join(items)
+        return (preamble(self.doc, self.pack, twocolumn=False, packages=self.packages) + "\n\n".join(items)
                 + "\n\n\\mbox{}\n\\end{document}\n")
