@@ -337,3 +337,94 @@ def test_clean_foreign_hint_has_no_dash_o(capsys, tmp_path):
     assert code == 2 and "-o" not in r["next_action"]
     code, r = run(capsys, "status", d, "--json")
     assert code == 2 and "-o" not in r["next_action"]
+
+
+# ---------------- đợt sửa 3 việc sau lát 1 ----------------
+def test_extract_corrupt_pdf_is_usage_error_and_leaves_no_dir(env, capsys, tmp_path):
+    _, outdir = env
+    bad = tmp_path / "x.pdf"
+    bad.write_bytes(b"garbage, not a pdf")
+    code, r = run(capsys, "extract", bad, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert code == 2 and r["next_action"] and "x.pdf" in r["error"]
+    assert not (outdir / ".rosettex").exists()
+
+
+def _leftover(env_, subdir_files):
+    src, outdir = env_
+    d = outdir / ".rosettex" / f"{src.stem}.vi"
+    d.mkdir(parents=True)
+    for n in subdir_files:
+        (d / n).write_text("x", encoding="utf-8")
+    return d
+
+
+def test_leftover_dir_with_only_owned_is_reusable_and_cleanable(env, capsys):
+    src, outdir = env
+    d = _leftover(env, ["src.pdf", ".manifest.json.tmp"])
+    assert run(capsys, "clean", d, "--json")[0] == 0 and not d.exists()
+    d = _leftover(env, ["src.pdf"])
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert code == 0 and Work(r["work"]).root == d.resolve() and Work(d).manifest.exists()
+
+
+def test_leftover_dir_with_user_file_still_refused(env, capsys):
+    src, outdir = env
+    d = _leftover(env, ["src.pdf", "keep.txt"])
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert code == 2 and (d / "keep.txt").exists()
+    code, r = run(capsys, "clean", d, "--json")
+    assert code == 2 and (d / "keep.txt").exists() and (d / "src.pdf").exists()
+
+
+def _extracted(env, capsys):
+    src, outdir = env
+    return Work(run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]["work"])
+
+
+def test_clean_symlinked_out_is_retryable(env, capsys, tmp_path):
+    w = _extracted(env, capsys)
+    target = tmp_path / "elsewhere"
+    target.mkdir()
+    (target / "f").write_text("x", encoding="utf-8")
+    shutil.rmtree(w.root / "out", ignore_errors=True)
+    try:
+        (w.root / "out").symlink_to(target, target_is_directory=True)
+    except OSError:
+        pytest.skip("không tạo được symlink")
+    code, r = run(capsys, "clean", w.root, "--json")
+    assert code == 0 and (target / "f").exists() and not w.root.exists()
+
+
+def test_clean_tmp_directory_is_kept_without_traceback(env, capsys):
+    w = _extracted(env, capsys)
+    obstacle = w.root / ".x.tmp"
+    obstacle.mkdir()
+    code, r = run(capsys, "clean", w.root, "--json")
+    assert code == 0 and r["kept"] == [".x.tmp"] and r["removed"] is False
+    obstacle.rmdir()
+
+
+def test_clean_oserror_keeps_manifest_and_gives_next_action(env, capsys, monkeypatch):
+    w = _extracted(env, capsys)
+    real = type(w.src_pdf).unlink
+
+    def boom(self, *a, **k):
+        if self.name == "src.pdf":
+            raise PermissionError("locked")
+        return real(self, *a, **k)
+    monkeypatch.setattr(type(w.src_pdf), "unlink", boom)
+    code, r = run(capsys, "clean", w.root, "--json")
+    assert code == 2 and "clean" in r["next_action"] and w.manifest.exists()
+    monkeypatch.undo()
+    assert run(capsys, "clean", w.root, "--json")[0] == 0 and not w.root.exists()
+
+
+def test_clean_reports_removed_truthfully(env, capsys):
+    w = _extracted(env, capsys)
+    (w.root / "keep.txt").write_text("x", encoding="utf-8")
+    code, r = run(capsys, "clean", w.root, "--json")
+    assert code == 0 and r["removed"] is False and r["kept"] == ["keep.txt"]
+    (w.root / "keep.txt").unlink()
+    w2 = _extracted(env, capsys)
+    code, r = run(capsys, "clean", w2.root, "--json")
+    assert r["removed"] == str(w2.root) and r["kept"] == []

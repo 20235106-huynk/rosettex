@@ -53,6 +53,11 @@ OWNED = ("src.pdf", "manifest.json", "progress.json", "document.json", "terms.js
          "report.json", "validate.json", "logs", "mineru", "pages", "batches", "out")
 
 
+def is_leftover(root: Path) -> bool:
+    """Thư mục chưa có manifest mà mọi mục đều của rosettex (hoặc file .*.tmp): dấu vết của lần chạy bị ngắt."""
+    return all(p.name in OWNED or (p.name.startswith(".") and p.name.endswith(".tmp")) for p in root.iterdir())
+
+
 class Work:
     def __init__(self, root):
         r = self.root = Path(root).expanduser().resolve()

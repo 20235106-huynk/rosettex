@@ -15,7 +15,7 @@ from .extract.run import ExtractError, extract_core
 from .pdf import page_count
 from .render.compile import RenderError, render_core
 from .tools import available_ram_bytes, choose_tier, find_mineru, find_tex, verify_models
-from .workspace import (OWNED, SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
+from .workspace import (OWNED, is_leftover, SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
                         write_json)
 
 
@@ -43,11 +43,15 @@ def cmd_extract(a):
     pdf = Path(a.pdf).expanduser().resolve()
     if not pdf.is_file():
         raise UsageError(f"không tìm thấy file: {pdf}")
+    try:
+        page_count(pdf)  # kiểm tra trước khi tạo thư mục: PDF hỏng/mã hóa không để lại dấu vết
+    except Exception as e:
+        raise UsageError(f"không đọc được PDF {pdf}: {e}", next_action="kiểm tra file PDF (hỏng hoặc có mật khẩu)")
     out = resolve_out(pdf, a.lang, a.out)
     work = Work(a.work or out.parent / ".rosettex" / f"{pdf.stem}.{a.lang}")
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
     m = read_manifest(work, "chọn thư mục làm việc khác bằng -o <thư mục>")
-    if m is None and work.root.is_dir() and any(work.root.iterdir()):
+    if m is None and work.root.is_dir() and any(work.root.iterdir()) and not is_leftover(work.root):
         raise UsageError(f"thư mục {work.root} không rỗng và không phải thư mục làm việc rosettex",
                          next_action="chọn thư mục trống hoặc chưa có bằng -o <thư mục>")
     if m and m["sha256"] != digest:
@@ -229,21 +233,27 @@ def cmd_render(a):
 # ---------------- khác ----------------
 def cmd_clean(a):
     w = Work(a.work)
-    if read_manifest(w, "kiểm tra lại đường dẫn <work>") is None:
+    if read_manifest(w, "kiểm tra lại đường dẫn <work>") is None and not (w.root.is_dir() and is_leftover(w.root)):
         raise UsageError(f"không phải thư mục làm việc rosettex (thiếu manifest.json): {w.root}",
                          next_action="kiểm tra lại đường dẫn <work>")
-    for name in OWNED:
-        p = w.root / name
-        if p.is_dir():
-            shutil.rmtree(p)
-        else:
-            p.unlink(missing_ok=True)
-    for p in w.root.glob(".*.tmp"):  # file tạm của write_json bị bỏ dở
-        p.unlink(missing_ok=True)
-    kept = sorted(p.name for p in w.root.iterdir())
-    if not kept:
-        w.root.rmdir()
-    return 0, {"ok": True, "removed": str(w.root), "kept": kept, "next_action": None}
+    try:
+        # manifest.json xóa cuối cùng để lần clean lỗi còn chạy lại được
+        for name in [n for n in OWNED if n != "manifest.json"]:
+            p = w.root / name
+            if p.is_dir() and not p.is_symlink():
+                shutil.rmtree(p)
+            else:  # symlink: chỉ gỡ chính liên kết, không đi theo
+                p.unlink(missing_ok=True)
+        for p in w.root.glob(".*.tmp"):  # file tạm của write_json bị bỏ dở
+            if p.is_file() or p.is_symlink():
+                p.unlink(missing_ok=True)
+        w.manifest.unlink(missing_ok=True)
+        kept = sorted(p.name for p in w.root.iterdir())
+        if not kept:
+            w.root.rmdir()
+    except OSError as e:
+        raise UsageError(f"không xóa hết được: {e}", next_action=f"gỡ vật cản rồi chạy lại: rosettex clean {q(w.root)} --json")
+    return 0, {"ok": True, "removed": str(w.root) if not kept else False, "kept": kept, "next_action": None}
 
 
 def cmd_guide(a):
