@@ -152,16 +152,16 @@ class Renderer:
     def mark(b) -> str:
         return "\\typeout{RX:" + b["id"] + "}\n"
 
-    def box_inline(self, src) -> str:
-        return r"\fbox{" + self._tt(r"\small " + escape_latex(src)) + "}"
-
     def _tt(self, body: str) -> str:
         # source text in a typewriter font; in rtl as a closed Latin group so the font and direction do not leak
-        return r"\textenglish{\ttfamily %s}" % body if self.rtl else r"\ttfamily " + body
+        return r"\textenglish{\ttfamily\small %s}" % body if self.rtl else r"\ttfamily\small " + body
+
+    def box_inline(self, src) -> str:
+        return r"\fbox{" + self._tt(escape_latex(src)) + "}"
 
     def box_display(self, src, label=None) -> str:
-        return (r"\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright "
-                + self._tt(r"\small [" + escape_latex(label or self.pack["labels"]["fallback"]) + r"]\\ " + escape_latex(src))
+        return (r"\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright" + self._tt(
+            "[" + escape_latex(label or self.pack["labels"]["fallback"]) + r"]\\ " + escape_latex(src))
                 + r"}}\end{center}")
 
     def verbatim(self, spans, bid) -> str:
