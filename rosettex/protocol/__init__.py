@@ -3,14 +3,26 @@ from importlib.resources import files
 
 from ..checks import load_pack
 
-FRONTMATTER = """---
+# Mô tả kích hoạt: tiếng Anh, tự đứng được, dùng chung cho SKILL.md (frontmatter) và AGENTS.md (đầu file)
+# để harness chọn skill theo mô tả lẫn harness chỉ đọc file quy tắc đều biết khi nào dùng. Giữ <= 1024 ký tự, một dòng.
+DESCRIPTION = (
+    "Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF "
+    "that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to "
+    "translate a paper, article or research PDF, in any language (e.g. 'translate this paper to Vietnamese'). "
+    "Needs a shell and file read/write; you do the translating and the rosettex CLI does extraction, checking and "
+    "typesetting. Scanned or image-only PDFs are not supported yet."
+)
+
+FRONTMATTER = f"""---
 name: rosettex
-description: Dịch trọn bài báo khoa học PDF sang ngôn ngữ khác (hỏi người dùng ngôn ngữ đích nếu chưa nêu), giữ công thức, bảng, số liệu và trích dẫn, dựng lại PDF. Dùng khi người dùng nói "dịch bài báo", "dịch file PDF này sang…", "dịch paper", "translate this paper/PDF to…".
+description: {DESCRIPTION}
 ---
 
 Chạy `rosettex guide` để xem bản mới nhất của giao thức dưới đây, rồi làm theo.
 
 """
+
+AGENTS_INTRO = f"**When to use:** {DESCRIPTION}\n\n"
 
 
 def text(lang: str = "vi") -> str:
@@ -24,4 +36,4 @@ def skill_md() -> str:
 
 
 def agents_md() -> str:
-    return text("vi")
+    return AGENTS_INTRO + text("vi")

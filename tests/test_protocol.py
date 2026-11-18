@@ -21,10 +21,17 @@ def test_generated_files_in_sync():
 
 def test_skill_frontmatter_triggers():
     head = skill_md().split("---")[1]
-    assert "name: rosettex" in head and "dịch bài báo" in head and "translate this paper" in head
+    assert "name: rosettex" in head and "translate this paper" in head
+    desc = [l for l in head.splitlines() if l.startswith("description: ")][0]
+    assert len(desc) - len("description: ") <= 1024 and "\n" not in desc
+    assert skill_md().count("description:") == 1
+
+
+def test_agents_md_states_when_to_use():
+    assert agents_md().startswith("**When to use:** Translate a whole scientific paper PDF")
 
 
 def test_target_language_is_asked_not_defaulted():
     from rosettex.protocol import skill_md, text
-    assert "mặc định tiếng Việt" not in skill_md().split("---")[1]  # mô tả kích hoạt
+    assert "Vietnamese by default" not in skill_md().split("---")[1] and "mặc định" not in skill_md().split("---")[1]
     assert "Không tự đoán ngôn ngữ đích" in text("vi")

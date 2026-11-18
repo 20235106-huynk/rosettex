@@ -21,7 +21,9 @@ Biến môi trường tùy chọn (người dùng đặt một lần): `ROSETTEX
 ## Gắn vào harness
 
 - **Claude Code:** chép `skill/SKILL.md` vào `~/.claude/skills/rosettex/SKILL.md`.
-- **Codex và harness đọc AGENTS.md:** chép nội dung `skill/AGENTS.md` vào `AGENTS.md` của bạn.
+- **Codex, OpenCode, Cursor và harness đọc AGENTS.md:** chép nội dung `skill/AGENTS.md` vào `AGENTS.md` của bạn (đầu file có dòng "When to use" để agent biết khi nào áp dụng).
+- **Gemini CLI:** chép nội dung `skill/AGENTS.md` vào `GEMINI.md` (hoặc đặt tên file ngữ cảnh theo cấu hình của bạn).
+- **Cline:** chép nội dung `skill/AGENTS.md` vào `.clinerules`.
 - **Harness khác:** bảo agent "chạy `rosettex guide` rồi làm theo".
 
 Sau đó chỉ cần nói: *"Dịch bài báo ~/papers/attention.pdf sang tiếng Việt, lưu ở ~/dich/"*.

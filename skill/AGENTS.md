@@ -1,3 +1,5 @@
+**When to use:** Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to translate a paper, article or research PDF, in any language (e.g. 'translate this paper to Vietnamese'). Needs a shell and file read/write; you do the translating and the rosettex CLI does extraction, checking and typesetting. Scanned or image-only PDFs are not supported yet.
+
 # rosettex — giao thức dịch bài báo PDF
 
 Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm tra và dựng PDF. Quy tắc chung:
