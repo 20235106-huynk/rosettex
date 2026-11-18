@@ -17,7 +17,7 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 ## Venue style (approach B, started 2026-11-18)
 - [x] IEEE papers build with `IEEEtran` (2611.23202 → Vietnamese, 14 pages, `postcheck` clean).
 - [ ] ACM (`acmart`), Springer (`llncs`), Elsevier (`elsarticle`): detection and build; needs a sample paper of each.
-- [ ] Authors side by side with italic affiliations (IEEE author blocks); bold run-in heads inside paragraphs (needs the adapter to keep bold spans).
+- [x] IEEE authors side by side, italic affiliations (2026-11-18). Bold run-in heads inside paragraphs: not wanted (decided by the user).
 - [ ] Reader check of the IEEE build against the source.
 
 ## 20-language run (2026-11-18)

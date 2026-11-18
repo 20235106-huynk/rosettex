@@ -88,3 +88,16 @@ def test_fallback_table_caption_keeps_links_but_cells_go_plain():
     cap["ph"] = {"r1": {"src": "Table 1", "tex": r"\ref{tab:1}"}}
     tr[cap["id"]] = "Chú thích ⟦r1⟧"
     assert r"\ref{tab:1}" in Renderer(doc, tr, VI, {tb["id"]}, {}).text(cap["id"], [])
+
+
+def test_ieee_authors_side_by_side():
+    from rosettex.render.latex import Renderer
+    mk = lambda i, x0, x1, y, t, role="authors": {"id": i, "kind": "paragraph", "role": role, "page": 1,  # noqa: E731
+                                                  "bbox": [x0, y, x1, y + 0.01], "spans": [{"t": "text", "v": t}]}
+    r = Renderer({"blocks": [], "units": [], "source": {"columns": 2, "page_size_pt": [[612, 792]]}}, {},
+                 {"profile": {"layout": "plain", "_blocks": []}, "labels": {}}, set(), {})
+    tex = r.author_block([mk("a", 0.2, 0.4, 0.22, "Ann Lee"), mk("b", 0.1, 0.5, 0.24, "Univ A"),
+                          mk("c", 0.6, 0.8, 0.22, "Bob Ray"), mk("d", 0.5, 0.9, 0.24, "Univ B"),
+                          mk("e", 0.55, 0.85, 0.26, "bob@b.org")])
+    assert tex.count("\\begin{minipage}") == 2 and "\\hfill" in tex
+    assert "Ann Lee\\\\ \\textit{Univ A}" in tex and "\\textit{Univ B}\\\\ bob@b.org" in tex

@@ -31,8 +31,12 @@ def lang_lines(pack) -> tuple[list[str], list[str]]:
         return main, [r"\usepackage%s{xeCJK}" % opt, r"\setCJKmainfont{%s}[%s]" % (f, o)]
     if lay == "rtl":
         po = pack.get("polyglossia_options")
-        return main, [r"\usepackage{polyglossia}", r"\setdefaultlanguage%s{%s}" % ("[%s]" % po if po else "", poly),
+        return main, [r"\providecommand\UseMathForPositioningText{}",  # bidi's tabular patch (TeX Live 2026) needs it
+                      r"\usepackage{polyglossia}", r"\setdefaultlanguage%s{%s}" % ("[%s]" % po if po else "", poly),
                       r"\setotherlanguage{english}", r"\newfontfamily\%sfont{%s}[%s]" % (poly, f, o),
+                      # TeX Live's polyglossia (XeLaTeX) wants a typewriter font for the default language too
+                      # (Latin Modern Mono: \url and boxes are Latin text; the Arabic font has no Latin letters)
+                      r"\newfontfamily\%sfonttt{lmmono10-regular}[Extension=.otf]" % poly,
                       r"\newcommand{\rxltr}[1]{\textenglish{#1}}",
                       # generated numbers in Latin letters (IEEE tables: I, II, …) come from the Latin font too
                       r"\AtBeginDocument{\let\rxthetable\thetable\renewcommand{\thetable}{\protect\rxltr{\rxthetable}}}",
@@ -149,11 +153,15 @@ class Renderer:
         return "\\typeout{RX:" + b["id"] + "}\n"
 
     def box_inline(self, src) -> str:
-        return r"\fbox{\ttfamily\small " + escape_latex(src) + "}"
+        return r"\fbox{" + self._tt(r"\small " + escape_latex(src)) + "}"
+
+    def _tt(self, body: str) -> str:
+        # source text in a typewriter font; in rtl as a closed Latin group so the font and direction do not leak
+        return r"\textenglish{\ttfamily %s}" % body if self.rtl else r"\ttfamily " + body
 
     def box_display(self, src, label=None) -> str:
-        return (r"\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright\ttfamily\small ["
-                + escape_latex(label or self.pack["labels"]["fallback"]) + r"]\\ " + escape_latex(src)
+        return (r"\begin{center}\fbox{\parbox{0.95\linewidth}{\raggedright "
+                + self._tt(r"\small [" + escape_latex(label or self.pack["labels"]["fallback"]) + r"]\\ " + escape_latex(src))
                 + r"}}\end{center}")
 
     def verbatim(self, spans, bid) -> str:
@@ -399,14 +407,20 @@ class Renderer:
                 anchor = pos.get(rb, pos.get(nxt, len(flow)))  # the paragraph that first mentions it, else where it was
                 anchor = pos.get(self.place.get(b.get("label") or ""), anchor)
                 before[anchor].append(b)
-        body, front, in_front = [], [], True
+        body, front, in_front, auth = [], [], True, []
         for j, b in enumerate(flow + [None]):
             if b is not None and in_front and b["page"] == 1 and ((b["kind"] == "heading" and b["level"] == 1)
                                                                  or b.get("role") == "authors"):
-                inner = self.heading(b) if b["kind"] == "heading" else "\\begin{center}%s\\end{center}" % self.verbatim(b["spans"], b["id"])
-                front.append(self.mark(b) + inner)
+                if b.get("role") == "authors" and self.style == "ieee":
+                    auth.append(b)  # laid out side by side once all of them are known
+                else:
+                    inner = self.heading(b) if b["kind"] == "heading" else "\\begin{center}%s\\end{center}" % self.verbatim(b["spans"], b["id"])
+                    front.append(self.mark(b) + inner)
                 before[j + 1] = before.pop(j, []) + before.get(j + 1, [])  # nothing floats into the title block
                 continue
+            if in_front and auth:
+                front.append(self.author_block(auth))
+                auth = []
             in_front = False
             body += [self.mark(f) + self.float_(f) for f in before.pop(j, [])]
             if b is None:
@@ -427,6 +441,29 @@ class Renderer:
         if fr and self.doc["source"]["columns"] == 2:
             fr = "\\twocolumn[{%s}]" % fr
         return preamble(self.doc, self.pack, packages=self.packages) + fr + "\n\n" + "\n\n".join(body) + "\n\\end{document}\n"
+
+    def author_block(self, blocks) -> str:
+        """IEEE author block: one column per author (name, italic affiliation lines, plain e-mail), side by side as
+        in the source. Blocks are grouped by their horizontal position."""
+        cols: list[list[dict]] = []
+        for b in sorted(blocks, key=lambda x: (round((x["bbox"][0] + x["bbox"][2]) / 2 / 0.12), x["bbox"][1])):
+            c = (b["bbox"][0] + b["bbox"][2]) / 2
+            for col in cols:
+                if abs(sum((x["bbox"][0] + x["bbox"][2]) / 2 for x in col) / len(col) - c) < 0.12:
+                    col.append(b)
+                    break
+            else:
+                cols.append([b])
+        cols.sort(key=lambda col: col[0]["bbox"][0])
+        out = []
+        for col in cols:
+            lines = []
+            for i, b in enumerate(sorted(col, key=lambda x: x["bbox"][1])):
+                t = self.verbatim(b["spans"], b["id"])
+                lines.append(t if i == 0 or "@" in t else "\\textit{%s}" % t)
+            out.append("\\begin{minipage}[t]{%.2f\\textwidth}\\centering %s\\end{minipage}" % (0.96 / len(cols), "\\\\ ".join(lines)))
+        marks = "".join(self.mark(b) for b in blocks)
+        return marks + "\\par\\medskip\\noindent" + "\\hfill".join(out) + "\\par"
 
     def probe(self) -> str:
         items = []

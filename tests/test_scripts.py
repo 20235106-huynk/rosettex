@@ -168,3 +168,10 @@ def test_rtl_sets_every_non_arabic_character_in_the_latin_font():
     doc, tr = doc_and_tr("نص")
     tex = Renderer(doc, tr, load_pack("ar"), set(), {}).document()
     assert r"\renewcommand{\thetable}{\protect\rxltr{\rxthetable}}" in tex  # generated Roman table numbers
+
+
+def test_rtl_preamble_is_xelatex_safe():
+    doc, tr = doc_and_tr("نص")
+    tex = Renderer(doc, tr, load_pack("ar"), set(), {}).document()
+    assert tex.index(r"\providecommand\UseMathForPositioningText{}") < tex.index(r"\usepackage{polyglossia}")
+    assert r"\newfontfamily\arabicfonttt{lmmono10-regular}[Extension=.otf]" in tex  # polyglossia wants a tt font
