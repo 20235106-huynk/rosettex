@@ -56,7 +56,7 @@ Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần
 - các vấn đề trong `postcheck.problems`, nếu có.
 
 ## Bị gián đoạn hoặc mất ngữ cảnh
-Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>`.
+Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>.<mã ngôn ngữ>`.
 
 ## Quy tắc dịch
 - Giữ nguyên mọi placeholder ⟦…⟧ đúng như bản gốc (được đổi vị trí trong câu cho tự nhiên).

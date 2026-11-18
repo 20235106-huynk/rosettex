@@ -200,7 +200,7 @@ def test_crash_in_extract_core_is_failed(env, capsys, monkeypatch):
     monkeypatch.setattr(cli, "extract_core", lambda *a, **k: {}["boom"])
     code, res = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert code == 2 and res["next_action"] is None
-    w = Work(outdir.parent / "Kết quả mới" / ".rosettex" / "short paper")
+    w = Work(outdir.parent / "Kết quả mới" / ".rosettex" / "short paper.vi")
     st = _fail_status(capsys, w.root)
     assert st["state"] == "extract_failed" and "KeyError" in st["error"] and st["next_action"] is None
 
@@ -210,7 +210,7 @@ def test_extract_failure_at_basic_tier_stops(env, capsys, monkeypatch):
     monkeypatch.setenv("FAKE_MINERU_FAIL_ALWAYS", "1")
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--tier", "basic", "--foreground", "--json")
     assert code == 2 and r["next_action"] is None
-    st = _fail_status(capsys, outdir / ".rosettex" / "short paper")
+    st = _fail_status(capsys, outdir / ".rosettex" / "short paper.vi")
     assert st["next_action"] is None and st["error"]
 
 
@@ -280,7 +280,7 @@ def test_extract_hang_times_out_and_fails(env, capsys, monkeypatch):
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert time.time() - t0 < 30
     assert code == 2 and "quá" in r["error"] and r["next_action"].startswith("rosettex extract")
-    st = _fail_status(capsys, outdir / ".rosettex" / "short paper")
+    st = _fail_status(capsys, outdir / ".rosettex" / "short paper.vi")
     assert st["state"] == "extract_failed"
 
 
@@ -300,3 +300,13 @@ def test_render_hang_times_out_and_fails(env, capsys, tmp_path, monkeypatch):
     assert code == 2 and "quá" in res["error"]
     st = _fail_status(capsys, r["work"])
     assert st["state"] == "render_failed" and st["next_action"] is None
+
+
+def test_extract_other_lang_gets_own_work_dir_and_conflict_is_refused(env, capsys):
+    src, outdir = env
+    vi = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    fr = run(capsys, "extract", src, "--lang", "fr", "--out", outdir, "--foreground", "--json")[1]
+    assert vi["work"] != fr["work"] and read_json(Work(fr["work"]).manifest)["lang"] == "fr"
+    code, r = run(capsys, "extract", src, "--lang", "fr", "--out", outdir, "-o", vi["work"], "--foreground", "--json")
+    assert code == 2 and "vi" in r["error"] and "clean" in r["next_action"]
+    assert read_json(Work(vi["work"]).manifest)["lang"] == "vi"

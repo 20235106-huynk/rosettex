@@ -44,12 +44,15 @@ def cmd_extract(a):
     if not pdf.is_file():
         raise UsageError(f"không tìm thấy file: {pdf}")
     out = resolve_out(pdf, a.lang, a.out)
-    work = Work(a.work or out.parent / ".rosettex" / pdf.stem)
+    work = Work(a.work or out.parent / ".rosettex" / f"{pdf.stem}.{a.lang}")
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
     m = read_manifest(work)
     if m and m["sha256"] != digest:
         raise UsageError(f"thư mục làm việc {work.root} thuộc một bài khác",
                          next_action=f"rosettex clean {q(work.root)} --json")
+    if m and m["lang"] != a.lang:
+        raise UsageError(f"thư mục làm việc {work.root} đã tạo cho ngôn ngữ {m['lang']}, không phải {a.lang}",
+                         next_action=f"dùng thư mục khác bằng -o <thư mục>, hoặc xóa bằng: rosettex clean {q(work.root)} --json")
     cmd = find_mineru()
     if cmd is None:
         raise UsageError("chưa cài MinerU 4.x (mineru-kit); xem README mục Cài đặt")
@@ -251,7 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("pdf")
     s.add_argument("--lang", required=True)
     s.add_argument("--out", required=True, help="file .pdf kết quả hoặc thư mục")
-    s.add_argument("-o", "--work", help="thư mục làm việc (mặc định <thư mục kết quả>/.rosettex/<tên>)")
+    s.add_argument("-o", "--work", help="thư mục làm việc (mặc định <thư mục kết quả>/.rosettex/<tên>.<ngôn ngữ>)")
     s.add_argument("--tier", choices=["standard", "basic"])
     s.add_argument("--pages-per-group", type=int, default=5)
     s.add_argument("--foreground", action="store_true")
