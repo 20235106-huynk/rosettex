@@ -1,0 +1,768 @@
+{
+  "metadata": {
+    "file_suffix": "pdf",
+    "producer": {
+      "name": "mineru",
+      "version": "4.2.3"
+    },
+    "document": {
+      "created_at": "2026-11-17T17:51:10-00:00",
+      "creator_application": "LaTeX with hyperref",
+      "producer_application": "xdvipdfmx (0.1)",
+      "page_count": 2,
+      "page_count_kind": "physical"
+    }
+  },
+  "extensions": {
+    "mineru": {
+      "tier": "standard",
+      "parse_mode": "txt"
+    },
+    "docvortex_layout": {
+      "version": 1,
+      "pages": [
+        {
+          "page_idx": 0,
+          "width_pt": 612.0,
+          "height_pt": 792.0
+        },
+        {
+          "page_idx": 1,
+          "width_pt": 612.0,
+          "height_pt": 792.0
+        }
+      ]
+    }
+  },
+  "pages": [
+    {
+      "page_idx": 0,
+      "blocks": [
+        {
+          "type": "doc_title",
+          "index": 0,
+          "bbox": [
+            0.145,
+            0.105,
+            0.855,
+            0.13
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Attention-Based Sequence Transduction with Residual Scaling"
+            }
+          ],
+          "level": 1
+        },
+        {
+          "type": "text",
+          "index": 1,
+          "bbox": [
+            0.355,
+            0.147,
+            0.478,
+            0.165
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Alice Nguyen"
+            },
+            {
+              "type": "text",
+              "content": "∗",
+              "styles": [
+                "superscript"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "index": 2,
+          "bbox": [
+            0.549,
+            0.146,
+            0.65,
+            0.164
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Bob Smith†"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "index": 3,
+          "bbox": [
+            0.417,
+            0.177,
+            0.582,
+            0.194
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "November 18, 2026"
+            }
+          ]
+        },
+        {
+          "type": "paragraph_title",
+          "index": 4,
+          "bbox": [
+            0.09,
+            0.222,
+            0.196,
+            0.24
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Abstract"
+            }
+          ],
+          "level": 2
+        },
+        {
+          "type": "text",
+          "index": 5,
+          "bbox": [
+            0.087,
+            0.254,
+            0.495,
+            0.345
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "We propose a simple network architecture based solely on attention mechanisms. Experiments on two translation tasks show that our model achieves 28.4 BLEU on English-to-German, improving over the best existing results by 2.0 BLEU, while requiring significantly less time to train."
+            }
+          ]
+        },
+        {
+          "type": "paragraph_title",
+          "index": 6,
+          "bbox": [
+            0.089,
+            0.371,
+            0.276,
+            0.39
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "1 Introduction"
+            }
+          ],
+          "level": 2
+        },
+        {
+          "type": "text",
+          "index": 7,
+          "bbox": [
+            0.087,
+            0.403,
+            0.494,
+            0.448
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Recurrent networks [4] have been the dominant approach. In this work we show that attention alone suffices."
+            }
+          ]
+        },
+        {
+          "type": "paragraph_title",
+          "index": 8,
+          "bbox": [
+            0.089,
+            0.474,
+            0.222,
+            0.492
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "2 Method"
+            }
+          ],
+          "level": 2
+        },
+        {
+          "type": "text",
+          "index": 9,
+          "bbox": [
+            0.088,
+            0.505,
+            0.493,
+            0.567
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Given an input sequence "
+            },
+            {
+              "type": "equation_inline",
+              "content": "x = (x_{1},\\dots ,x_{n})"
+            },
+            {
+              "type": "text",
+              "content": " with "
+            },
+            {
+              "type": "equation_inline",
+              "content": "x_{i}\\in\\mathbb{R}^{d}"
+            },
+            {
+              "type": "text",
+              "content": " , we compute queries "
+            },
+            {
+              "type": "equation_inline",
+              "content": "Q = XW^{Q}"
+            },
+            {
+              "type": "text",
+              "content": " , keys "
+            },
+            {
+              "type": "equation_inline",
+              "content": "K = XW^{K}"
+            },
+            {
+              "type": "text",
+              "content": " and values "
+            },
+            {
+              "type": "equation_inline",
+              "content": "V = XW^{V}"
+            },
+            {
+              "type": "text",
+              "content": " , where "
+            },
+            {
+              "type": "equation_inline",
+              "content": "W^{Q}\\in\\mathbb{R}^{d\\times d_{k}}"
+            },
+            {
+              "type": "text",
+              "content": " . The scaled dotproduct attention is"
+            }
+          ]
+        },
+        {
+          "type": "equation",
+          "index": 10,
+          "bbox": [
+            0.139,
+            0.578,
+            0.491,
+            0.613
+          ],
+          "image_path": "images/page_0_equation_10.jpg",
+          "content": "\\text {Attention} (Q, K, V) = \\text {softmax} \\left(\\frac {Q K ^ {\\top}}{\\sqrt {d _ {k}}}\\right) V.\\tag{1}"
+        },
+        {
+          "type": "text",
+          "index": 11,
+          "bbox": [
+            0.088,
+            0.625,
+            0.493,
+            0.687
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "As shown in Eq. (1) , the factor "
+            },
+            {
+              "type": "equation_inline",
+              "content": "1 / \\sqrt{d_k}"
+            },
+            {
+              "type": "text",
+              "content": " prevents the softmax from saturating when "
+            },
+            {
+              "type": "equation_inline",
+              "content": "d_{k}"
+            },
+            {
+              "type": "text",
+              "content": " is large, e.g. "
+            },
+            {
+              "type": "equation_inline",
+              "content": "d_{k} = 64"
+            },
+            {
+              "type": "text",
+              "content": " Following [1, 2], we add residual connections so that "
+            },
+            {
+              "type": "equation_inline",
+              "content": "y = x + f(x)"
+            },
+            {
+              "type": "text",
+              "content": " , and the loss is"
+            }
+          ]
+        },
+        {
+          "type": "equation",
+          "index": 12,
+          "bbox": [
+            0.151,
+            0.698,
+            0.491,
+            0.74
+          ],
+          "image_path": "images/page_0_equation_12.jpg",
+          "content": "\\mathcal {L} (\\theta) = - \\frac {1}{N} \\sum_ {i = 1} ^ {N} \\log p _ {\\theta} (y _ {i} \\mid x _ {i}) + \\lambda \\| \\theta \\| _ {2} ^ {2},\\tag{2}"
+        },
+        {
+          "type": "text",
+          "index": 13,
+          "bbox": [
+            0.087,
+            0.752,
+            0.488,
+            0.784
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "with "
+            },
+            {
+              "type": "equation_inline",
+              "content": "\\lambda = 0.01"
+            },
+            {
+              "type": "text",
+              "content": " . The learning rate follows "
+            },
+            {
+              "type": "equation_inline",
+              "content": "\\eta_t = d^{-0.5}"
+            },
+            {
+              "type": "text",
+              "content": " min "
+            },
+            {
+              "type": "equation_inline",
+              "content": "(t^{-0.5}, t \\cdot w^{-1.5})"
+            },
+            {
+              "type": "text",
+              "content": " for warmup "
+            },
+            {
+              "type": "equation_inline",
+              "content": "w = 4000"
+            },
+            {
+              "type": "text",
+              "content": " steps."
+            },
+            {
+              "type": "text",
+              "content": "1",
+              "styles": [
+                "superscript"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph_title",
+          "index": 14,
+          "bbox": [
+            0.089,
+            0.809,
+            0.277,
+            0.828
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "3 Experiments"
+            }
+          ],
+          "level": 2
+        },
+        {
+          "type": "text",
+          "index": 15,
+          "bbox": [
+            0.088,
+            0.84,
+            0.494,
+            0.872
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "We train on WMT 2014 English–German, which contains about 4.5 million sentence pairs, and report BLEU"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "index": 17,
+          "bbox": [
+            0.555,
+            0.252,
+            0.861,
+            0.36
+          ],
+          "content": [
+            {
+              "type": "table_caption",
+              "index": 16,
+              "bbox": [
+                0.505,
+                0.234,
+                0.908,
+                0.25
+              ],
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Table 1: BLEU scores and training cost on newstest2014."
+                }
+              ]
+            },
+            {
+              "type": "table_body",
+              "index": 17,
+              "bbox": [
+                0.555,
+                0.252,
+                0.861,
+                0.36
+              ],
+              "image_path": "images/page_0_table_17.jpg",
+              "content": "<table><tbody><tr><td rowspan=\"2\">Model</td><td rowspan=\"2\">Size</td><td colspan=\"2\">BLEU</td></tr><tr><td>EN-DE</td><td>EN-FR</td></tr><tr><td>ByteNet</td><td>1.2B</td><td>23.75</td><td>-</td></tr><tr><td>ConvS2S</td><td>0.9B</td><td>25.16</td><td>40.46</td></tr><tr><td>Ours (base)</td><td>65M</td><td>27.3</td><td>38.1</td></tr><tr><td>Ours (big)</td><td>213M</td><td>28.4</td><td>41.8</td></tr></tbody></table>"
+            }
+          ]
+        },
+        {
+          "type": "chart",
+          "index": 18,
+          "bbox": [
+            0.545,
+            0.378,
+            0.874,
+            0.504
+          ],
+          "content": [
+            {
+              "type": "chart_body",
+              "index": 18,
+              "bbox": [
+                0.545,
+                0.378,
+                0.874,
+                0.504
+              ],
+              "image_path": "images/page_0_chart_18.jpg",
+              "content": ""
+            },
+            {
+              "type": "chart_caption",
+              "index": 19,
+              "bbox": [
+                0.503,
+                0.522,
+                0.91,
+                0.553
+              ],
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 1: Validation loss during training of the big model."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "index": 20,
+          "bbox": [
+            0.503,
+            0.581,
+            0.911,
+            0.673
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "in Table 1. Our model reaches 28.4 BLEU, outperforming the best previous result by 2.0 points while costing only "
+            },
+            {
+              "type": "equation_inline",
+              "content": "3.3\\times 10^{18}"
+            },
+            {
+              "type": "text",
+              "content": " FLOPs. Figure 1 shows that the validation loss decreases monotonically. The improvement is statistically significant "
+            },
+            {
+              "type": "equation_inline",
+              "content": "(p <   0.05)"
+            },
+            {
+              "type": "text",
+              "content": " , although it may not generalize to low-resource pairs, as discussed in Section 2."
+            }
+          ],
+          "continues_prev": true
+        },
+        {
+          "type": "text",
+          "index": 21,
+          "bbox": [
+            0.502,
+            0.675,
+            0.912,
+            0.934
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "Long paragraph to cross columns. The encoder is composed of a stack of "
+            },
+            {
+              "type": "equation_inline",
+              "content": "N = 6"
+            },
+            {
+              "type": "text",
+              "content": " identical layers. Each layer has two sub-layers: the first is a multi-head self-attention mechanism, and the second is a simple, position-wise fully connected feed-forward network with inner dimension "
+            },
+            {
+              "type": "equation_inline",
+              "content": "d_{ff} = 2048"
+            },
+            {
+              "type": "text",
+              "content": " We employ a residual connection around each of the two sub-layers, followed by layer normalization [3]. That is, the output of each sub-layer is "
+            },
+            {
+              "type": "equation_inline",
+              "content": "\\operatorname{LayerNorm}(x + \\operatorname{Sublayer}(x))"
+            },
+            {
+              "type": "text",
+              "content": " . To facilitate these residual connections, all sub-layers in the model, as well as the embedding layers, produce outputs of dimension "
+            },
+            {
+              "type": "equation_inline",
+              "content": "d_{model} = 512"
+            },
+            {
+              "type": "text",
+              "content": " . The decoder is also composed of a stack of "
+            },
+            {
+              "type": "equation_inline",
+              "content": "N = 6"
+            },
+            {
+              "type": "text",
+              "content": " identical layers, and we modify the self-attention sub-layer to prevent positions from attending to subsequent positions; this masking ensures that predictions for position i can depend only on the known outputs at positions less than i."
+            }
+          ]
+        },
+        {
+          "type": "page_footnote",
+          "index": 22,
+          "bbox": [
+            0.105,
+            0.881,
+            0.376,
+            0.895
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "∗University of Example, alice@example.edu"
+            }
+          ]
+        },
+        {
+          "type": "page_footnote",
+          "index": 23,
+          "bbox": [
+            0.106,
+            0.895,
+            0.328,
+            0.907
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "†Example Labs, bob@example.com"
+            }
+          ]
+        },
+        {
+          "type": "page_footnote",
+          "index": 24,
+          "bbox": [
+            0.088,
+            0.906,
+            0.495,
+            0.932
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "1",
+              "styles": [
+                "superscript"
+              ]
+            },
+            {
+              "type": "text",
+              "content": "We found warmup essential; without it training diverged in 3 of 5 runs."
+            }
+          ]
+        },
+        {
+          "type": "page_number",
+          "index": 25,
+          "bbox": [
+            0.495,
+            0.956,
+            0.505,
+            0.968
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page_idx": 1,
+      "blocks": [
+        {
+          "type": "paragraph_title",
+          "index": 0,
+          "bbox": [
+            0.09,
+            0.069,
+            0.218,
+            0.087
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "References"
+            }
+          ],
+          "level": 2
+        },
+        {
+          "type": "ref_text",
+          "index": 1,
+          "bbox": [
+            0.091,
+            0.1,
+            0.492,
+            0.13
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "[1] A. Vaswani et al. Attention is all you need. NeurIPS, 2017."
+            }
+          ]
+        },
+        {
+          "type": "ref_text",
+          "index": 2,
+          "bbox": [
+            0.092,
+            0.14,
+            0.492,
+            0.17
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "[2] K. He et al. Deep residual learning for image recognition. CVPR, 2016."
+            }
+          ]
+        },
+        {
+          "type": "ref_text",
+          "index": 3,
+          "bbox": [
+            0.092,
+            0.18,
+            0.492,
+            0.21
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "[3] J. Ba, J. Kiros, G. Hinton. Layer normalization. arXiv:1607.06450, 2016."
+            }
+          ]
+        },
+        {
+          "type": "ref_text",
+          "index": 4,
+          "bbox": [
+            0.092,
+            0.221,
+            0.492,
+            0.251
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "[4] S. Hochreiter, J. Schmidhuber. Long short-term memory. Neural Computation, 9(8):1735–1780, 1997."
+            }
+          ]
+        },
+        {
+          "type": "page_number",
+          "index": 5,
+          "bbox": [
+            0.494,
+            0.956,
+            0.506,
+            0.968
+          ],
+          "content": [
+            {
+              "type": "text",
+              "content": "2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "is_full_document": true,
+  "schema": "docvortex.middle",
+  "schema_version": "2.0"
+}
