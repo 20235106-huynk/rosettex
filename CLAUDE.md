@@ -57,7 +57,7 @@ Các ý xuyên suốt nhiều file:
   - `validate.json` do `validate` ghi.
 - **Phương án cuối:** công thức hoặc bảng không biên dịch được thì hiển thị mã LaTeX dạng chữ trong khung, không làm hỏng cả bản dựng. Mục gây lỗi được xác định bằng dòng `\typeout{RX:<id>}` đặt trước mỗi khối, đọc lại từ log. Khóa phương án cuối có hai dạng: id khối (`p1b10`), hoặc `<unit id>:<placeholder>` (`p1b9:m1`).
 - **Kiểm tra bản dịch** (`checks.py`, dùng chung cho `accept` và `validate`):
-  - so trên NFC;
+  - so trên NFC; `accept` chuẩn hóa chuỗi NFD về NFC rồi chấp nhận (không từ chối), bản dịch lưu luôn là NFC;
   - placeholder và số so theo **đa tập**: được đổi thứ tự, được thêm số, không được thiếu hay đổi giá trị; `0.05` → `0,05` là lỗi;
   - phát hiện "chưa dịch" theo tỉ lệ chữ có dấu và tỉ lệ từ chức năng của gói ngôn ngữ, không dùng tỉ lệ chữ Hán.
 - **Gói ngôn ngữ** là JSON (`rosettex/langpacks/<mã>.json`); thêm ngôn ngữ không cần viết mã.
