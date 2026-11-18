@@ -107,7 +107,7 @@ def test_runs_keep_digits_and_ascii_punctuation_outside():
 
 
 def test_zwsp_becomes_a_break_point():
-    assert wrap_runs("ภาษา\u200bไทย 0.05", TH) == r"\rxs{ภาษา\hspace{0pt plus 1pt}ไทย} 0.05"
+    assert wrap_runs("ภาษา\u200bไทย 0.05", TH) == r"\rxs{ภา\rxbrk{}ษา\hspace{0pt plus 1pt}ไท\rxbrk{}ย} 0.05"
 
 
 def test_rtl_wraps_latin_and_digits_not_parentheses():

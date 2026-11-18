@@ -1,5 +1,6 @@
 """Escape plain text for LaTeX (XeLaTeX + unicode-math)."""
 import re
+import unicodedata
 
 from .checks import in_blocks
 
@@ -18,6 +19,11 @@ def escape_latex(s: str) -> str:
 
 
 _LATIN = "0-9A-Za-z\u00C0-\u024F"
+
+
+_NO_BREAK_AFTER = set("\u0e40\u0e41\u0e42\u0e43\u0e44\u1039")  # Thai leading vowels, Myanmar stacking sign
+_NO_BREAK_BEFORE = set("\u0e30\u0e32\u0e33\u0e45")  # Thai vowels written after the consonant they belong to
+_CLOSES_SYLLABLE = set("\u1039\u103a")  # a Myanmar consonant carrying asat/virama ends the syllable before it
 
 
 def _cls(blocks) -> str:
@@ -62,8 +68,23 @@ def wrap_runs(s: str, prof: dict) -> str:
     zw = prof["linebreak"] == "zwsp"
 
     def run(t: str) -> str:
-        e = escape_latex(t)
-        return e.replace("\u200b", "\\hspace{0pt plus 1pt}") if zw else e
+        if not zw:
+            return escape_latex(t)
+        # U+200B is the word break; between clusters a costly emergency break (\\rxbrk) keeps an unspaced word from
+        # overflowing a narrow table column. Never inside a cluster: not before a combining mark, not after a Thai
+        # leading vowel, not around the Myanmar stacking sign.
+        out = []
+        for i, c in enumerate(t):
+            if c == "\u200b":
+                out.append("\\hspace{0pt plus 1pt}")
+                continue
+            prev, nxt = (t[i - 1] if i else ""), (t[i + 1] if i + 1 < len(t) else "")
+            if (i and prev != "\u200b" and unicodedata.category(c) == "Lo" and c not in _NO_BREAK_BEFORE
+                    and nxt not in _CLOSES_SYLLABLE and prev not in _NO_BREAK_AFTER
+                    and unicodedata.category(prev) in ("Lo", "Mn", "Mc")):
+                out.append("\\rxbrk{}")
+            out.append(escape_latex(c))
+        return "".join(out)
 
     rtl = mode == "rtl"
     out, pos = [], 0

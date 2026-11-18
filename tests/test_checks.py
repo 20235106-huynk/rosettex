@@ -156,3 +156,14 @@ def test_thai_spaces_without_zwsp_are_rejected():
     th = load_pack("th")
     long_spaced = " ".join(["แบบจำลอง"] * 8)
     assert missing_word_breaks(long_spaced, th) and not missing_word_breaks("แบบจำลอง ที่ เสนอ", th)
+
+
+def test_decimal_comma_languages_may_localise_numbers():
+    from rosettex.checks import missing_numbers
+    fr, vi = load_pack("fr"), load_pack("vi")
+    src = "Errors fell from 0.05 to 0.01 over 1,000 runs and 5,000 steps."
+    assert not missing_numbers(src, "Erreurs de 0,05 à 0,01 sur 1 000 essais et 5 000 pas.", fr)
+    assert not missing_numbers(src, "Erreurs de 0.05 à 0.01 sur 1 000 essais et 5.000 pas.", fr)
+    assert missing_numbers(src, "Erreurs de 0,05 à 0,01 sur 1,000 essais et 5 000 pas.", fr) == {"1000": 1}  # reads as 1
+    assert missing_numbers(src, "Erreurs de 0,5 à 0,01 sur 1 000 essais et 5 000 pas.", fr) == {"0.05": 1}
+    assert missing_numbers(src, "Lỗi 0,05 đến 0,01 qua 1,000 lần và 5,000 bước.", vi) == {"0.05": 1, "0.01": 1}  # vi: as before

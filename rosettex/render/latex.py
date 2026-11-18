@@ -20,6 +20,8 @@ def lang_lines(pack) -> tuple[list[str], list[str]]:
         return ([r"\setmainfont{%s}[%s]" % (f, o)],
                 [r"\usepackage{polyglossia}", r"\setdefaultlanguage{%s}" % poly] if poly else [])
     main = [r"\setmainfont{%s}[%s]" % fontspec(fonts["latin"])]
+    if prof["linebreak"] == "zwsp":  # emergency break between clusters of an unspaced Thai/Myanmar word
+        main.append(r"\newcommand{\rxbrk}{\penalty5000\hskip0pt\relax}")
     f, o = fontspec(fonts["script"])
     # script fonts draw larger than Termes: one visual size (explicit profile scale where MatchLowercase has no effect)
     scale = ("Scale=%s" % prof["scale"] if prof.get("scale") else "Scale=MatchLowercase") if lay in ("runs", "rtl") else ""

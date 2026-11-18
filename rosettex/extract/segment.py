@@ -31,9 +31,18 @@ def _ends_sentence(spans) -> bool:
 
 def _starts_lower(spans) -> bool:
     for s in spans:
-        v = s["v"].strip()
+        v = s["v"].strip().lstrip("([{\"'\u201c\u2018")  # "(collusion) looks …" still continues a sentence
         if v:
             return s["t"] == "math" or (s["t"] == "text" and v[0].islower())
+    return False
+
+
+def _ends_mid_clause(spans) -> bool:
+    """A paragraph that stops on a comma, semicolon or dash runs on into the next one, whatever its first letter."""
+    for s in reversed(spans):
+        v = s["v"].strip()
+        if v:
+            return s["t"] == "text" and v.endswith((",", ";", "\u2013", "\u2014"))
     return False
 
 
@@ -43,7 +52,8 @@ def merge_paragraphs(blocks) -> list:
         if b["kind"] in FLOATS:
             out.append(b)
             continue
-        if b["kind"] == "paragraph" and open_i is not None and _starts_lower(b["spans"]):
+        if b["kind"] == "paragraph" and open_i is not None and (_starts_lower(b["spans"])
+                                                                 or _ends_mid_clause(out[open_i]["spans"])):
             a = out[open_i]
             a["spans"] = a["spans"] + [{"t": "text", "v": " "}] + b["spans"]
             a.setdefault("merged", [a["id"]]).append(b["id"])

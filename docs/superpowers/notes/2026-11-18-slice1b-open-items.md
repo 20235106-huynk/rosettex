@@ -20,6 +20,11 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 - [ ] Authors side by side with italic affiliations (IEEE author blocks); bold run-in heads inside paragraphs (needs the adapter to keep bold spans).
 - [ ] Reader check of the IEEE build against the source.
 
+## 20-language run (2026-11-18)
+- [x] 2611.23202 translated into the 20 other packs by Haiku subagents, PDFs in `~/Desktop/Learn/rosettex-demos/`; RTL glyphs, Thai/Myanmar overflow, decimal commas and split paragraphs fixed (spec §15 items 16–19).
+- [ ] Decide whether the content length ratio (SG decision 5, ≤ 1.3) stays a pass/fail check: `ta` 1.53 and `my` 2.0 exceed it with correct translations.
+- [ ] Native readers for all 20 (Haiku translations, unreviewed).
+
 ## Known and left on purpose
 - Hyphenation is lost for packs without polyglossia (`zh-*`, `ja`, `ko`, `gu`, `my`).
 - Arabic punctuation is mirrored by hand (spec §15 item 11); check on real texts with nested brackets and quotes.

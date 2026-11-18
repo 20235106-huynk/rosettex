@@ -105,6 +105,43 @@ def numbers(s: str) -> Counter:
     return out
 
 
+LOCAL_NUM_RE = re.compile(r"\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)*")
+GROUP_DOT = re.compile(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?")
+
+
+def _local_values(tok: str) -> set[str]:
+    """Readings of a number written by a decimal-comma language: '0,05' -> 0.05, '1 000' / '1.000' -> 1000.
+    The source reading stays possible ("0.05" kept as is), except English thousands with commas: "1,000" means 1 in
+    these languages, so it must be rewritten ("1 000")."""
+    out = set() if THOUSANDS.fullmatch(tok) else {tok}
+    t = re.sub(r"[ \u00a0\u202f]", "", tok)
+    if GROUP_DOT.fullmatch(t):
+        t = t.replace(".", "")
+    if "." not in t:
+        out.add(t.replace(",", "."))
+    else:
+        out.add(t)
+    return out
+
+
+def missing_numbers(src: str, dst: str, pack: dict) -> Counter:
+    """Source numbers not found in the translation. With "decimal_comma" in the pack a number may be written in the
+    target style (0.05 -> 0,05, 1,000 -> 1 000); otherwise exactly as in the source (slice 1 rule)."""
+    want = numbers(src)
+    if not pack.get("decimal_comma"):
+        return want - numbers(dst)
+    have = [_local_values(m.group(0)) for m in LOCAL_NUM_RE.finditer(PH_RE.sub(" ", dst))]
+    lost = Counter()
+    for v, n in want.items():
+        for _ in range(n):
+            hit = next((i for i, vals in enumerate(have) if v in vals), None)
+            if hit is None:
+                lost[v] += 1
+            else:
+                have.pop(hit)
+    return lost
+
+
 def looks_untranslated(src: str, dst: str, pack: dict, keep=()) -> bool:
     a, b = nfc(" ".join(src.split())), nfc(" ".join(dst.split()))
     rest = PH_RE.sub(" ", b)
@@ -180,10 +217,11 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
         errs.append("missing placeholder: " + " ".join(sorted((ps - pd).elements())))
     if pd - ps:
         errs.append("extra or wrong placeholder: " + " ".join(sorted((pd - ps).elements())))
-    lost = numbers(src) - numbers(dst)
+    lost = missing_numbers(src, dst, pack)
     if lost:
-        errs.append("missing or changed number: " + " ".join(sorted(lost.elements()))
-                    + " (keep numbers exactly as in the source, including the decimal point)")
+        how = ("keep every number's value; write it as in the source or in the target style"
+               if pack.get("decimal_comma") else "keep numbers exactly as in the source, including the decimal point")
+        errs.append("missing or changed number: " + " ".join(sorted(lost.elements())) + f" ({how})")
     fd = foreign_digits(src, dst)
     if fd:
         errs.append("use the ASCII digits 0-9 exactly as in the source: " + "".join(fd))
