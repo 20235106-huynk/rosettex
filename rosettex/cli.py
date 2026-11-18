@@ -91,8 +91,13 @@ def cmd_extract(a):
     try:
         summary = extract_core(work, cmd, on)
     except ExtractError as e:
-        beat(work, "extract", resume + " --tier basic", "lỗi", 0, 0, state="failed", error=str(e))
-        return 2, {"ok": False, "error": str(e), "next_action": resume + " --tier basic"}
+        nxt = None if m["tier"] == "basic" else resume + " --tier basic"
+        beat(work, "extract", nxt or resume, "lỗi", 0, 0, state="failed", error=str(e))
+        return 2, {"ok": False, "error": str(e), "next_action": nxt}
+    except Exception as e:  # lỗi bất ngờ: ghi lại để status không bắt agent chạy lại vô hạn
+        err = f"{e!r} (chi tiết: {work.logs / 'extract.log'})"
+        beat(work, "extract", None, "lỗi", 0, 0, state="failed", error=err)
+        return 2, {"ok": False, "error": err, "next_action": None}
     beat(work, "extract", resume, "xong", 1, 1, state="done")
     return 0, {"ok": True, "state": "extracted", **info, **summary,
                "next_action": f"rosettex next {q(work.root)} --outline --json"}
@@ -109,10 +114,19 @@ def status(work: Work) -> dict:
         if not job["dead"]:
             return {"state": job["command"] + "_running", "step": job["step"], "done": job["done"],
                     "total": job["total"], "next_action": f"rosettex status {r} --json", "wait_seconds": 30}
+        log = str(work.logs / f"{job['command']}.log")
+        if job.get("retries", 0) >= 1:  # đã chạy lại một lần mà vẫn chết: dừng, không lặp vô hạn
+            return {"state": job["command"] + "_dead", "error": f"tác vụ nền chết lần thứ hai; xem {log}",
+                    "next_action": None}
+        write_json(work.progress, {k: v for k, v in job.items() if k != "dead"} | {"retries": 1})
         return {"state": job["command"] + "_dead", "message": "tác vụ nền đã dừng bất thường; chạy lại để làm tiếp",
                 "next_action": job["resume"]}
     if job and job["state"] == "failed":
-        return {"state": job["command"] + "_failed", "error": job["error"], "next_action": job["resume"]}
+        out = {"state": job["command"] + "_failed", "error": job["error"], "next_action": job["resume"]}
+        if job["command"] == "render" or m["tier"] == "basic" or not job["resume"]:
+            out["next_action"] = None
+            out["log"] = str(work.logs / f"{job['command']}.log")
+        return out
     if not work.document.exists():
         return {"state": "not_extracted", "next_action": m["extract_cmd"]}
     if not work.terms.exists():
@@ -198,6 +212,10 @@ def cmd_render(a):
     except RenderError as e:
         beat(w, "render", resume, "lỗi", 0, 0, state="failed", error=str(e))
         return 2, {"ok": False, "error": str(e), "next_action": f"rosettex status {q(w.root)} --json"}
+    except Exception as e:
+        err = f"{e!r} (chi tiết: {w.logs / 'render.log'})"
+        beat(w, "render", resume, "lỗi", 0, 0, state="failed", error=err)
+        return 2, {"ok": False, "error": err, "next_action": None}
     beat(w, "render", resume, "xong", 1, 1, state="done")
     return (0 if rep["postcheck"]["ok"] else 1), {"ok": rep["postcheck"]["ok"], **rep, "next_action": None}
 

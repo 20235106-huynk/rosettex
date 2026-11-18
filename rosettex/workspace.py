@@ -71,9 +71,10 @@ class Work:
 
 def beat(work: Work, command: str, resume: str, step: str, done: int, total: int,
          state: str = "running", error: str | None = None) -> None:
+    retries = 0 if state == "done" else (read_json(work.progress) or {}).get("retries", 0)
     write_json(work.progress, {"command": command, "resume": resume, "pid": os.getpid(), "state": state,
                                "step": step, "done": done, "total": total, "error": error,
-                               "updated": time.time()})
+                               "retries": retries, "updated": time.time()})
 
 
 def job_state(work: Work, now: float | None = None) -> dict | None:

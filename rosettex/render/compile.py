@@ -100,7 +100,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     on_beat("probe")
     limit = len(doc["blocks"]) + sum(len(u["ph"]) for u in doc["units"]) + 1
     for _ in range(limit):
-        (work.out / "probe.tex").write_text(Renderer(doc, tr, pack, fb, images).probe(), encoding="utf-8")
+        (work.out / "probe.tex").write_text(Renderer(doc, tr, pack, fb, images).probe(), encoding="utf-8", newline="\n")
         ok, output, log = run_tex(tool, work.out, "probe.tex", beat)
         if ok:
             break
@@ -112,7 +112,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     on_beat("main")
     for _ in range(20):
         tex = Renderer(doc, tr, pack, fb, images).document()
-        (work.out / "main.tex").write_text(tex, encoding="utf-8")
+        (work.out / "main.tex").write_text(tex, encoding="utf-8", newline="\n")
         ok, output, log = run_tex(tool, work.out, "main.tex", beat)
         if ok:
             break

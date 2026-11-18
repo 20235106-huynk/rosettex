@@ -47,3 +47,25 @@ def test_broken_formulas_fall_back_without_breaking_build(tmp_path):
     ids = {f["id"] for f in rep["fallback"]}
     assert eq["id"] in ids and f"{u['id']}:{name}" in ids
     assert (tmp_path / "out.pdf").is_file() and rep["postcheck"]["ok"], rep["postcheck"]
+
+
+def test_tex_sources_written_with_lf_newline(tmp_path, monkeypatch):
+    import pathlib
+    from conftest import make_work
+    from rosettex.render import compile as C
+    seen = {}
+    real = pathlib.Path.write_text
+
+    def spy(self, data, *a, **kw):
+        if self.suffix == ".tex":
+            seen[self.name] = kw.get("newline")
+        return real(self, data, *a, **kw)
+    monkeypatch.setattr(pathlib.Path, "write_text", spy)
+    monkeypatch.setattr(C, "find_tex", lambda: ("fake", []))
+    monkeypatch.setattr(C, "run_tex", lambda *a, **k: (True, "", ""))
+    w = make_work(tmp_path)
+    try:
+        C.render_core(w, tmp_path / "o.pdf")
+    except Exception:
+        pass  # PDF giả không tồn tại; chỉ quan tâm cách ghi .tex
+    assert seen == {"probe.tex": "\n", "main.tex": "\n"}

@@ -79,3 +79,27 @@ def test_validate_reports_untranslated_batches(tmp_path):
     translate.write_terms(w, write(tmp_path / "t.json", TERMS))
     v = translate.validate(w)
     assert v["ok"] is False and v["errors"]["b001"] == ["lô chưa được dịch"]
+
+
+def test_terms_wrong_types_give_errors_not_exceptions(tmp_path):
+    w = make_work(tmp_path)
+    for bad in ({"topic": "x", "terms": None}, {"topic": "x", "keep": "abc"}, {"topic": "x", "abbreviations": 3},
+                {"topic": "x", "terms": "ab"}):
+        res = translate.write_terms(w, write(tmp_path / "t.json", bad))
+        assert res["ok"] is False and res["errors"], bad
+
+
+def test_accept_log_written_with_lf_newline(tmp_path, monkeypatch):
+    import builtins
+    w = make_work(tmp_path)
+    seen = []
+    real = builtins.open
+
+    def spy(file, mode="r", *a, **kw):
+        if str(file).endswith("accept.jsonl"):
+            seen.append(kw.get("newline"))
+        return real(file, mode, *a, **kw)
+    monkeypatch.setattr(builtins, "open", spy)
+    translate.write_terms(w, write(tmp_path / "t.json", TERMS))
+    translate.accept(w, "b001", write(tmp_path / "b.json", {"x": "y"}))
+    assert seen == ["\n"]

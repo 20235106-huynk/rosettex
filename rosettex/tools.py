@@ -46,7 +46,7 @@ def find_tex() -> tuple[str, list[str]] | None:
 def available_ram_bytes() -> int | None:
     try:
         if sys.platform.startswith("linux"):
-            for line in Path("/proc/meminfo").read_text().splitlines():
+            for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
                 if line.startswith("MemAvailable:"):
                     return int(line.split()[1]) * 1024
         elif os.name == "nt":
@@ -77,8 +77,11 @@ def choose_tier(requested: str | None, ram: int | None) -> tuple[str, str]:
     return "standard", "default"
 
 
-def verify_models(cmd: list[str], tier: str) -> tuple[bool, str]:
-    p = subprocess.run(cmd + ["models", "verify", "--tier", tier], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace")
+def verify_models(cmd: list[str], tier: str, timeout: float = 120) -> tuple[bool, str]:
+    try:
+        p = subprocess.run(cmd + ["models", "verify", "--tier", tier], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, f"không chạy được kiểm tra mô hình: {e!r}"
     out = p.stdout + p.stderr
     return p.returncode == 0 and "missing" not in out.lower(), out

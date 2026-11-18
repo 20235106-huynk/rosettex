@@ -37,7 +37,13 @@ def check_terms(t) -> list[str]:
     if not isinstance(t.get("topic"), str) or not t["topic"].strip():
         errs.append("thiếu 'topic' (một câu tóm tắt chủ đề)")
     seen = set()
-    for i, x in enumerate(t.get("terms", [])):
+    lists = {}
+    for key, what in (("terms", "danh sách object"), ("keep", "danh sách chuỗi"), ("abbreviations", "danh sách object")):
+        v = t.get(key, [])
+        lists[key] = v if isinstance(v, list) else []
+        if lists[key] is not v:
+            errs.append(f"'{key}' phải là {what}")
+    for i, x in enumerate(lists["terms"]):
         if not (isinstance(x, dict) and isinstance(x.get("src"), str) and isinstance(x.get("dst"), str)
                 and x["src"].strip() and x["dst"].strip()):
             errs.append(f"terms[{i}] cần 'src' và 'dst' là chuỗi không rỗng")
@@ -46,9 +52,9 @@ def check_terms(t) -> list[str]:
         if key in seen:
             errs.append(f"'src' bị trùng: {x['src']}")
         seen.add(key)
-    if not all(isinstance(k, str) for k in t.get("keep", [])):
+    if not all(isinstance(k, str) for k in lists["keep"]):
         errs.append("'keep' phải là danh sách chuỗi")
-    for i, x in enumerate(t.get("abbreviations", [])):
+    for i, x in enumerate(lists["abbreviations"]):
         if not (isinstance(x, dict) and isinstance(x.get("abbr"), str) and isinstance(x.get("expansion"), str)):
             errs.append(f"abbreviations[{i}] cần 'abbr' và 'expansion'")
     return errs
@@ -151,7 +157,7 @@ def accept(work: Work, batch_id: str, file) -> dict:
         write_json(work.translation_path(batch_id, m["lang"]), {k: nfc(v) for k, v in sub.items()})
     work.logs.mkdir(parents=True, exist_ok=True)
     # ponytail: nhiều subagent cùng ghi nối dòng ngắn; đủ an toàn cho nhật ký đo tỉ lệ từ chối, không phải trạng thái.
-    with open(work.logs / "accept.jsonl", "a", encoding="utf-8") as fh:
+    with open(work.logs / "accept.jsonl", "a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps({"batch": batch_id, "ok": ok, "errors": sum(map(len, res["errors"].values())),
                              "t": time.time()}) + "\n")
     out = {"ok": ok, **res}

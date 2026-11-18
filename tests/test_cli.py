@@ -174,3 +174,59 @@ def test_extract_failure_exit_2_with_runnable_next_action(env, capsys, monkeypat
     monkeypatch.setenv("FAKE_MINERU_FAIL_ALWAYS", "1")
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert code == 2 and r["next_action"].startswith("rosettex extract")
+
+
+def _fail_status(capsys, w):
+    return run(capsys, "status", w, "--json")[1]
+
+
+def test_crash_in_render_core_is_failed_not_endless_resume(env, capsys, tmp_path, monkeypatch):
+    import rosettex.cli as cli
+    src, outdir = env
+    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    translate_via_cli(capsys, r["work"], tmp_path)
+    assert run(capsys, "validate", r["work"], "--json")[0] == 0
+    monkeypatch.setattr(cli, "find_tex", lambda: ("fake", []))
+    monkeypatch.setattr(cli, "render_core", lambda *a, **k: {}["boom"])
+    code, res = run(capsys, "render", r["work"], "--foreground", "--json")
+    assert code == 2 and "KeyError" in res["error"] and res["next_action"] is None
+    st = _fail_status(capsys, r["work"])
+    assert st["state"] == "render_failed" and "KeyError" in st["error"] and st["next_action"] is None
+
+
+def test_crash_in_extract_core_is_failed(env, capsys, monkeypatch):
+    import rosettex.cli as cli
+    src, outdir = env
+    monkeypatch.setattr(cli, "extract_core", lambda *a, **k: {}["boom"])
+    code, res = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert code == 2 and res["next_action"] is None
+    w = Work(outdir.parent / "Kết quả mới" / ".rosettex" / "short paper")
+    st = _fail_status(capsys, w.root)
+    assert st["state"] == "extract_failed" and "KeyError" in st["error"] and st["next_action"] is None
+
+
+def test_extract_failure_at_basic_tier_stops(env, capsys, monkeypatch):
+    src, outdir = env
+    monkeypatch.setenv("FAKE_MINERU_FAIL_ALWAYS", "1")
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--tier", "basic", "--foreground", "--json")
+    assert code == 2 and r["next_action"] is None
+    st = _fail_status(capsys, outdir / ".rosettex" / "short paper")
+    assert st["next_action"] is None and st["error"]
+
+
+def test_dead_job_resumed_once_then_stops(env, capsys):
+    src, outdir = env
+    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    w = Work(r["work"])
+    w.document.unlink()
+
+    def die():
+        beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
+        p = read_json(w.progress)
+        p["updated"] -= 3600
+        w.progress.write_text(json.dumps(p), encoding="utf-8")
+    die()
+    assert run(capsys, "status", w.root, "--json")[1]["next_action"] == "rosettex extract RESUME"
+    die()  # lần chạy lại cũng chết (beat giữ bộ đếm)
+    st = run(capsys, "status", w.root, "--json")[1]
+    assert st["next_action"] is None and st["error"]

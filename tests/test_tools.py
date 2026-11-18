@@ -37,3 +37,13 @@ def test_find_tex_prefers_home_bin(tmp_path, monkeypatch):
 def test_available_ram_positive_or_none():
     r = available_ram_bytes()
     assert r is None or r > 0
+
+
+def test_verify_models_timeout_and_missing_command(tmp_path):
+    from rosettex.tools import verify_models
+    s = tmp_path / "slow.py"
+    s.write_text("import time; time.sleep(5)")
+    ok, msg = verify_models([sys.executable, str(s)], "standard", timeout=0.3)
+    assert ok is False and msg
+    ok, msg = verify_models([str(tmp_path / "nonexistent-bin")], "standard")
+    assert ok is False and msg

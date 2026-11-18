@@ -11,6 +11,7 @@ Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm
 - Mỗi lần chỉ chạy **một** lệnh `rosettex …`, luôn thêm `--json`. Không nối lệnh, không dùng ống dẫn.
 - Mọi kết quả đều có `next_action`: đó là lệnh nên chạy tiếp theo.
 - Lệnh trả mã 2 là lỗi môi trường hoặc sử dụng: báo người dùng nội dung `error` và `next_action`, rồi dừng.
+- `next_action` là null kèm `error` → báo lỗi cho người dùng và dừng.
 
 ## 0. Trước khi chạy
 - Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
