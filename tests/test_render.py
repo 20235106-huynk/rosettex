@@ -288,3 +288,17 @@ def test_float_pages_from_log():
                       {"id": "f", "kind": "figure", "label": "fig:3", "wide": True}]}
     log2 = "RXP:b:a:3\nRXP:b:b:4\nRXP:b:c:5\nRXP:r:fig:3:5\nRXP:f:fig:3:6\n"
     assert place_floats(doc, log2, {}) == {"fig:3": "c"}  # two-column: issued on page 4 (c starts there), lands on 5
+
+
+def test_length_ratio_is_a_warning_not_a_problem(tmp_path, monkeypatch):
+    from rosettex.checks import load_pack
+    from rosettex.render import postcheck as pcm
+    w = make_work(tmp_path, lang="my")
+    doc = read_json(w.document)
+    monkeypatch.setattr(pcm, "full_text", lambda p: "\U0001D465 " * 3)  # math characters present, nothing else wrong
+    for code, ratio, warn in (("my", 2.0, False), ("my", 2.5, True), ("vi", 1.5, True)):
+        heights = iter([ratio, 1.0])
+        monkeypatch.setattr(pcm, "line_height_total", lambda p: next(heights))
+        tex = "".join("\\ref{%s}" % n for u in doc["units"] for n in u["ph"] if n[0] in "cr")
+        r = pcm.postcheck(w, w.src_pdf, "", tex, {**doc, "source": {**doc["source"], "counts": {}}}, {}, load_pack(code), set())
+        assert not any("length" in p for p in r["problems"]) and bool(r["warnings"]) is warn, (code, ratio, r)

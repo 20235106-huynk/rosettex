@@ -294,7 +294,7 @@ Translation rules (written in `SKILL.md`): keep placeholders; keep number format
   - the PDF text layer contains no `[?]` or `??`;
   - extracting text from the PDF shows the formulas and tables (as characters);
   - the number of internal links matches the number of citations and references;
-  - **content length ratio** (total used column height of the translation / the original) ≤ about 1.3. Not measured in whole pages.
+  - **content length ratio** (total used column height of the translation / the original), measured and reported; a warning, not a failure, above the script's usual ceiling (decision 5, amended 2026-11-18). Not measured in whole pages.
 - Write `report.json` for the agent to use when reporting the result (§6).
 
 ### 11.4 Language packs
@@ -402,7 +402,7 @@ Phase 1 is done in **vertical slices**, each with its own spec and plan:
 **Acceptance criteria for phase 1:**
 - `validate` is clean; the PDF compiles successfully;
 - formulas and tables are characters; text in table cells has been translated;
-- content length ratio ≤ about 1.3; no overflowing text or overlapping figures;
+- content length ratio reported (a warning above the script's usual ceiling, decision 5 amended 2026-11-18); no overflowing text or overlapping figures;
 - all Vietnamese diacritics present; citation links are clickable; no `[?]`/`??`;
 - `doctor` chooses correctly on a CPU-only machine and a machine with a GPU (if available);
 - `setup` does not re-download resources already present;
@@ -477,7 +477,7 @@ All three target Chinese. mineru-pdf-translate's "untranslated" checker flags a 
 2. The reference list, author names, affiliations, emails are not translated.
 3. Figures are cropped from the original pages.
 4. PDF in phase 1, HTML in phase 2.
-5. Content length ratio ≤ about 1.3 (measured by column height, not by page count).
+5. ~~Content length ratio ≤ about 1.3 (measured by column height, not by page count).~~ → **amended 2026-11-18 per the user:** the content length ratio is measured (column height, not page count) and reported in `report.json`, but it is not a pass/fail check: languages differ naturally (0.66 Amharic to 2.0 Myanmar on the same paper). A ratio above the script's usual ceiling (`max_length_ratio` of the pack or script profile, default 1.3; Tamil 1.7, Myanmar 2.3) is a `postcheck.warnings` entry.
 6. ~~CPU only defaults to tier `basic`~~ → **amended 2026-11-18 per the spike:** default `standard` even with CPU only; `basic` when RAM/disk is short or the user chooses it.
 7. The `doctor` result is saved, and expires automatically when a version changes.
 8. A dedicated intermediate format so the extractor can be swapped.

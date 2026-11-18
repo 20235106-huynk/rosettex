@@ -66,8 +66,12 @@ def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
     if pack["profile"]["linebreak"] in ("cjk", "zwsp") and n > 5:
         problems.append(f"{n} overfull lines: line breaking for this script may not work")
     ratio = line_height_total(pdf) / max(line_height_total(work.src_pdf), 1e-9)
-    limit = pack.get("max_length_ratio", 1.3)
+    # Measured and reported, never a failure (SG decision 5 amended 2026-11-18): languages are naturally longer or
+    # shorter than English (0.66 Amharic … 2.0 Myanmar on one paper). Only a ratio beyond what the script usually
+    # needs is a warning, a hint of a layout fault (wrong font size, duplicated text).
+    warnings = []
+    limit = pack.get("max_length_ratio") or pack["profile"].get("max_length_ratio", 1.3)
     if ratio > limit:
-        problems.append(f"content length ratio {ratio:.2f} > {limit}")
-    return {"ok": not problems, "problems": problems, "length_ratio": round(ratio, 3),
+        warnings.append(f"content length ratio {ratio:.2f} > {limit} (usual for this language); check the layout")
+    return {"ok": not problems, "problems": problems, "warnings": warnings, "length_ratio": round(ratio, 3),
             "missing_glyphs": missing_glyphs}

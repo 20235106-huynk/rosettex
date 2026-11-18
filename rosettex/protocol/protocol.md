@@ -54,7 +54,7 @@ Read the `report.json` file (its path is in `status`) and give the user a short 
 - the items in `flagged`, with pages: suspicious formulas;
 - `dropped`: the number of source content items that the extractor could not read and that are therefore missing from the translation (unknown block types, spans or table/figure parts; details in `document.json`, `source.dropped`). If it is not 0, tell the user plainly that the translation may be missing those parts;
 - the sentence "formulas and tables have not been checked against the source";
-- the problems in `postcheck.problems`, if any; `postcheck.missing_glyphs`: tell the user which characters could not be displayed and in which font.
+- the problems in `postcheck.problems`, if any, and the `postcheck.warnings` (for example a content length ratio unusual for the language: ask the user to look at the layout); `postcheck.missing_glyphs`: tell the user which characters could not be displayed and in which font.
 
 ## Interrupted or lost context
 Run `rosettex status "<work>" --json` and follow `next_action`. If you do not remember `<work>`, it is at `<directory containing the output file>/.rosettex/<source PDF file name>.<language code>`.

@@ -17,5 +17,6 @@
    "source": "package",
    "license": "OFL-1.1"
   }
- ]
+ ],
+ "max_length_ratio": 1.7
 }
