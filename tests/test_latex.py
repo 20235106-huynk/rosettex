@@ -101,3 +101,31 @@ def test_ieee_authors_side_by_side():
                           mk("e", 0.55, 0.85, 0.26, "bob@b.org")])
     assert tex.count("\\begin{minipage}") == 2 and "\\hfill" in tex
     assert "Ann Lee\\\\ \\textit{Univ A}" in tex and "\\textit{Univ B}\\\\ bob@b.org" in tex
+
+
+def _doc(units, heads=()):
+    return {"units": [{"id": f"u{i}", "type": t, "src": s, "ph": {}} for i, (t, s) in enumerate(units)],
+            "blocks": [], "source": {"columns": 1, "page_size_pt": [[612, 792]]}}
+
+
+def test_venue_styles_are_recognised_from_the_source():
+    from rosettex.render.latex import paper_style, preamble
+    ieee = _doc([("paragraph", "Abstract—We study x."), ("heading", "I. INTRODUCTION"), ("heading", "II. METHOD")])
+    cas = _doc([("heading", "A R T I C L E I N F O"), ("heading", "A B S T R A C T")])
+    llncs = _doc([("paragraph", "Abstract. We study x.")])
+    acm = _doc([("heading", "CCS Concepts"), ("paragraph", "text")])
+    assert [paper_style(d) for d in (ieee, cas, llncs, acm, _doc([("paragraph", "Hello")]))] == \
+        ["ieee", "cas", "llncs", "acm", "generic"]
+    pack = {"profile": {"layout": "plain", "_blocks": [], "linebreak": "space", "id": "latin",
+                        "fonts": [{"file": "texgyretermes", "source": "bundle", "options": ""}]},
+            "fonts": [{"file": "texgyretermes", "source": "bundle", "options": ""}], "labels": {}, "polyglossia": None}
+    assert r"\documentclass[runningheads]{llncs}" in preamble(llncs, pack)
+    assert r"\documentclass[sigconf,nonacm]{acmart}" in preamble(acm, pack)
+    assert r"{cas-sc}" in preamble(cas, pack) and r"\shorttitle{}" in preamble(cas, pack)
+    assert r"\hypersetup{hidelinks}" in preamble(acm, pack) and r"\usepackage[hidelinks]{hyperref}" not in preamble(acm, pack)
+    assert "geometry" not in preamble(llncs, pack) and "geometry" in preamble(_doc([("paragraph", "Hello")]), pack)
+
+
+def test_math_italic_letters_go_to_math_mode():
+    from rosettex.tex import escape_latex
+    assert escape_latex("\U0001D463\U0001D45F") == r"\ensuremath{\U0001D463}\ensuremath{\U0001D45F}".replace(r"\U0001D463", "\U0001D463").replace(r"\U0001D45F", "\U0001D45F")

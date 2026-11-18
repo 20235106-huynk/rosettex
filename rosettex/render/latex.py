@@ -76,13 +76,38 @@ IEEE_SUB = re.compile(r"\s*[A-Z]\.\s+\S")
 IEEE_LEAD = re.compile(r"\s*(?:Abstract|Index Terms)\s*[\u2014\u2013-]")
 
 
+ELS_INFO = re.compile(r"\s*A\s+R\s+T\s+I\s+C\s+L\s+E\s+I\s+N\s+F\s+O")
+LNCS_ABS = re.compile(r"\s*Abstract\.\s")
+VENUE_STYLES = ("ieee", "llncs", "cas", "acm")  # classes that give the paper its venue's own look
+
+
 def paper_style(doc) -> str:
-    """'ieee' when the source looks like an IEEE paper (Abstract—, roman section numbers), else 'generic'."""
+    """The venue the source looks like: 'ieee' (Abstract—, Roman section numbers), 'cas' (Elsevier CAS: "A R T I C L E
+    I N F O"), 'llncs' (Springer: "Abstract." run-in), 'acm' (CCS Concepts / ACM Reference Format), else 'generic'."""
     srcs = [u["src"] for u in doc["units"]]
     heads = [u["src"] for u in doc["units"] if u["type"] == "heading"]
     if any(re.match(r"\s*Abstract\s*[\u2014\u2013-]", x) for x in srcs) and sum(bool(IEEE_ROMAN.match(h)) for h in heads) >= 2:
         return "ieee"
+    if any(ELS_INFO.match(h) for h in heads):
+        return "cas"
+    if any(LNCS_ABS.match(x) for x in srcs):
+        return "llncs"
+    if any(h.strip() in ("CCS Concepts", "ACM Reference Format") for h in heads):
+        return "acm"
     return "generic"
+
+
+def venue_class(style: str, doc, two: bool, w: float) -> list[str]:
+    """Class lines for a venue style; the venue's own page layout replaces our geometry."""
+    if style == "ieee":
+        return [r"\documentclass[conference%s%s]{IEEEtran}" % (",a4paper" if abs(w - 595) < 5 else "", "" if two else ",onecolumn")]
+    if style == "llncs":
+        return [r"\documentclass[runningheads]{llncs}"]
+    if style == "cas":
+        return [r"\documentclass[a4paper,fleqn]{cas-%s}" % ("dc" if two else "sc")]
+    if style == "acm":
+        return [r"\documentclass[sigconf,nonacm]{acmart}"]  # the usual ACM format; page 1 often looks one-column
+    raise KeyError(style)
 
 
 def _roman(n: int) -> str:
@@ -99,15 +124,15 @@ def roman_tables(doc) -> bool:
     return bool(nums) and all(re.fullmatch(r"[IVXLC]+", n) for n in nums)
 
 
-def preamble(doc, pack, twocolumn=None, packages=()) -> str:
+def preamble(doc, pack, twocolumn=None, packages=(), style=None) -> str:
     w, h, left, right, top, bottom = page_geometry(doc)
-    ieee = paper_style(doc) == "ieee"
+    style = style or paper_style(doc)
     two = doc["source"]["columns"] == 2 if twocolumn is None else twocolumn
     main, lang = lang_lines(pack)
     rtl = pack["profile"]["layout"] == "rtl"
     return "\n".join([
-        *([r"\documentclass[conference%s%s]{IEEEtran}" % (",a4paper" if abs(w - 595) < 5 else "", "" if two else ",onecolumn")]
-          if ieee else  # the venue's own class: its headings, captions, abstract and margins (IEEE sets them itself)
+        *(venue_class(style, doc, two, w)
+          if style in VENUE_STYLES else  # the venue's own class: its headings, captions, abstract and margins
           [r"\documentclass[10pt%s]{article}" % (",twocolumn" if two else ""),
            r"\usepackage[paperwidth=%sbp,paperheight=%sbp,left=%dbp,right=%dbp,top=%dbp,bottom=%dbp]{geometry}"
            % (w, h, left, right, top, bottom)]),
@@ -119,16 +144,17 @@ def preamble(doc, pack, twocolumn=None, packages=()) -> str:
         *([] if rtl else lang),
         r"\usepackage{graphicx,booktabs,multirow,adjustbox,url}",
         *[r"\usepackage{%s}" % p for p in packages],
-        r"\usepackage[hidelinks]{hyperref}",
+        *([r"\hypersetup{hidelinks}"] if style in ("acm", "cas") else [r"\usepackage[hidelinks]{hyperref}"]),  # acmart and cas load hyperref
         *(lang if rtl else []),
         r"\makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother",
         r"\setlength{\emergencystretch}{3em}",
+        *([r"\shorttitle{}\shortauthors{}"] if style == "cas" else []),  # no placeholder "Short Title of the Article"
         # floats may fill more of a page, so a figure can sit on the page that mentions it instead of drifting on
         r"\renewcommand{\topfraction}{.9}\renewcommand{\dbltopfraction}{.9}\renewcommand{\textfraction}{.07}",
         r"\renewcommand{\floatpagefraction}{.8}\renewcommand{\dblfloatpagefraction}{.8}"
         r"\setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{4}",
         r"\newcommand{\rxpage}[1]{\write16{RXP:#1:\thepage}}",  # written at shipout: the page an item landed on
-        *([r"\renewcommand{\thetable}{\Roman{table}}"] if roman_tables(doc) else []),  # IEEE: TABLE I, II, ...
+        *([r"\renewcommand{\thetable}{\Roman{table}}"] if roman_tables(doc) and style != "cas" else []),  # IEEE: TABLE I, II, ...
         r"\begin{document}",
         *label_lines(pack),
         "",
@@ -136,11 +162,11 @@ def preamble(doc, pack, twocolumn=None, packages=()) -> str:
 
 
 class Renderer:
-    def __init__(self, doc, tr, pack, fallback, images):
+    def __init__(self, doc, tr, pack, fallback, images, style=None):
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
         self.prof = pack["profile"]
-        self.style = paper_style(doc)
+        self.style = style or paper_style(doc)
         self._sec, self._abstract = 0, False  # IEEE: last section number seen; inside the (bold) abstract
         self.place: dict[str, str] = {}  # float label -> flow block it is emitted before (set by render from page marks)
         self._ref_seen: set[str] = set()
@@ -375,6 +401,10 @@ class Renderer:
                 self._abstract = src.lstrip().startswith("Abstract")
                 dash = "\\rxltr{\u2014}" if self.rtl else "\u2014"  # the Arabic font has no em dash
                 return "\\noindent{\\small\\bfseries\\textit{%s}%s%s}" % (out[:i], dash, out[i + 1:])
+            if self.style == "llncs" and LNCS_ABS.match(src):  # Springer: "Abstract." bold run-in, small type
+                j = out.find(".")
+                if 0 < j < 40:
+                    return "\\noindent{\\small\\textbf{%s.}%s}" % (out[:j], out[j + 1:])
             if self.style == "ieee" and self._abstract:  # later paragraphs of the abstract, up to Index Terms
                 return "{\\small\\bfseries %s}" % out
             return out
@@ -438,9 +468,9 @@ class Renderer:
                 out += "\\rxpage{b:%s}" % b["id"]  # the page this paragraph ends on (no vertical-mode whatsit)
             body.append(self.mark(b) + out)
         fr = "\n".join(front)
-        if fr and self.doc["source"]["columns"] == 2:
+        if fr and (self.doc["source"]["columns"] == 2 or self.style == "acm"):  # acmart sigconf is two-column
             fr = "\\twocolumn[{%s}]" % fr
-        return preamble(self.doc, self.pack, packages=self.packages) + fr + "\n\n" + "\n\n".join(body) + "\n\\end{document}\n"
+        return preamble(self.doc, self.pack, packages=self.packages, style=self.style) + fr + "\n\n" + "\n\n".join(body) + "\n\\end{document}\n"
 
     def author_block(self, blocks) -> str:
         """IEEE author block: one column per author (name, italic affiliation lines, plain e-mail), side by side as
@@ -479,5 +509,5 @@ class Renderer:
                 key = f"{u['id']}:{name}"
                 if p["tex"].startswith("$") and key not in self.fb:
                     items.append("\\typeout{RX:%s}%s" % (key, p["tex"]))
-        return (preamble(self.doc, self.pack, twocolumn=False, packages=self.packages) + "\n\n".join(items)
+        return (preamble(self.doc, self.pack, twocolumn=False, packages=self.packages, style=self.style) + "\n\n".join(items)
                 + "\n\n\\mbox{}\n\\end{document}\n")

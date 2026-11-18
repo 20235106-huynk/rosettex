@@ -12,7 +12,8 @@ _ESC = {"\\": r"\textbackslash{}", "{": r"\{", "}": r"\}", "#": r"\#", "$": r"\$
 
 def _mathy(c: str) -> bool:
     o = ord(c)
-    return 0x0370 <= o <= 0x03FF or 0x2190 <= o <= 0x22FF or 0x2A00 <= o <= 0x2AFF
+    # Greek, arrows/operators, and the Mathematical Alphanumeric Symbols MinerU writes for italic variables (𝑣𝑟𝑢𝑛)
+    return 0x0370 <= o <= 0x03FF or 0x2190 <= o <= 0x22FF or 0x2A00 <= o <= 0x2AFF or 0x1D400 <= o <= 0x1D7FF
 
 
 def escape_latex(s: str) -> str:

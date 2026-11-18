@@ -11,12 +11,12 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 ## Needs a real environment
 - [x] **Real agent run**: done 2026-11-18 with MinerU 4.2.3 (it is installed in `~/.rosettex/mineru-venv`): 2611.23202 → Vietnamese and Arabic by the builder session, → the 20 other packs by Haiku subagents (see the acceptance record). "Klingon" (unknown language) was not run.
 - [ ] **Tune thresholds from real translations:** `min_target_ratio` per pack, `max_length_ratio`, Thai/Myanmar U+200B run limit (25) and 40-letter rule, per-profile `scale` (Telugu 0.75, Kannada 0.75, Ethiopic 0.8, Bengali 0.9, Gujarati 0.9).
-- [ ] **XeLaTeX** (not installed here), **macOS**, **Windows**: run `tests/test_render.py -k every_script`.
+- [x] XeLaTeX (TeX Live 2026, Linux): the render tests pass (spec §15 item 23). [ ] macOS and Windows: for the user to test.
 - [x] **Licences of the 3 bundle fonts** re-checked on CTAN 2026-11-18 (`tex-gyre`: gfl, `lm-math`: gfl, `noto`: ofl + lppl): the strings in the profiles are correct.
 
 ## Venue style (approach B, started 2026-11-18)
 - [x] IEEE papers build with `IEEEtran` (2611.23202 → Vietnamese, 14 pages, `postcheck` clean).
-- [ ] ACM (`acmart`), Springer (`llncs`), Elsevier (`elsarticle`): detection and build; needs a sample paper of each.
+- [x] ACM, Springer LNCS, Elsevier CAS venue styles: one page of a real arXiv paper of each translated to Vietnamese (spec §15 item 21). Open: Elsevier `elsarticle`, ACM single-column, a full-length paper of each.
 - [x] IEEE authors side by side, italic affiliations (2026-11-18). Bold run-in heads inside paragraphs: not wanted (decided by the user).
 - [ ] Reader check of the IEEE build against the source.
 

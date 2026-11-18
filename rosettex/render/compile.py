@@ -11,7 +11,7 @@ from ..fonts import FontMissing, font_error, resolve_fonts, stage_fonts
 from ..tools import find_tex
 from ..translate import manifest, translations
 from ..workspace import Work, read_json, run_with_heartbeat, timeout_for, write_json
-from .latex import Renderer
+from .latex import Renderer, VENUE_STYLES, paper_style
 from .postcheck import postcheck
 
 
@@ -151,10 +151,21 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     fb = set(m.get("fallback", []))
     beat = lambda: on_beat("compiling")  # noqa: E731
 
+    style = paper_style(doc)  # the venue's class; falls back to the generic build if that class cannot compile
+    venue_failed = []
+
+    def retreat(why: str) -> bool:
+        nonlocal style
+        if style in VENUE_STYLES:
+            venue_failed.append({"style": style, "why": why[-300:]})
+            style = "generic"
+            return True
+        return False
+
     on_beat("probe")
     limit = len(doc["blocks"]) + sum(len(u["ph"]) for u in doc["units"]) + 1
     for _ in range(limit):
-        (work.out / "probe.tex").write_text(Renderer(doc, tr, pack, fb, images).probe(), encoding="utf-8", newline="\n")
+        (work.out / "probe.tex").write_text(Renderer(doc, tr, pack, fb, images, style).probe(), encoding="utf-8", newline="\n")
         ok, output, log = run_tex(tool, work.out, "probe.tex", beat)
         if ok:
             break
@@ -164,13 +175,15 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
                               message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
                                       "with Tectonic rerun when the network works")
         c = culprit(log)
+        if c is None and retreat(output + log):  # an error before any item: the venue class itself
+            continue
         if c is None or c in fb:
             raise RenderError("trial compile failed and the failing item could not be identified: " + _tail(output + log))
         fb.add(c)
 
     on_beat("main")
     for _ in range(20):
-        tex = Renderer(doc, tr, pack, fb, images).document()
+        tex = Renderer(doc, tr, pack, fb, images, style).document()
         (work.out / "main.tex").write_text(tex, encoding="utf-8", newline="\n")
         ok, output, log = run_tex(tool, work.out, "main.tex", beat)
         if ok:
@@ -181,6 +194,8 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
                               message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
                                       "with Tectonic rerun when the network works")
         c = culprit(log)
+        if not c and retreat(output + log):
+            continue
         if not c or not expand_fallback(doc, c, fb):
             raise RenderError("compiling main.tex failed: " + _tail(output + log))
     else:
@@ -201,7 +216,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         if new == place:
             break
         place = new
-        r = Renderer(doc, tr, pack, fb, images)
+        r = Renderer(doc, tr, pack, fb, images, style)
         r.place = dict(place)
         tex2 = r.document()
         (work.out / "main.tex").write_text(tex2, encoding="utf-8", newline="\n")
@@ -231,6 +246,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],
               "flagged": read_json(work.flagged, []), "dropped": len(doc["source"].get("dropped", [])),
               "unreviewed": True, "postcheck": pc,
+              "style": style, "style_fallback": venue_failed,
               "floats_off_page": [{"label": lab, "mentioned_on": r, "placed_on": f} for lab, (r, f) in sorted(pages.items()) if f != r]}
     write_json(work.report, report)
     m["fallback"] = sorted(fb)
