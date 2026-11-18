@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from conftest import make_work, translate_all
@@ -69,3 +71,37 @@ def test_tex_sources_written_with_lf_newline(tmp_path, monkeypatch):
     except Exception:
         pass  # PDF giả không tồn tại; chỉ quan tâm cách ghi .tex
     assert seen == {"probe.tex": "\n", "main.tex": "\n"}
+
+
+@needs_tex
+def test_heading_with_blank_line_renders(tmp_path):
+    from rosettex import translate
+    w = make_work(tmp_path)
+    translate_all(w)
+    doc = read_json(w.document)
+    h = next(u for u in doc["units"] if u["type"] == "heading" and next(b for b in doc["blocks"] if b["id"] == u["block"])["level"] > 1)
+    bid = next(b for b in translate.batch_ids(w) if any(i["id"] == h["id"] for i in read_json(w.batch_path(b))["items"]))
+    tr = read_json(w.translation_path(bid, "vi"))
+    tr[h["id"]] = tr[h["id"]] + "\n\nphương pháp"
+    f = tmp_path / "sub.json"
+    f.write_text(json.dumps(tr, ensure_ascii=False), encoding="utf-8")
+    assert translate.accept(w, bid, f)["ok"]
+    assert "\n" not in read_json(w.translation_path(bid, "vi"))[h["id"]]
+    rep = render_core(w, tmp_path / "out.pdf")
+    assert (tmp_path / "out.pdf").is_file() and rep["postcheck"]["ok"], rep["postcheck"]
+
+
+@needs_tex
+def test_blank_line_in_heading_recovers_via_fallback(tmp_path):
+    """Dù bản dịch đã lưu có dòng trống (file cũ), fallback theo id khối phải cứu được bản dựng."""
+    w = make_work(tmp_path)
+    translate_all(w)
+    doc = read_json(w.document)
+    h = next(u for u in doc["units"] if u["type"] == "heading" and next(b for b in doc["blocks"] if b["id"] == u["block"])["level"] > 1)
+    from rosettex import translate
+    bid = next(b for b in translate.batch_ids(w) if any(i["id"] == h["id"] for i in read_json(w.batch_path(b))["items"]))
+    tr = read_json(w.translation_path(bid, "vi"))
+    tr[h["id"]] += "\n\nphương pháp"
+    write_json(w.translation_path(bid, "vi"), tr)
+    rep = render_core(w, tmp_path / "out.pdf")
+    assert (tmp_path / "out.pdf").is_file() and h["block"] in {f["id"] for f in rep["fallback"]}

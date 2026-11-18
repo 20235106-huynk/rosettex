@@ -26,6 +26,14 @@ def nfc(s: str) -> str:
     return unicodedata.normalize("NFC", s)
 
 
+def normalize_ws(typ: str, s: str) -> str:
+    """Chuẩn hóa khoảng trắng bản dịch: chỉ đoạn văn được giữ ngắt đoạn (một dòng trống);
+    mọi loại khác (tiêu đề, chú thích, ô bảng, chú thích chân trang) thành một dòng, vì nằm trong đối số lệnh LaTeX."""
+    if typ == "paragraph":
+        return re.sub(r"\n(?:[ \t]*\n)+", "\n\n", re.sub(r"[ \t]+(?=\n)", "", s)).strip()
+    return " ".join(s.split())
+
+
 def placeholders(s: str) -> Counter:
     return Counter(m.group(0) for m in PH_RE.finditer(s))
 

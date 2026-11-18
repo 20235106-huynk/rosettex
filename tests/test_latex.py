@@ -68,3 +68,13 @@ def test_probe_isolates_every_formula():
     probe = Renderer(doc, tr_of(doc), VI, {"p1b9:m2"}, {}).probe()
     assert "RX:p1b9:m1" in probe and "RX:p1b9:m2" not in probe and "RX:p1b10" in probe and "RX:p1b17" in probe
     assert "twocolumn" not in probe
+
+
+def test_fallback_block_text_is_plain_single_line():
+    doc = doc_short()
+    ids = {u["id"] for u in doc["units"]}
+    h = next(b for b in doc["blocks"] if b["kind"] == "heading" and b["id"] in ids)
+    tr = {h["id"]: "Giới thiệu\n\nphương pháp"}
+    assert "\n\n" in Renderer(doc, tr, VI, set(), {}).heading(h)
+    out = Renderer(doc, tr, VI, {h["id"]}, {}).heading(h)
+    assert "\n" not in out and "Giới thiệu phương pháp" in out

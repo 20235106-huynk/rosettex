@@ -77,6 +77,9 @@ class Renderer:
         if u is None:
             return self.verbatim(spans, uid)
         t = self.tr.get(uid, u["src"])
+        if u["block"] in self.fb:  # phương án cuối cho khối chữ: chữ thường một dòng, không macro
+            t = PH_RE.sub(lambda m: u["ph"][m.group(0)[1:-1]]["src"] if m.group(0)[1:-1] in u["ph"] else m.group(0), t)
+            return escape_latex(" ".join(t.split()))
         out, pos = [], 0
         for m in PH_RE.finditer(t):
             out.append(escape_latex(t[pos:m.start()]))

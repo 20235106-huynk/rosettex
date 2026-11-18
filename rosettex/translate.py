@@ -6,7 +6,7 @@ import re
 import time
 from pathlib import Path
 
-from .checks import check_batch, load_pack, nfc
+from .checks import check_batch, load_pack, nfc, normalize_ws
 from .pdf import render_page_png
 from .workspace import UsageError, Work, q, read_json, read_manifest, write_json
 
@@ -154,7 +154,8 @@ def accept(work: Work, batch_id: str, file) -> dict:
             res = check_batch(batch, sub, load_pack(m["lang"]), read_json(work.terms, {}))
     ok = not res["errors"]
     if ok:
-        write_json(work.translation_path(batch_id, m["lang"]), {k: nfc(v) for k, v in sub.items()})
+        typ = {it["id"]: it["type"] for it in batch["items"]}
+        write_json(work.translation_path(batch_id, m["lang"]), {k: normalize_ws(typ[k], nfc(v)) for k, v in sub.items()})
     work.logs.mkdir(parents=True, exist_ok=True)
     # ponytail: nhiều subagent cùng ghi nối dòng ngắn; đủ an toàn cho nhật ký đo tỉ lệ từ chối, không phải trạng thái.
     with open(work.logs / "accept.jsonl", "a", encoding="utf-8", newline="\n") as fh:

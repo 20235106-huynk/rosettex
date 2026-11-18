@@ -70,3 +70,12 @@ def test_term_warning_and_unknown_language_pack():
     assert any("BLEU" in x for x in w["p1b20"])
     fr = load_pack("fr")
     assert fr["code"] == "fr" and fr["tested"] is False
+
+
+def test_normalize_whitespace_per_unit_type():
+    from rosettex.checks import normalize_ws
+    assert normalize_ws("heading", "Giới thiệu\n\nphương  pháp\t") == "Giới thiệu phương pháp"
+    assert normalize_ws("caption", "a\n\n\nb") == "a b"
+    assert normalize_ws("cell", " a\nb ") == "a b"
+    assert normalize_ws("footnote", "a\n\nb") == "a b"
+    assert normalize_ws("paragraph", "a\n \n\n\nb  \nc") == "a\n\nb\nc"
