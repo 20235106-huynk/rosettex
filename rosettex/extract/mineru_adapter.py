@@ -175,6 +175,28 @@ def _fold_table_titles(blocks) -> list[dict]:
     return out
 
 
+def _figure_text(blocks) -> tuple[list[dict], list[dict]]:
+    """Headings/paragraphs that are text of a diagram: inside a figure's box, or a heading sitting right on top of a
+    figure in the same column (MinerU reads a diagram's title as a heading). They are dropped and reported."""
+    figs = [b for b in blocks if b["kind"] == "figure" and b.get("bbox")]
+    keep, gone = [], []
+    for b in blocks:
+        bb = b.get("bbox")
+        hit = False
+        if bb and b["kind"] in ("heading", "paragraph"):
+            for f in (f for f in figs if f["page"] == b["page"]):
+                fb = f["bbox"]
+                inside = fb[0] - 0.01 <= bb[0] and bb[2] <= fb[2] + 0.01 and fb[1] - 0.01 <= bb[1] and bb[3] <= fb[3] + 0.01
+                above = (b["kind"] == "heading" and 0 <= fb[1] - bb[3] < 0.03 and abs(bb[0] - fb[0]) < 0.02
+                         and bb[2] <= fb[2] + 0.01)
+                hit = hit or inside or above
+        if hit:
+            gone.append({"what": "block", "type": "text inside figure", "page": b["page"], "block": b["id"]})
+        else:
+            keep.append(b)
+    return keep, gone
+
+
 def adapt(groups, root) -> dict:
     sizes: dict[int, list[float]] = {}
     blocks: list[dict] = []
@@ -208,6 +230,8 @@ def adapt(groups, root) -> dict:
                     seen.add(lab)
                 blocks.append(blk)
     blocks = _fold_table_titles(blocks)
+    blocks, gone = _figure_text(blocks)
+    dropped += gone
     nref = 0
     for blk in blocks:
         if blk["kind"] == "reference":

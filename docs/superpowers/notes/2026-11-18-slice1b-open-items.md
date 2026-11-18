@@ -14,6 +14,12 @@ Slice 1b is implemented and merged-ready on branch `slice1b` (233 tests pass, 2 
 - [ ] **XeLaTeX** (not installed here), **macOS**, **Windows**: run `tests/test_render.py -k every_script`.
 - [x] **Licences of the 3 bundle fonts** re-checked on CTAN 2026-11-18 (`tex-gyre`: gfl, `lm-math`: gfl, `noto`: ofl + lppl): the strings in the profiles are correct.
 
+## Venue style (approach B, started 2026-11-18)
+- [x] IEEE papers build with `IEEEtran` (2611.23202 → Vietnamese, 14 pages, `postcheck` clean).
+- [ ] ACM (`acmart`), Springer (`llncs`), Elsevier (`elsarticle`): detection and build; needs a sample paper of each.
+- [ ] Authors side by side with italic affiliations (IEEE author blocks); bold run-in heads inside paragraphs (needs the adapter to keep bold spans).
+- [ ] Reader check of the IEEE build against the source.
+
 ## Known and left on purpose
 - Hyphenation is lost for packs without polyglossia (`zh-*`, `ja`, `ko`, `gu`, `my`).
 - Arabic punctuation is mirrored by hand (spec §15 item 11); check on real texts with nested brackets and quotes.

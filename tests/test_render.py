@@ -231,3 +231,13 @@ def test_table_title_blocks_fold_into_the_table():
     out = _fold_table_titles([h, c, t])
     assert [b["id"] for b in out] == ["t"] and out[0]["number"] == "IV" and out[0]["caption"][0]["v"] == "Summary."
     assert len(_fold_table_titles([c, t])) == 2
+
+
+def test_diagram_text_is_not_a_section():
+    from rosettex.extract.mineru_adapter import _figure_text
+    fig = {"kind": "figure", "id": "f", "page": 4, "bbox": [0.515, 0.276, 0.913, 0.716]}
+    above = {"kind": "heading", "id": "h", "page": 4, "bbox": [0.516, 0.236, 0.795, 0.253]}
+    inside = {"kind": "paragraph", "id": "p", "page": 4, "bbox": [0.52, 0.30, 0.9, 0.32]}
+    real = {"kind": "heading", "id": "r", "page": 4, "bbox": [0.076, 0.655, 0.359, 0.67]}
+    keep, gone = _figure_text([above, fig, inside, real])
+    assert [b["id"] for b in keep] == ["f", "r"] and {g["block"] for g in gone} == {"h", "p"}

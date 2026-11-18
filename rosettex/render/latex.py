@@ -63,6 +63,29 @@ def page_geometry(doc) -> tuple:
     return w, h, left, right, top, bottom
 
 
+IEEE_ROMAN = re.compile(r"\s*[IVX]+\.\s+\S")
+IEEE_SUB = re.compile(r"\s*[A-Z]\.\s+\S")
+IEEE_LEAD = re.compile(r"\s*(?:Abstract|Index Terms)\s*[\u2014\u2013-]")
+
+
+def paper_style(doc) -> str:
+    """'ieee' when the source looks like an IEEE paper (Abstract—, roman section numbers), else 'generic'."""
+    srcs = [u["src"] for u in doc["units"]]
+    heads = [u["src"] for u in doc["units"] if u["type"] == "heading"]
+    if any(re.match(r"\s*Abstract\s*[\u2014\u2013-]", x) for x in srcs) and sum(bool(IEEE_ROMAN.match(h)) for h in heads) >= 2:
+        return "ieee"
+    return "generic"
+
+
+def _roman(n: int) -> str:
+    out = ""
+    for v, r in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+                 (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")):
+        while n >= v:
+            out, n = out + r, n - v
+    return out
+
+
 def roman_tables(doc) -> bool:
     nums = [b["number"] for b in doc["blocks"] if b["kind"] == "table" and b.get("number")]  # unnumbered ones are skipped
     return bool(nums) and all(re.fullmatch(r"[IVXLC]+", n) for n in nums)
@@ -70,13 +93,16 @@ def roman_tables(doc) -> bool:
 
 def preamble(doc, pack, twocolumn=None, packages=()) -> str:
     w, h, left, right, top, bottom = page_geometry(doc)
+    ieee = paper_style(doc) == "ieee"
     two = doc["source"]["columns"] == 2 if twocolumn is None else twocolumn
     main, lang = lang_lines(pack)
     rtl = pack["profile"]["layout"] == "rtl"
     return "\n".join([
-        r"\documentclass[10pt%s]{article}" % (",twocolumn" if two else ""),
-        r"\usepackage[paperwidth=%sbp,paperheight=%sbp,left=%dbp,right=%dbp,top=%dbp,bottom=%dbp]{geometry}"
-        % (w, h, left, right, top, bottom),
+        *([r"\documentclass[conference%s%s]{IEEEtran}" % (",a4paper" if abs(w - 595) < 5 else "", "" if two else ",onecolumn")]
+          if ieee else  # the venue's own class: its headings, captions, abstract and margins (IEEE sets them itself)
+          [r"\documentclass[10pt%s]{article}" % (",twocolumn" if two else ""),
+           r"\usepackage[paperwidth=%sbp,paperheight=%sbp,left=%dbp,right=%dbp,top=%dbp,bottom=%dbp]{geometry}"
+           % (w, h, left, right, top, bottom)]),
         r"\usepackage{fontspec}",
         *main,
         r"\usepackage{amsmath,amssymb}",
@@ -101,6 +127,8 @@ class Renderer:
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
         self.prof = pack["profile"]
+        self.style = paper_style(doc)
+        self._sec, self._abstract = 0, False  # IEEE: last section number seen; inside the (bold) abstract
         self.packages = set()  # extra LaTeX packages the body needs (array for wrapped table columns)
         self.rtl = self.prof["layout"] == "rtl"
 
@@ -159,6 +187,18 @@ class Renderer:
     # ---------- blocks ----------
     def heading(self, b) -> str:
         t = self.text(b["id"], b["spans"])
+        if self.style == "ieee" and not b.get("number"):
+            src = (self.units.get(b["id"]) or {}).get("src", "")
+            if b["level"] == 1:
+                return r"\begin{center}{\fontsize{24}{28}\selectfont %s}\end{center}" % t
+            self._abstract = False
+            m = re.match(r"\s*([IVXLC]+)\.\s", src)
+            if m and m.group(1) == _roman(self._sec + 1):  # the next section number: "C. Attestation" stays a subsection
+                self._sec += 1
+                return "\\section*{%s}" % t
+            if IEEE_SUB.match(src):
+                return "\\subsection*{%s}" % t
+            return "\\section*{%s}" % t  # I. INTRODUCTION, APPENDIX, REFERENCES: IEEE's centred small caps
         if b["level"] == 1:
             return r"\begin{center}{\LARGE\bfseries %s}\end{center}" % t
         cmd = {2: "section", 3: "subsection"}.get(b["level"], "subsubsection")
@@ -297,7 +337,17 @@ class Renderer:
         if k == "heading":
             return self.heading(b)
         if k == "paragraph":
-            return self.verbatim(b["spans"], b["id"]) if b.get("role") else self.text(b["id"], b["spans"])
+            if b.get("role"):
+                return self.verbatim(b["spans"], b["id"])
+            out = self.text(b["id"], b["spans"])
+            src = (self.units.get(b["id"]) or {}).get("src", "")
+            i = out.find("\u2014")
+            if self.style == "ieee" and IEEE_LEAD.match(src) and 0 < i < 40:  # IEEE: bold abstract with an italic lead-in
+                self._abstract = src.lstrip().startswith("Abstract")
+                return "\\noindent{\\small\\bfseries\\textit{%s}\u2014%s}" % (out[:i], out[i + 1:])
+            if self.style == "ieee" and self._abstract:  # later paragraphs of the abstract, up to Index Terms
+                return "{\\small\\bfseries %s}" % out
+            return out
         if k == "equation":
             return self.equation(b)
         if k == "footnote":
