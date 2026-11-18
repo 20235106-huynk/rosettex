@@ -77,7 +77,7 @@ Run `rosettex status "<work>" --json` and follow `next_action`. If you do not re
 These rules hold for every target language. Each batch from `rosettex next` also carries `rules`: the rules of the target language (digits, number style, word separators, spacing). Follow them too; where they are more precise, they win. `rosettex guide --lang <code>` prints them in full.
 
 - Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).
-- Keep every number exactly as written in the source, including the decimal point.
+- Keep the value of every number, written with the ASCII digits 0-9 and as in the source (including the decimal point).
 - Do not translate proper names, method/model/dataset names, units, emails, URLs.
 - Keep the original level of certainty and the direction of comparisons and negations.
 - Use the terms in terms.json consistently.

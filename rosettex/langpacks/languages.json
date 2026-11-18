@@ -17,12 +17,14 @@
  "be": {
   "name": "Belarusian",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "bg": {
   "name": "Bulgarian",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "bn": {
   "name": "বাংলা",
@@ -37,12 +39,14 @@
  "cs": {
   "name": "Czech",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "de": {
   "name": "German",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "en": {
   "name": "English",
@@ -52,7 +56,8 @@
  "es": {
   "name": "Spanish",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "fa": {
   "name": "فارسی",
@@ -62,7 +67,8 @@
  "fr": {
   "name": "Français",
   "script": "latin",
-  "polyglossia": "french"
+  "polyglossia": "french",
+  "decimal_comma": true
  },
  "gu": {
   "name": "ગુજરાતી",
@@ -77,12 +83,14 @@
  "id": {
   "name": "Indonesian",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "it": {
   "name": "Italian",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ja": {
   "name": "日本語",
@@ -92,7 +100,8 @@
  "kk": {
   "name": "Kazakh",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "kn": {
   "name": "ಕನ್ನಡ",
@@ -107,7 +116,8 @@
  "ky": {
   "name": "Kyrgyz",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "mai": {
   "name": "Maithili",
@@ -117,12 +127,14 @@
  "mk": {
   "name": "Macedonian",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "mn": {
   "name": "Mongolian",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "mr": {
   "name": "मराठी",
@@ -147,12 +159,14 @@
  "nl": {
   "name": "Dutch",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "pl": {
   "name": "Polish",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ps": {
   "name": "Pashto",
@@ -162,17 +176,20 @@
  "pt": {
   "name": "Portuguese",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ro": {
   "name": "Romanian",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ru": {
   "name": "Русский",
   "script": "cyrillic",
-  "polyglossia": "russian"
+  "polyglossia": "russian",
+  "decimal_comma": true
  },
  "sa": {
   "name": "Sanskrit",
@@ -191,17 +208,20 @@
  "sr-Cyrl": {
   "name": "Serbian",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "sr-Latn": {
   "name": "Serbian",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "sv": {
   "name": "Swedish",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ta": {
   "name": "தமிழ்",
@@ -216,7 +236,8 @@
  "tg": {
   "name": "Tajik",
   "script": "cyrillic",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "th": {
   "name": "ไทย",
@@ -231,7 +252,8 @@
  "tr": {
   "name": "Turkish",
   "script": "latin",
-  "polyglossia": null
+  "polyglossia": null,
+  "decimal_comma": true
  },
  "ug": {
   "name": "Uyghur",
@@ -241,7 +263,8 @@
  "uk": {
   "name": "Українська",
   "script": "cyrillic",
-  "polyglossia": "ukrainian"
+  "polyglossia": "ukrainian",
+  "decimal_comma": true
  },
  "ur": {
   "name": "اردو",
@@ -251,7 +274,8 @@
  "vi": {
   "name": "Vietnamese",
   "script": "latin",
-  "polyglossia": "vietnamese"
+  "polyglossia": "vietnamese",
+  "decimal_comma": true
  },
  "zh": {
   "name": "Chinese",

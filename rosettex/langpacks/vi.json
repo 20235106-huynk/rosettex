@@ -56,7 +56,7 @@
  },
  "rules": [
   "Keep every placeholder ⟦…⟧ exactly as in the source (you may move it within the sentence to read naturally).",
-  "Keep every number and its notation exactly as in the source, including the decimal point: 0.05 stays 0.05, do not write 0,05.",
+  "Keep the value of every number, written with the ASCII digits 0-9 and as in the source (including the decimal point).",
   "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
   "Keep the level of certainty of the source sentence (may, might, suggest, likely, significant…).",
   "Check negations and the direction of comparisons carefully (more/less, higher/lower, outperform, at least/at most).",

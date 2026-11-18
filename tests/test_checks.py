@@ -32,8 +32,10 @@ def test_changed_number_rejected():  # regression: PaperReader accepted a transl
     assert "missing or changed number" in " ".join(errs(GOOD.replace("28.4", "28.5"))["p1b20"])
 
 
-def test_decimal_comma_rejected():
-    assert "missing or changed number" in " ".join(errs(GOOD.replace("2.0", "2,0"))["p1b20"])
+def test_decimal_comma_rejected_where_the_language_uses_a_point():
+    from rosettex.checks import missing_numbers
+    assert missing_numbers("It gained 2.0 points.", "增加了 2,0 分。", load_pack("zh-Hans")) == {"2.0": 1}
+    assert not errs(GOOD.replace("2.0", "2,0"))  # Vietnamese writes the decimal comma (amended 2026-11-18)
 
 
 def test_placeholder_missing_or_altered_rejected():
@@ -166,7 +168,12 @@ def test_decimal_comma_languages_may_localise_numbers():
     assert not missing_numbers(src, "Erreurs de 0.05 à 0.01 sur 1 000 essais et 5.000 pas.", fr)
     assert missing_numbers(src, "Erreurs de 0,05 à 0,01 sur 1,000 essais et 5 000 pas.", fr) == {"1000": 1}  # reads as 1
     assert missing_numbers(src, "Erreurs de 0,5 à 0,01 sur 1 000 essais et 5 000 pas.", fr) == {"0.05": 1}
-    assert missing_numbers(src, "Lỗi 0,05 đến 0,01 qua 1,000 lần và 5,000 bước.", vi) == {"0.05": 1, "0.01": 1}  # vi: as before
+    assert not missing_numbers(src, "Lỗi 0,05 đến 0,01 qua 1.000 lần và 5.000 bước.", vi)  # vi: decimal comma, dot thousands
+    assert missing_numbers(src, "Lỗi 0,05 đến 0,01 qua 1,000 lần và 5.000 bước.", vi) == {"1000": 1}
+    for code in ("de", "es", "pt", "it", "nl", "pl", "tr", "id", "ro", "cs", "sv", "bg", "sr-Latn", "be", "kk"):
+        assert load_pack(code)["decimal_comma"] is True and "1 000" in " ".join(load_pack(code)["rules"]), code
+    for code in ("en", "zh-Hans", "ja", "ko", "hi", "ar", "th", "ms", "am", "my"):
+        assert load_pack(code)["decimal_comma"] is False, code
 
 
 def test_narrow_spaces_are_typeset_by_tex():

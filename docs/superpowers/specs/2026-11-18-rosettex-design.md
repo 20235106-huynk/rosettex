@@ -487,7 +487,7 @@ All three target Chinese. mineru-pdf-translate's "untranslated" checker flags a 
 12. Keep the working directory; delete it with `rosettex clean`.
 13. Tectonic is the default compiler when the machine has no usable LaTeX; not bundled into the install package; TinyTeX as a fallback.
 14. Last resort for formulas/tables that do not compile: LaTeX source as text in a marked box.
-15. Keep the decimal point as in the original.
+15. ~~Keep the decimal point as in the original.~~ → **amended 2026-11-18 per the user:** the value of every number is kept, with ASCII digits and, by default, as in the source. A language that writes a decimal comma (`decimal_comma` in `languages.json`: vi, fr, ru, uk, de, es, pt, it, nl, pl, tr, id, ro, cs, sv, bg, sr, mk, be, kk, ky, tg, mn) may write `0,05` and `1 000` / `1.000`; English `1,000` is rejected there because it reads as 1. Other languages keep the source notation exactly. Spec of slice 1b §15 item 18.
 16. Font TeX Gyre Termes (fallback Noto Serif); math font Latin Modern Math.
 17. Scanned PDFs are supported, with only a warning; below about 150 dpi a stronger warning.
 18. ~~Phase 1 only builds the guidance layer for Claude Code~~ → **amended 2026-11-18 per the user** ("must run on every machine, every operating system and every harness"): from slice 1, the protocol has a single source, printed by `rosettex guide`, generating `SKILL.md` and `AGENTS.md`; the core complies with §3.1.

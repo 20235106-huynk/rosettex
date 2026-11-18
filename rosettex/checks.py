@@ -25,6 +25,13 @@ def normalize_code(code: str) -> list[str]:
     return [f"{lang}-{sub}", lang] if sub else [lang]
 
 
+DEFAULT_NUMBER_RULE = "Keep the value of every number, written with the ASCII digits 0-9 and as in the source (including the decimal point)."
+DECIMAL_COMMA_RULE = ("Keep the value of every number and write it with the ASCII digits 0-9. You may write it as in the "
+                      "source (0.05, 1,000) or in this language's usual style: decimal comma (0,05) and thousands "
+                      "separated by a space or a dot (1 000 or 1.000). Never write 1,000 for one thousand: here a comma "
+                      "is a decimal sign.")
+
+
 def parse_blocks(spec) -> list[tuple[int, int]]:
     return [tuple(int(x, 16) for x in s.split("-")) for s in spec]
 
@@ -75,6 +82,9 @@ def load_pack(code: str) -> dict:
                         min_target_ratio=prof["min_target_ratio"])
             if prof["layout"] == "rtl":  # ASCII digits for generated numbers (polyglossia's Arabic default is Eastern)
                 pack["polyglossia_options"] = "numerals=maghrib"
+    pack["decimal_comma"] = bool((entry or {}).get("decimal_comma"))
+    if pack["decimal_comma"]:  # the number rule becomes the language's own style (spec: slice 1b §15 item 18)
+        pack["rules"] = [DECIMAL_COMMA_RULE if r == DEFAULT_NUMBER_RULE else r for r in pack["rules"]]
     pack["pack_found"], pack["script_known"] = found, found or entry is not None
     pack["profile"] = load_profile(pack["script"])
     pack.setdefault("fonts", pack["profile"]["fonts"])

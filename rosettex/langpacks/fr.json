@@ -4,7 +4,6 @@
  "tested": false,
  "script": "latin",
  "polyglossia": "french",
- "decimal_comma": true,
  "min_target_ratio": 0.01,
  "letters": "éèêëàâçîïôûùüÿœæÉÈÊËÀÂÇÎÏÔÛÙÜŸŒÆ",
  "function_words": [
@@ -29,7 +28,7 @@
  "min_function_ratio": 0.08,
  "rules": [
   "Keep every placeholder ⟦…⟧ exactly (you may move it within the sentence).",
-  "Keep the value of every number. You may write it as in the source (0.05, 1,000) or in French style (0,05 ; 1 000), but not 1,000 for one thousand.",
+  "Keep the value of every number, written with the ASCII digits 0-9 and as in the source (including the decimal point).",
   "Write every number with the ASCII digits 0-9 exactly as in the source; do not use Latin digits.",
   "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
   "Keep the original level of certainty and the direction of comparisons and negations.",
