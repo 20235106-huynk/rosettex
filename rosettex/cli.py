@@ -92,7 +92,7 @@ def cmd_extract(a):
         summary = extract_core(work, cmd, on)
     except ExtractError as e:
         beat(work, "extract", resume + " --tier basic", "lỗi", 0, 0, state="failed", error=str(e))
-        return 1, {"ok": False, "error": str(e), "next_action": resume + " --tier basic"}
+        return 2, {"ok": False, "error": str(e), "next_action": resume + " --tier basic"}
     beat(work, "extract", resume, "xong", 1, 1, state="done")
     return 0, {"ok": True, "state": "extracted", **info, **summary,
                "next_action": f"rosettex next {q(work.root)} --outline --json"}
@@ -276,7 +276,7 @@ def main(argv=None) -> int:
     except UsageError as e:
         code, obj = 2, {"ok": False, "error": str(e), "next_action": e.next_action, **e.extra}
     except (ExtractError, RenderError) as e:
-        code, obj = 2, {"ok": False, "error": str(e), "next_action": "rosettex status <work> --json"}
+        code, obj = 2, {"ok": False, "error": str(e), "next_action": f"rosettex status {q(a.work)} --json" if getattr(a, "work", None) else None}
     if obj is not None:
         emit(obj, a.json)
     return code

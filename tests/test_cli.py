@@ -155,3 +155,22 @@ def test_batch_id_guard_and_next_action(env, capsys, tmp_path):
     assert code == 2
     code, r = run(capsys, "validate", work, "--json")
     assert code == 1 and r["next_action"]
+
+
+def test_render_refuses_existing_output_without_tex(env, capsys, tmp_path, monkeypatch):  # Review Focus 4, không cần TeX
+    src, outdir = env
+    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    assert outdir.is_dir()  # thư mục kết quả thiếu được tự tạo
+    translate_via_cli(capsys, r["work"], tmp_path)
+    assert run(capsys, "validate", r["work"], "--json")[0] == 0
+    (outdir / "short paper.vi.pdf").write_bytes(b"x")
+    code, res = run(capsys, "render", r["work"], "--foreground", "--json")
+    assert code == 2 and res["output_exists"] is True and res["next_action"]
+    assert (outdir / "short paper.vi.pdf").read_bytes() == b"x"
+
+
+def test_extract_failure_exit_2_with_runnable_next_action(env, capsys, monkeypatch):
+    src, outdir = env
+    monkeypatch.setenv("FAKE_MINERU_FAIL_ALWAYS", "1")
+    code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
+    assert code == 2 and r["next_action"].startswith("rosettex extract")
