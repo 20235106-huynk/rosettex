@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from ..checks import load_pack
+from ..fonts import FontMissing, font_error, resolve_fonts, stage_fonts
 from ..tools import find_tex
 from ..translate import manifest, translations
 from ..workspace import Work, read_json, run_with_heartbeat, timeout_for, write_json
@@ -89,6 +90,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     m = manifest(work)
     lang = m["lang"]
     pack = load_pack(lang)
+    fonts_res = resolve_fonts(pack)  # FontMissing propagates before any work
     tool = find_tex()
     if tool is None:
         raise RenderError("Tectonic or XeLaTeX not found")
@@ -97,6 +99,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         raise RenderError(f"output file already exists: {out}")
     doc, tr = read_json(work.document), translations(work, lang)
     work.out.mkdir(parents=True, exist_ok=True)
+    font_rec = stage_fonts(fonts_res, work.out)
     images = copy_assets(work, doc)
     fb = set(m.get("fallback", []))
     beat = lambda: on_beat("compiling")  # noqa: E731
@@ -108,6 +111,11 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         ok, output, log = run_tex(tool, work.out, "probe.tex", beat)
         if ok:
             break
+        bad = font_error(output + log)
+        if bad:
+            raise FontMissing(pack["profile"]["id"], [e for e in pack["fonts"] if e["file"] == bad] or [{"file": bad, "license": None}],
+                              message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
+                                      "with Tectonic rerun when the network works")
         c = culprit(log)
         if c is None or c in fb:
             raise RenderError("trial compile failed and the failing item could not be identified: " + _tail(output + log))
@@ -120,6 +128,11 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
         ok, output, log = run_tex(tool, work.out, "main.tex", beat)
         if ok:
             break
+        bad = font_error(output + log)
+        if bad:
+            raise FontMissing(pack["profile"]["id"], [e for e in pack["fonts"] if e["file"] == bad] or [{"file": bad, "license": None}],
+                              message=f"TeX could not load the font {bad}: with XeLaTeX install the TeX package that provides it; "
+                                      "with Tectonic rerun when the network works")
         c = culprit(log)
         if not c or not expand_fallback(doc, c, fb):
             raise RenderError("compiling main.tex failed: " + _tail(output + log))
@@ -132,7 +145,8 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(pdf, out)
     terms = read_json(work.terms, {})
-    report = {"output": str(out), "lang": lang, "lang_tested": pack["tested"], "topic": terms.get("topic"),
+    report = {"output": str(out), "lang": lang, "lang_tested": pack["tested"],
+              "script": pack["profile"]["id"], "fonts": font_rec, "topic": terms.get("topic"),
               "key_terms": terms.get("terms", [])[:10], "tier": m.get("tier"), "tier_reason": m.get("tier_reason"),
               "device": "MinerU chooses (slice 1 does not force a device)", "tex": tool[0],
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],

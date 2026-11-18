@@ -99,7 +99,7 @@ def read_manifest(work: Work, hint: str = "choose another work directory") -> di
 
 
 def beat(work: Work, command: str, resume: str, step: str, done: int, total: int,
-         state: str = "running", error: str | None = None) -> None:
+         state: str = "running", error: str | None = None, extra: dict | None = None) -> None:
     prev = read_json(work.progress) or {}
     same = prev.get("state") == "running" and prev.get("command") == command
     retries = prev.get("retries", 0) if same and state != "done" else 0
@@ -108,7 +108,7 @@ def beat(work: Work, command: str, resume: str, step: str, done: int, total: int
         retries += 1
     write_json(work.progress, {"command": command, "resume": resume, "pid": os.getpid(), "state": state,
                                "step": step, "done": done, "total": total, "error": error,
-                               "retries": retries, "updated": time.time()})
+                               "retries": retries, "updated": time.time(), "extra": extra or {}})
 
 
 def job_state(work: Work, now: float | None = None) -> dict | None:

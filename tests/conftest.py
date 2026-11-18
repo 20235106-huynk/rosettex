@@ -50,8 +50,16 @@ TERMS = {"topic": "Kiến trúc chỉ dùng cơ chế chú ý cho dịch máy",
          "terms": [{"src": "attention", "dst": "chú ý"}], "keep": ["BLEU"], "abbreviations": []}
 
 
-def translate_all(work):
-    """Translate every batch with fake_vi and write the translation files directly."""
+def fake_script(src: str, sample: str) -> str:
+    """Keep every placeholder and every number of the source; the words come from a sample in the target script."""
+    keep = re.findall(r"⟦[a-z]\d+⟧|\d+(?:[.,]\d+)*", src)
+    if len(src) <= 40:  # table cells and short labels: a short stand-in, so tables keep a readable size
+        sample = sample[:12].rstrip("\u200b ")
+    return sample + (" " + " ".join(keep) if keep else "")
+
+
+def translate_all(work, translator=fake_vi):
+    """Translate every batch with a fake translator (default fake_vi) and write the translation files directly."""
     from rosettex.translate import batch_ids
     from rosettex.workspace import read_json, write_json
 
@@ -59,4 +67,4 @@ def translate_all(work):
     lang = read_json(work.manifest)["lang"]
     for bid in batch_ids(work):
         b = read_json(work.batch_path(bid))
-        write_json(work.translation_path(bid, lang), {it["id"]: fake_vi(it["text"]) for it in b["items"]})
+        write_json(work.translation_path(bid, lang), {it["id"]: translator(it["text"]) for it in b["items"]})

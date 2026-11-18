@@ -4,9 +4,47 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
-from ..checks import PH_RE
+from ..checks import PH_RE, in_blocks
 from ..extract.tables import table_shape
-from ..tex import escape_latex
+from ..fonts import fontspec, resolve_fonts
+from ..tex import escape_latex, wrap_runs
+
+
+
+def lang_lines(pack) -> tuple[list[str], list[str]]:
+    prof, fonts = pack["profile"], resolve_fonts(pack)
+    lay, poly = prof["layout"], pack.get("polyglossia")
+    if lay == "plain":
+        f, o = fontspec(fonts["script"])
+        return ([r"\setmainfont{%s}[%s]" % (f, o)],
+                [r"\usepackage{polyglossia}", r"\setdefaultlanguage{%s}" % poly] if poly else [])
+    main = [r"\setmainfont{%s}[%s]" % fontspec(fonts["latin"])]
+    f, o = fontspec(fonts["script"])
+    # script fonts draw larger than Termes: one visual size (explicit profile scale where MatchLowercase has no effect)
+    scale = ("Scale=%s" % prof["scale"] if prof.get("scale") else "Scale=MatchLowercase") if lay in ("runs", "rtl") else ""
+    o = ",".join(x for x in (o, scale, "Script=" + prof["otf_script"] if prof["otf_script"] else "") if x)
+    if lay == "cjk":
+        opt = "[%s]" % prof["layout_options"] if prof["layout_options"] else ""
+        return main, [r"\usepackage%s{xeCJK}" % opt, r"\setCJKmainfont{%s}[%s]" % (f, o)]
+    if lay == "rtl":
+        po = pack.get("polyglossia_options")
+        return main, [r"\usepackage{polyglossia}", r"\setdefaultlanguage%s{%s}" % ("[%s]" % po if po else "", poly),
+                      r"\setotherlanguage{english}", r"\newfontfamily\%sfont{%s}[%s]" % (poly, f, o),
+                      r"\newcommand{\rxltr}[1]{\textenglish{#1}}",
+                      # Naskh has no Latin letters or parentheses: math \text and equation tags go through the Latin font
+                      r"\let\rxtext\text\renewcommand{\text}[1]{\rxtext{\textenglish{#1}}}",
+                      r"\makeatletter\def\tagform@#1{\maketag@@@{\rxltr{(\ignorespaces#1\unskip\@@italiccorr)}}}\makeatother"]
+    if poly:
+        return main, [r"\usepackage{polyglossia}", r"\setdefaultlanguage{english}",
+                      r"\newfontfamily\%sfont{%s}[%s]" % (poly, f, o), r"\setotherlanguage{%s}" % poly,
+                      r"\newcommand{\rxs}[1]{\text%s{#1}}" % poly]
+    return main, [r"\newfontfamily\rxscriptfont{%s}[%s]" % (f, o), r"\newcommand{\rxs}[1]{{\rxscriptfont #1}}"]
+
+
+def label_lines(pack) -> list[str]:
+    lab, prof = pack["labels"], pack["profile"]
+    names = (("figure", "figurename"), ("table", "tablename"), ("references", "refname"))
+    return [r"\renewcommand{\%s}{%s}" % (m, wrap_runs(lab[k], prof)) for k, m in names if k in lab]
 
 
 def preamble(doc, pack, twocolumn=None) -> str:
@@ -22,23 +60,25 @@ def preamble(doc, pack, twocolumn=None) -> str:
     top = clamp(min((x[1] for x in bbs), default=0.1) * h)
     bottom = clamp((1 - max((x[3] for x in bbs), default=0.9)) * h)
     two = doc["source"]["columns"] == 2 if twocolumn is None else twocolumn
-    f = pack["font"]
+    main, lang = lang_lines(pack)
+    rtl = pack["profile"]["layout"] == "rtl"
     return "\n".join([
         r"\documentclass[10pt%s]{article}" % (",twocolumn" if two else ""),
         r"\usepackage[paperwidth=%sbp,paperheight=%sbp,left=%dbp,right=%dbp,top=%dbp,bottom=%dbp]{geometry}"
         % (w, h, left, right, top, bottom),
         r"\usepackage{fontspec}",
-        r"\setmainfont{%s}[%s]" % (f["main"], f["options"]),
+        *main,
         r"\usepackage{amsmath,amssymb}",
         r"\usepackage{unicode-math}",
         r"\setmathfont{latinmodern-math.otf}",
-        r"\usepackage{polyglossia}",
-        r"\setdefaultlanguage{%s}" % pack["polyglossia"],
+        *([] if rtl else lang),
         r"\usepackage{graphicx,booktabs,multirow,adjustbox,url}",
         r"\usepackage[hidelinks]{hyperref}",
+        *(lang if rtl else []),
         r"\makeatletter\newcommand{\rxlabel}[2]{\phantomsection\def\@currentlabel{#1}\label{#2}}\makeatother",
         r"\setlength{\emergencystretch}{3em}",
         r"\begin{document}",
+        *label_lines(pack),
         "",
     ])
 
@@ -47,6 +87,8 @@ class Renderer:
     def __init__(self, doc, tr, pack, fallback, images):
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
+        self.prof = pack["profile"]
+        self.rtl = self.prof["layout"] == "rtl"
 
     # ---------- text ----------
     @staticmethod
@@ -67,9 +109,12 @@ class Renderer:
             if s["t"] == "math":
                 out.append(self.box_inline(s["v"]) if bid in self.fb else "$" + s["v"] + "$")
             elif s["t"] == "sup":
-                out.append("\\textsuperscript{" + escape_latex(s["v"]) + "}")
+                sup = "\\textsuperscript{" + escape_latex(s["v"]) + "}"
+                out.append("\\rxltr{%s}" % sup if self.rtl else sup)
+            elif self.rtl and s["v"].strip() and not any(in_blocks(c, self.prof["_blocks"]) for c in s["v"]):
+                out.append("\\rxltr{%s}" % escape_latex(s["v"]))  # whole English span LTR (authors, e-mails, daggers)
             else:
-                out.append(escape_latex(s["v"]))
+                out.append(wrap_runs(s["v"], self.prof))
         return " ".join("".join(out).split())
 
     def text(self, uid, spans) -> str:
@@ -79,20 +124,22 @@ class Renderer:
         t = self.tr.get(uid, u["src"])
         if uid in self.fb or (u["type"] == "cell" and u["block"] in self.fb):  # last-resort fallback for a text block: plain single-line text, no macros
             t = PH_RE.sub(lambda m: u["ph"][m.group(0)[1:-1]]["src"] if m.group(0)[1:-1] in u["ph"] else m.group(0), t)
-            return escape_latex(" ".join(t.split()))
+            return wrap_runs(" ".join(t.split()), self.prof)
         out, pos = [], 0
         for m in PH_RE.finditer(t):
-            out.append(escape_latex(t[pos:m.start()]))
+            out.append(wrap_runs(t[pos:m.start()], self.prof))
             name = m.group(0)[1:-1]
             p = u["ph"].get(name)
             if p is None:
                 out.append(escape_latex(m.group(0)))
             elif f"{uid}:{name}" in self.fb:
                 out.append(self.box_inline(p["src"]))
+            elif self.rtl and not p["tex"].startswith("$"):
+                out.append("\\rxltr{%s}" % p["tex"])
             else:
                 out.append(p["tex"])
             pos = m.end()
-        out.append(escape_latex(t[pos:]))
+        out.append(wrap_runs(t[pos:], self.prof))
         return "".join(out)
 
     # ---------- blocks ----------
@@ -169,12 +216,20 @@ class Renderer:
     def footnote(self, b) -> str:
         t = self.verbatim(b["spans"], b["id"]) if b.get("role") else self.text(b["id"], b["spans"])
         mark = "\\textsuperscript{%s}" % escape_latex(b["mark"]) if b.get("mark") else ""
+        if mark and self.rtl:
+            mark = "\\rxltr{%s}" % mark
         return "{\\renewcommand{\\thefootnote}{}\\footnotetext{%s%s}}" % (mark, t)
 
     def bibliography(self, refs) -> str:
         items = "\n".join(self.mark(b) + "\\bibitem{ref%s} %s" % (b["key"], self.verbatim(b["spans"], b["id"]))
                           for b in refs)
-        return "\\begin{thebibliography}{99}\n%s\n\\end{thebibliography}" % items
+        env = "\\begin{thebibliography}{99}\n%s\n\\end{thebibliography}" % items
+        label = self.pack["labels"].get("references")
+        if self.rtl and label:
+            # not otherlanguage{english}: with Tectonic it ends in "Missing } inserted" around thebibliography
+            return "{\\selectlanguage{english}\\renewcommand{\\refname}{\\RL{\\%sfont %s}}\n%s\n}" % (
+                self.pack["polyglossia"], wrap_runs(label, self.prof), env)
+        return env
 
     def render_block(self, b) -> str:
         k = b["kind"]

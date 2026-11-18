@@ -13,6 +13,7 @@ from . import __version__, translate
 from .checks import load_pack
 from .extract.run import ExtractError, extract_core
 from .pdf import page_count
+from .fonts import FontMissing, resolve_fonts
 from .render.compile import RenderError, render_core
 from .tools import available_ram_bytes, choose_tier, find_mineru, find_tex, verify_models
 from .workspace import (OWNED, is_leftover, SCHEMA, UsageError, Work, beat, job_state, q, read_json, read_manifest, spawn_detached,
@@ -36,9 +37,23 @@ def _running(job) -> bool:
     return bool(job) and job["state"] == "running" and not job["dead"]
 
 
+# ---------------- script and fonts ----------------
+def script_info(lang: str, strict: bool = True) -> dict:
+    """script, pack_found, script_known, fonts for a language code; strict: a damaged font stops with exit 2."""
+    pack = load_pack(lang)
+    info = {"script": pack["profile"]["id"], "pack_found": pack["pack_found"], "script_known": pack["script_known"]}
+    try:
+        info["fonts"] = list(dict.fromkeys(e["file"] for e in resolve_fonts(pack).values()))
+    except FontMissing as e:
+        if strict:
+            raise UsageError(str(e), next_action=None, **e.to_json())
+        info.update(e.to_json())
+    return info
+
+
 # ---------------- extract ----------------
 def cmd_extract(a):
-    if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z]{2,8})?", a.lang):
+    if not re.fullmatch(r"[A-Za-z]{2,3}(?:[-_][A-Za-z]{2,8})?", a.lang):
         raise UsageError(f"invalid language code: {a.lang} (for example: vi, en, fr)")
     pdf = Path(a.pdf).expanduser().resolve()
     if not pdf.is_file():
@@ -47,6 +62,7 @@ def cmd_extract(a):
         page_count(pdf)  # check before creating the directory: a broken/encrypted PDF leaves no trace
     except Exception as e:
         raise UsageError(f"cannot read PDF {pdf}: {e}", next_action="check the PDF file (corrupt or password-protected)")
+    sinfo = script_info(a.lang)  # fail early on a damaged font, before MinerU and before creating anything
     out = resolve_out(pdf, a.lang, a.out)
     work = Work(a.work or out.parent / ".rosettex" / f"{pdf.stem}.{a.lang}")
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
@@ -81,7 +97,7 @@ def cmd_extract(a):
         m["tier"], m["tier_reason"] = a.tier, "requested"
         write_json(work.manifest, m)
     info = {"work": str(work.root), "output": str(out), "output_exists": out.exists(), "pages": m["pages"],
-            "tier": m["tier"], "lang_tested": load_pack(a.lang)["tested"]}
+            "tier": m["tier"], "lang_tested": load_pack(a.lang)["tested"], **sinfo}
     if work.document.exists():
         return 0, {"ok": True, "state": "extracted", **info, "next_action": f"rosettex status {q(work.root)} --json"}
     if not a.foreground:
@@ -133,6 +149,7 @@ def status(work: Work) -> dict:
                 "next_action": job["resume"]}
     if job and job["state"] == "failed":
         out = {"state": job["command"] + "_failed", "error": job["error"], "next_action": job["resume"]}
+        out.update(job.get("extra") or {})  # e.g. font_missing, script, fonts_needed
         if job["command"] == "render" or m["tier"] == "basic" or not job["resume"]:
             out["next_action"] = None
             out["log"] = str(work.logs / f"{job['command']}.log")
@@ -158,7 +175,12 @@ def status(work: Work) -> dict:
 
 
 def cmd_status(a):
-    return 0, status(Work(a.work))
+    w = Work(a.work)
+    s = status(w)
+    m = read_json(w.manifest)
+    if m:
+        s.update(script_info(m["lang"], strict=False))
+    return 0, s
 
 
 # ---------------- translate ----------------
@@ -205,6 +227,7 @@ def cmd_render(a):
     if out.exists() and not a.overwrite:
         raise UsageError(f"output file already exists: {out}", next_action="ask the user; if they agree, rerun with --overwrite",
                          output_exists=True)
+    script_info(m["lang"])  # FontMissing -> exit 2 before spawning
     if find_tex() is None:
         raise UsageError("Tectonic or XeLaTeX not found; see the README section Installation")
     resume = f"rosettex render {q(w.root)} --out {q(out)} --json" + (" --overwrite" if a.overwrite else "")
@@ -219,9 +242,10 @@ def cmd_render(a):
     beat(w, "render", resume, "begin", 0, 0)
     try:
         rep = render_core(w, out, overwrite=a.overwrite, on_beat=lambda s: beat(w, "render", resume, s, 0, 0))
-    except RenderError as e:
-        beat(w, "render", resume, "error", 0, 0, state="failed", error=str(e))
-        return 2, {"ok": False, "error": str(e), "next_action": f"rosettex status {q(w.root)} --json"}
+    except (RenderError, FontMissing) as e:
+        extra = e.to_json() if isinstance(e, FontMissing) else {}
+        beat(w, "render", resume, "error", 0, 0, state="failed", error=str(e), extra=extra)
+        return 2, {"ok": False, "error": str(e), "next_action": f"rosettex status {q(w.root)} --json", **extra}
     except Exception as e:
         err = f"{e!r} (details: {w.logs / 'render.log'})"
         beat(w, "render", resume, "error", 0, 0, state="failed", error=err)

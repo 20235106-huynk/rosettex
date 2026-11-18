@@ -35,3 +35,9 @@ def test_target_language_is_asked_not_defaulted():
     from rosettex.protocol import skill_md, text
     assert "Vietnamese by default" not in skill_md().split("---")[1] and "by default" not in skill_md().split("---")[1]
     assert "Do not guess the target language" in text("vi")
+
+
+def test_protocol_covers_scripts_and_fonts():
+    t = text("vi")
+    for k in ("BCP-47", "script_known", "pack_found", "font_missing", "missing_glyphs", "lang_tested", "sr-Latn"):
+        assert k in t

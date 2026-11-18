@@ -451,3 +451,51 @@ def test_leftover_with_src_and_logs_is_cleanable(env, capsys):
     d = _leftover(env, ["src.pdf"])
     (d / "logs").mkdir()
     assert run(capsys, "clean", d, "--json")[0] == 0 and not d.exists()
+
+
+def test_extract_fails_early_on_damaged_font(env, capsys, tmp_path, monkeypatch):
+    from rosettex import fonts
+    d = tmp_path / "fonts"
+    shutil.copytree(fonts.package_dir(), d)
+    (d / "NotoSerifBengali-Regular.ttf").write_bytes(b"broken")
+    monkeypatch.setattr(fonts, "package_dir", lambda: d)
+    monkeypatch.setenv("ROSETTEX_MINERU", str(tmp_path / "does-not-exist"))  # must not be reached
+    code, r = run(capsys, "extract", FIX / "papers" / "short.pdf", "--lang", "bn", "--out", tmp_path / "res", "-o", tmp_path / "o", "--json")
+    assert code == 2 and r["font_missing"] is True and r["script"] == "bengali" and r["next_action"] is None
+    assert not (tmp_path / "o").exists() and not (tmp_path / "res").exists()
+
+
+@pytest.mark.parametrize("lang,script,found,known", [("ar", "arabic", True, True), ("ps", "arabic", False, True),
+                                                     ("es", "latin", False, True), ("xx", "latin", False, False)])
+def test_extract_reports_script(env, capsys, tmp_path, lang, script, found, known):
+    code, r = run(capsys, "extract", FIX / "papers" / "short.pdf", "--lang", lang, "--out", tmp_path / "res", "-o", tmp_path / "o",
+                  "--foreground", "--json")
+    assert code == 0 and r["script"] == script and r["pack_found"] is found and r["script_known"] is known
+    assert r["lang_tested"] is False and r["fonts"]
+
+
+def test_missing_manifest_is_font_missing_not_a_traceback(tmp_path, monkeypatch):
+    from rosettex import fonts
+    from rosettex.checks import load_pack
+    monkeypatch.setattr(fonts, "package_dir", lambda: tmp_path)  # empty: no manifest, no fonts
+    with pytest.raises(fonts.FontMissing):
+        fonts.resolve_fonts(load_pack("bn"))
+
+
+def test_build_time_font_error_reaches_status(env, capsys, tmp_path, monkeypatch):
+    import rosettex.cli as cli
+    from rosettex.fonts import FontMissing
+    src, outdir = env
+    r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
+    translate_via_cli(capsys, r["work"], tmp_path)
+    assert run(capsys, "validate", r["work"], "--json")[0] == 0
+    monkeypatch.setattr(cli, "find_tex", lambda: ("fake", []))
+
+    def boom(*a, **k):
+        raise FontMissing("latin", [{"file": "NotoSerif-Bold.ttf", "license": "OFL-1.1"}], message="TeX could not load the font")
+    monkeypatch.setattr(cli, "render_core", boom)
+    code, res = run(capsys, "render", r["work"], "--foreground", "--json")
+    assert code == 2 and res["font_missing"] is True
+    st = run(capsys, "status", r["work"], "--json")[1]
+    assert st["state"] == "render_failed" and st["font_missing"] is True
+    assert st["fonts_needed"] == [{"file": "NotoSerif-Bold.ttf", "license": "OFL-1.1"}]

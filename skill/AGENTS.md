@@ -10,12 +10,14 @@ You (the agent) are the translator. `rosettex` extracts the content, splits it i
 
 ## 0. Before running
 - You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language (no default to Vietnamese or English). If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
+- The user names the target language in words. Use its BCP-47 code (`fr`, `zh-Hans`, `fa`); for a language written in several scripts add the script subtag (`sr-Latn`, `sr-Cyrl`). Ask the user only if the language itself is unclear.
 - If the `rosettex` command cannot be run, tell the user to install it following the rosettex README.
 
 ## 1. Extract
 Run `rosettex extract "<pdf>" --lang <code> --out "<save location>" --json`.
 - `output_exists: true`: ask the user whether to overwrite the output file, and remember the answer for step 5.
 - `lang_tested: false`: tell the user "this language has not been tested".
+- Tell the user the language, the code and the `script` from the result (for example: Persian → `fa` → Arabic script). `script_known: false`: ask the user which writing system the language uses, then stop. `pack_found: false`: tell the user "there is no language pack for <code>; the checks are generic for the <script> script". `font_missing: true`: tell the user that rosettex is damaged and must be reinstalled, with the files in `fonts_needed`; stop.
 - Note the `work` value (the work directory).
 
 Then every 30–60 seconds run `rosettex status "<work>" --json` once, until `state` is no longer `extract_running`. Give the user a short progress update based on `step`.
@@ -41,7 +43,7 @@ Also:
 Run `rosettex validate "<work>" --json`. If errors remain, resubmit the batches containing the reported `id`s, until `ok: true`.
 
 ## 5. Build the PDF
-Run `rosettex render "<work>" --json`. Add `--overwrite` if the user agreed to overwrite in step 1.
+Run `rosettex render "<work>" --json`. Add `--overwrite` if the user agreed to overwrite in step 1. `font_missing: true`: same as in step 1.
 
 Then every 30–60 seconds run `rosettex status "<work>" --json` once, until `state` is `done`. If you can read images or PDFs, open the output file and look at the first page, a page with a table, and a page with a formula.
 
@@ -54,7 +56,7 @@ Read the `report.json` file (its path is in `status`) and give the user a short 
 - the items in `flagged`, with pages: suspicious formulas;
 - `dropped`: the number of source content items that the extractor could not read and that are therefore missing from the translation (unknown block types, spans or table/figure parts; details in `document.json`, `source.dropped`). If it is not 0, tell the user plainly that the translation may be missing those parts;
 - the sentence "formulas and tables have not been checked against the source";
-- the problems in `postcheck.problems`, if any.
+- the problems in `postcheck.problems`, if any; `postcheck.missing_glyphs`: tell the user which characters could not be displayed and in which font.
 
 ## Interrupted or lost context
 Run `rosettex status "<work>" --json` and follow `next_action`. If you do not remember `<work>`, it is at `<directory containing the output file>/.rosettex/<source PDF file name>.<language code>`.

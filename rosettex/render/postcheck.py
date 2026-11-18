@@ -7,16 +7,33 @@ from ..checks import nfc
 from ..pdf import full_text, line_height_total
 
 MATH_CHARS = re.compile("[\U0001D400-\U0001D7FF]")
+MISS_RE = re.compile(r"Missing character: There is no (.)(?: \(U\+([0-9A-F]+)\))? in font ([^!]*)!")
+OVER_RE = re.compile(r"Overfull \\hbox \((\d+(?:\.\d+)?)pt too wide\)")
+
+
+def parse_missing(log: str) -> list[dict]:
+    out = []
+    for ch, cp, font in MISS_RE.findall(log):
+        name = re.match(r"\[?([^\]:]*)", font.replace("\n", "")).group(1).strip()  # TeX wraps log lines at 79 chars
+        item = {"char": ch, "codepoint": "U+" + (cp or f"{ord(ch):04X}"), "font": name.rsplit("/", 1)[-1]}
+        if item not in out:
+            out.append(item)
+    return out
+
+
+def overfull_count(log: str, min_pt: float = 10.0) -> int:
+    return sum(float(x) > min_pt for x in OVER_RE.findall(log))
 
 
 def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
     problems = []
     if re.search(r"^! ", log, re.M):
         problems.append("LaTeX log has errors")
-    if "Missing character" in log:
-        miss = sorted(set(re.findall(r"Missing character: There is no (.)", log)))
-        problems.append("font is missing characters: " + "".join(miss))
-    if re.search(r"LaTeX Warning: (?:Reference|Citation) `[^']*' .*undefined", log):
+    missing_glyphs = parse_missing(log)
+    for font in dict.fromkeys(m["font"] for m in missing_glyphs):
+        chars = "".join(sorted({m["char"] for m in missing_glyphs if m["font"] == font}))
+        problems.append(f"font {font} is missing characters: {chars}")
+    if re.search(r"LaTeX Warning: (?:Reference|Citation) `[^']*'[\s\S]{0,80}?undefined", log):
         problems.append("there are undefined references/citations")
     text = nfc(full_text(pdf))
     if "??" in text or "[?]" in text:
@@ -42,7 +59,15 @@ def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
     for k, v in counts.items():
         if have.get(k) != v:
             problems.append(f"count of {k} in the build {have.get(k)} ≠ source {v}")
+    layout = pack["profile"]["layout"]
+    if "\u25cc" in text and "\u25cc" not in "".join(tr.values()) and layout != "rtl":
+        problems.append("dotted circle in the PDF")
+    n = overfull_count(log)
+    if pack["profile"]["linebreak"] in ("cjk", "zwsp") and n > 5:
+        problems.append(f"{n} overfull lines: line breaking for this script may not work")
     ratio = line_height_total(pdf) / max(line_height_total(work.src_pdf), 1e-9)
-    if ratio > 1.3:
-        problems.append(f"content length ratio {ratio:.2f} > 1.3")
-    return {"ok": not problems, "problems": problems, "length_ratio": round(ratio, 3)}
+    limit = pack.get("max_length_ratio", 1.3)
+    if ratio > limit:
+        problems.append(f"content length ratio {ratio:.2f} > {limit}")
+    return {"ok": not problems, "problems": problems, "length_ratio": round(ratio, 3),
+            "missing_glyphs": missing_glyphs}

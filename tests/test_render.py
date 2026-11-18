@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+import shutil
 
 import pytest
 
@@ -129,3 +131,72 @@ def test_fallback_table_with_citation_keeps_postcheck_ok(tmp_path):
     rep = render_core(w, tmp_path / "out.pdf")
     assert tb["id"] in {f["id"] for f in rep["fallback"]}
     assert rep["postcheck"]["ok"], rep["postcheck"]
+
+from rosettex import fonts
+from rosettex.fonts import FontMissing
+from rosettex.render.postcheck import overfull_count, parse_missing
+
+LOG = ("Missing character: There is no ০ (U+09E6) in font NotoSerifBengali-Regular.ttf:mode=harf;script=beng;!\n"
+       "Missing character: There is no x in font foo!\n"
+       "Overfull \\hbox (12.5pt too wide) in paragraph at lines 3--4\n"
+       "Overfull \\hbox (2.0pt too wide) in paragraph at lines 5--6\n")
+
+
+def test_parse_missing_and_overfull():
+    m = parse_missing(LOG)
+    assert m[0] == {"char": "০", "codepoint": "U+09E6", "font": "NotoSerifBengali-Regular.ttf"}
+    assert m[1]["char"] == "x" and m[1]["font"] == "foo"
+    assert overfull_count(LOG) == 1
+
+
+def test_render_stops_on_damaged_package_font(tmp_path, monkeypatch):
+    d = tmp_path / "fonts"
+    shutil.copytree(fonts.package_dir(), d)
+    (d / "NotoSerifBengali-Regular.ttf").write_bytes(b"broken")
+    monkeypatch.setattr(fonts, "package_dir", lambda: d)
+    w = make_work(tmp_path, lang="bn")
+    translate_all(w)
+    with pytest.raises(FontMissing):
+        render_core(w, tmp_path / "o.pdf")
+    assert not (tmp_path / "o.pdf").exists()
+
+
+SAMPLES = json.loads((Path(__file__).parent / "script_samples.json").read_text(encoding="utf-8"))
+XFAIL = {}  # from the Task 2 stop rules, e.g. {"ur": "<error line>"}
+
+
+@needs_tex
+@pytest.mark.parametrize("code", sorted(SAMPLES))
+def test_render_short_in_every_script(tmp_path, code):
+    from conftest import fake_script
+    from rosettex.checks import in_blocks, load_pack
+    if code in XFAIL:
+        pytest.xfail(XFAIL[code])
+    pack = load_pack(code)
+    w = make_work(tmp_path, lang=code)
+    translate_all(w, lambda s: fake_script(s, SAMPLES[code]))
+    rep = render_core(w, tmp_path / f"out.{code}.pdf")
+    pc = rep["postcheck"]
+    assert pc["missing_glyphs"] == [], pc
+    assert not [p for p in pc["problems"] if "dotted circle" in p or "undefined" in p], pc
+    if pack["profile"]["layout"] != "rtl":  # Arabic text extraction is unreliable (S1b §3.1)
+        text = full_text(tmp_path / f"out.{code}.pdf")
+        blocks = pack["profile"]["_blocks"]
+        if blocks:  # a real share of the letters is in the target script (English authors and references remain)
+            letters = [c for c in text if c.isalpha()]
+            share = sum(in_blocks(c, blocks) for c in letters) / max(len(letters), 1)
+            assert share >= 0.3, share
+        assert "0.05" in text and "28.4" in text
+    assert rep["script"] == pack["profile"]["id"] and rep["fonts"]
+
+
+WRAPPED = ("Missing character: There is no t (U+0074) in font [fonts/NotoNaskhArabic-Regula\n"
+           "r.ttf]/OT:script=arab;language=dflt;!\n")
+
+
+def test_parse_missing_survives_tex_line_wrapping():
+    assert parse_missing(WRAPPED) == [{"char": "t", "codepoint": "U+0074", "font": "NotoNaskhArabic-Regular.ttf"}]
+    import re
+    from rosettex.render import postcheck as pc
+    assert pc.re.search(r"LaTeX Warning: (?:Reference|Citation) `[^']*'[\s\S]{0,80}?undefined",
+                        "LaTeX Warning: Reference `tab:long-label-name' on page 3\nundefined on input line 120.")
