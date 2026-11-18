@@ -24,7 +24,7 @@ The tool is **installed into the harness**. The user says a single sentence, for
 - **Formulas and tables are always real characters** (selectable, copyable, searchable), rebuilt in LaTeX. Never an image or a region cropped from the original, even when the input is a scan. Only figures are images cropped from the original.
 - Preserve: figures and data (including decimal points), citations, formulas, section order, clickable internal links (citation → reference; references to figures, tables, sections, equations).
 - Correct Vietnamese diacritics, including stacked ones (ệ, ữ, ẫ).
-- **Target languages cover 15 common writing systems (scripts)**, rendered correctly in the output PDF (fonts, shaping, writing direction, line breaking): Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar. Vietnamese (Latin) is the first and most tested language. The input stays an English paper. Details in §11.5 (amended 2026-11-18 per the user).
+- **Target languages cover 15 common writing systems (scripts)**, rendered correctly in the output PDF (fonts, shaping, writing direction, line breaking): Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Ge'ez), Myanmar. Vietnamese (Latin) is the first and most tested language. The input stays an English paper. Details in §11.5 (amended 2026-11-18 per the user).
 - Consistent terminology within one paper.
 - Use the GPU automatically when present and suitable; fall back to CPU automatically when absent or when the GPU fails.
 - Make use of resources already on the machine; download only what is missing; download in advance right after installation.
@@ -318,7 +318,7 @@ The tool must produce correct PDFs for target languages written in these 15 scri
 | Gujarati | gu | LTR | same as Devanagari |
 | Kannada | kn | LTR | same as Devanagari |
 | Thai | th | LTR | no spaces between words: dictionary-based line breaking; stacked tone marks |
-| Ethiopic (Geʽez) | am, ti | LTR | syllabary; word separator; font availability |
+| Ethiopic (Ge'ez) | am, ti | LTR | syllabary; word separator; font availability |
 | Myanmar | my | LTR | no spaces; complex stacking and reordering; Unicode only (not Zawgyi) |
 
 Cross-cutting rules (these extend §11.3 and §11.4 and the settled decisions of §19):
@@ -474,4 +474,4 @@ All three target Chinese. mineru-pdf-translate's "untranslated" checker flags a 
 21. Hardware probing and model management go through `mineru-kit hardware` and `mineru-kit models`; MinerU is installed in a separate environment managed by `rosettex`.
 22. Check each batch immediately on submission (`accept`), plus a whole-paper check (`validate`).
 23. All comparisons run on NFC-normalized text.
-24. **Script coverage (added 2026-11-18, decided by the user):** the tool must support target languages in 15 common scripts: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar. Built as slice 1b right after slice 1; see §11.5 and §16 item 8.
+24. **Script coverage (added 2026-11-18, decided by the user):** the tool must support target languages in 15 common scripts: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Ge'ez), Myanmar. Built as slice 1b right after slice 1; see §11.5 and §16 item 8.

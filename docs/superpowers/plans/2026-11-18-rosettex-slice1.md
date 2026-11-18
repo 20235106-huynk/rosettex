@@ -17,7 +17,7 @@
 
 ## Amendment (2026-11-18, after slice 1 was implemented): 15 scripts
 
-New requirement from the user (SG §2, §11.5, decision 24): the tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar.
+New requirement from the user (SG §2, §11.5, decision 24): the tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Ge'ez), Myanmar.
 
 **This does not change the 15 tasks of this plan.** Slice 1 is implemented and ships the `vi` pack and the `default` pack only. The requirement becomes **slice 1b**, planned right after slice 1 and before slice 2 (`review`). It starts with a spike (SG §16 item 8) and gets its own spec and plan.
 

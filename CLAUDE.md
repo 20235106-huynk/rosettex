@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Phase 1 is built as **vertical slices**, each with its own spec and plan:
 - Slice 1: the end-to-end flow for PDFs with a text layer. **Done.**
-- **Slice 1b (next, added 2026-11-18): script coverage.** The tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar (SG §2, §11.5, decision 24, spike in §16 item 8). Needs its own spec and plan; start with the spike. Until then only `vi` is optimized and tested, and every other language runs with the `default` pack and is reported as "untested".
+- **Slice 1b (next, added 2026-11-18): script coverage.** The tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Ge'ez), Myanmar (SG §2, §11.5, decision 24, spike in §16 item 8). Needs its own spec and plan; start with the spike. Until then only `vi` is optimized and tested, and every other language runs with the `default` pack and is reported as "untested".
 - Slice 2: `review`.
 - Slice 3: `setup`, `doctor`, auto-download (including fonts per script), GPU.
 - Slice 4: scan/OCR.
