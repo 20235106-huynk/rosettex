@@ -1,0 +1,28 @@
+{
+ "code": "vi",
+ "name": "Tiếng Việt",
+ "tested": true,
+ "polyglossia": "vietnamese",
+ "font": {"main": "texgyretermes",
+          "options": "Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic"},
+ "check_chars": "áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ",
+ "letters": "áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴĐ",
+ "function_words": ["của", "và", "là", "các", "những", "được", "trong", "cho", "với", "không", "một", "này",
+                    "có", "để", "từ", "khi", "theo", "đến", "như", "về", "trên", "bằng", "hơn", "thì", "đã",
+                    "sẽ", "cũng", "mà", "nên", "vì", "bị", "tại", "do", "nhưng", "hoặc", "nếu"],
+ "min_len_check": 40,
+ "min_diacritic_ratio": 0.03,
+ "min_function_ratio": 0.05,
+ "length_ratio": [0.7, 2.0],
+ "labels": {"fallback": "công thức/bảng chưa dựng được", "missing_image": "thiếu ảnh"},
+ "rules": [
+  "Giữ nguyên mọi placeholder ⟦…⟧ đúng như bản gốc (được đổi vị trí trong câu cho tự nhiên).",
+  "Giữ nguyên mọi con số và cách viết số như bản gốc, kể cả dấu chấm thập phân: 0.05 giữ là 0.05, không viết 0,05.",
+  "Không dịch tên riêng, tên phương pháp/mô hình/bộ dữ liệu, đơn vị, email, URL.",
+  "Giữ nguyên mức độ chắc chắn của câu gốc (may, might, suggest, likely, significant…).",
+  "Kiểm tra kỹ phủ định và chiều so sánh (more/less, higher/lower, outperform, at least/at most).",
+  "Dùng đúng thuật ngữ trong terms.json, nhất quán cả bài.",
+  "Ô bảng: dịch chữ, giữ nguyên số và ký hiệu.",
+  "Văn phong học thuật tiếng Việt tự nhiên; không thêm chú thích của người dịch."
+ ]
+}
