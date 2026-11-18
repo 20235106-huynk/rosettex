@@ -15,6 +15,24 @@
 - `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md` (slice 1)
 - `docs/superpowers/specs/2026-11-18-rosettex-design.md` (master spec, abbreviated SG)
 
+## Amendment (2026-11-18, after slice 1 was implemented): 15 scripts
+
+New requirement from the user (SG §2, §11.5, decision 24): the tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar.
+
+**This does not change the 15 tasks of this plan.** Slice 1 is implemented and ships the `vi` pack and the `default` pack only. The requirement becomes **slice 1b**, planned right after slice 1 and before slice 2 (`review`). It starts with a spike (SG §16 item 8) and gets its own spec and plan.
+
+What slice 1 built that assumes Vietnamese and slice 1b must generalize (found by reading the code; the list is the starting point of the slice 1b spec, not a design):
+- **Language pack shape** (`rosettex/langpacks/vi.json`, `rosettex/checks.py:load_pack`): the keys `check_chars`, `letters`, `function_words`, `min_diacritic_ratio`, `min_function_ratio` describe Vietnamese. A script profile (font, direction, line breaking, detector) must be separated from the language data (function words, labels, rules, polyglossia language).
+- **"Untranslated" detector** (`checks.looks_untranslated`): based on accented-letter and function-word ratios, which means nothing for Han, Kana, Hangul, Arabic, Indic, Thai, Ethiopic or Myanmar. It needs a per-script mode based on Unicode blocks (SG §11.5 rule 5).
+- **Preamble and fonts** (`rosettex/render/latex.py:preamble`): one main font by file name (TeX Gyre Termes) and `polyglossia` from the pack; no per-script font, no right-to-left mode, and no line breaking for scripts without spaces.
+- **Post-build check** (`rosettex/render/postcheck.py`): no missing-glyph detection (SG §11.5 rule 6).
+- **Abstract heading detection** (`rosettex/translate.py:94`): the keyword list is `("abstract", "tóm tắt")`; it should come from the pack.
+- **Protocol and labels**: `rosettex guide --lang` and the PDF labels (bibliography heading, figure/table captions) come from the pack; every pack needs its own labels, and `lang_tested` must stay honest for untested scripts.
+- **Escaping** (`rosettex/tex.py:escape_latex`): Greek and arrow/operator ranges are wrapped in `\ensuremath{}`; fine for the 15 scripts (Greek is not one of them) but it must be re-checked if Greek is added as a target.
+- **Fixtures and tests**: the fake translator and sample data are Vietnamese; slice 1b needs one sample text per script to build and look at.
+
+Resources slice 1b depends on and slice 3 (`setup`) must provide: fonts per script (SIL OFL, downloaded, not bundled), and whatever the spike finds about Tectonic's bundle.
+
 ## Global Constraints
 
 - Runs on Linux, macOS (Intel and Apple Silicon), Windows x64; CPU only (SG 3.1).

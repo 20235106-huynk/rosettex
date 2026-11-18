@@ -28,6 +28,7 @@ An agent in **any harness that has a shell and file read/write**, on **Linux, ma
 - `review` (slice 2).
 - `setup`, `doctor`, auto-download of models/Tectonic/fonts, `install-skill`, automatic fallback to CPU when the GPU fails (slice 3).
 - Scanned pages and OCR (slice 4).
+- Target languages in the 15 scripts of SG §11.5 (added 2026-11-18): script profiles, fonts, right-to-left, line breaking, per-script detector, missing-glyph post-check. Slice 1 ships only `vi` and `default`, but its language-pack format and checks were written for Vietnamese and must be generalized in **slice 1b**, which comes right after slice 1 (see the amendment at the top of the slice 1 plan).
 - HTML (phase 2).
 
 **Prerequisites** (slice 1 does not install them itself; if missing it reports a clear error and says how to install manually):

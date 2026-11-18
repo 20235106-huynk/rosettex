@@ -4,21 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-The project is at the stage of **spec and plan done, no code yet**. Read in this order before doing anything:
+**Slice 1 is implemented and merged into `main`** (end-to-end flow for text-layer PDFs; `vi` and `default` language packs; 114 tests pass, 2 are skipped because they need real MinerU and `ROSETTEX_REAL=1`). Its acceptance run on 2026-11-18 is recorded in `docs/superpowers/notes/2026-11-18-slice1-acceptance.md`. Read in this order before doing anything:
 
 1. `docs/superpowers/specs/2026-11-18-rosettex-design.md`: the original spec (called **SG**). Section 4.1 holds the facts verified by spikes, section 19 holds the decisions already made. If you want to change something already decided, ask the user first.
-2. `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md`: the slice 1 spec, currently being implemented.
-3. `docs/superpowers/plans/2026-11-18-rosettex-slice1.md`: the 15-task plan, with sample code and tests for each task. Do the tasks in order; the **Interfaces** block of each task fixes the function names and data types the other tasks use.
+2. `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md`: the slice 1 spec (implemented).
+3. `docs/superpowers/plans/2026-11-18-rosettex-slice1.md`: the 15-task plan of slice 1 (done), with an **Amendment** at the top listing what slice 1 assumes about Vietnamese and slice 1b must generalize.
+4. `docs/superpowers/notes/2026-11-18-slice1-acceptance.md`: the acceptance record and the open issues.
 
 Phase 1 is built as **vertical slices**, each with its own spec and plan:
-- Slice 1: the end-to-end flow for PDFs with a text layer.
+- Slice 1: the end-to-end flow for PDFs with a text layer. **Done.**
+- **Slice 1b (next, added 2026-11-18): script coverage.** The tool must support target languages in **15 common scripts**: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar (SG §2, §11.5, decision 24, spike in §16 item 8). Needs its own spec and plan; start with the spike. Until then only `vi` is optimized and tested, and every other language runs with the `default` pack and is reported as "untested".
 - Slice 2: `review`.
-- Slice 3: `setup`, `doctor`, auto-download, GPU.
+- Slice 3: `setup`, `doctor`, auto-download (including fonts per script), GPU.
 - Slice 4: scan/OCR.
 
-Do not build the parts of later slices ahead of time.
+Do not build the parts of later slices ahead of time. Open items carried over from review and acceptance (none block slice 1): findings left for later (duplicate `\bibitem` keys and citation labels, float numbering drift, the adapter not yet supporting list/code/footnote blocks), the MinerU timeout killing only the `mineru-kit` client, protocol wording for harnesses that forbid `sleep`, and Windows/macOS/CI not yet exercised.
 
-## Commands (per the slice 1 plan; in effect once Task 1 is done)
+## Commands
 
 ```bash
 uv sync                                         # install dependencies (Python 3.12 per .python-version)

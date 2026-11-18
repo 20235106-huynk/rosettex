@@ -24,6 +24,7 @@ The tool is **installed into the harness**. The user says a single sentence, for
 - **Formulas and tables are always real characters** (selectable, copyable, searchable), rebuilt in LaTeX. Never an image or a region cropped from the original, even when the input is a scan. Only figures are images cropped from the original.
 - Preserve: figures and data (including decimal points), citations, formulas, section order, clickable internal links (citation → reference; references to figures, tables, sections, equations).
 - Correct Vietnamese diacritics, including stacked ones (ệ, ữ, ẫ).
+- **Target languages cover 15 common writing systems (scripts)**, rendered correctly in the output PDF (fonts, shaping, writing direction, line breaking): Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar. Vietnamese (Latin) is the first and most tested language. The input stays an English paper. Details in §11.5 (amended 2026-11-18 per the user).
 - Consistent terminology within one paper.
 - Use the GPU automatically when present and suitable; fall back to CPU automatically when absent or when the GPU fails.
 - Make use of resources already on the machine; download only what is missing; download in advance right after installation.
@@ -148,7 +149,7 @@ If the language or save location is missing: the agent asks **once, combined in 
 
 **When done**, a concise report: the path of the result file; the topic and a few key terms; the device and tier used (and whether it fell back to CPU); which pages are scans; formulas/tables that have not been cross-checked or are being shown as LaTeX source (§10), with page numbers.
 
-**The target language** is the parameter `--lang <code>`. Everything specific to a language is gathered in a **language pack** (§11.4). Phase 1 has only the `vi` pack optimized and tested; other languages run with the default pack and the agent reports "untested".
+**The target language** is the parameter `--lang <code>`. Everything specific to a language is gathered in a **language pack** (§11.4). Slice 1 shipped only the `vi` pack optimized and tested; other languages run with the default pack and the agent reports "untested". Covering the 15 scripts of §11.5 is the work of slice 1b.
 
 ## 7. Architecture
 
@@ -298,6 +299,37 @@ Each pack (`langpacks/<code>/`) consists of:
 
 The default pack (for a language with no pack): Noto Serif, only checking for an exact match with the original.
 
+### 11.5 Script coverage (15 scripts; amended 2026-11-18 per the user)
+
+The tool must produce correct PDFs for target languages written in these 15 scripts. A **script profile** carries what depends on the script; a **language pack** (§11.4) picks a profile and adds what depends on the language.
+
+| Script | Typical target languages | Direction | What the build must get right |
+|---|---|---|---|
+| Latin | vi, fr, de, es, pt, id, tr, pl … | LTR | stacked diacritics (vi); per-language labels and hyphenation |
+| Han | zh-Hans, zh-Hant | LTR | no spaces: line breaking; two regional glyph sets and fonts; full-width punctuation |
+| Kana | ja (with Han) | LTR | no spaces; line-start/line-end prohibition rules; mixed Han + Kana font |
+| Hangul | ko | LTR | spaces present; syllable blocks; Hanja rarely |
+| Arabic | ar, fa, ur | **RTL** | joining forms; bidi with Latin text, numbers and formulas inside RTL text; mirrored punctuation; column order in two-column layouts |
+| Cyrillic | ru, uk, bg, sr … | LTR | font coverage; hyphenation |
+| Devanagari | hi, mr, ne | LTR | conjuncts and vowel reordering (needs an OpenType shaping engine) |
+| Bengali | bn, as | LTR | same as Devanagari |
+| Telugu | te | LTR | same as Devanagari |
+| Tamil | ta | LTR | same as Devanagari |
+| Gujarati | gu | LTR | same as Devanagari |
+| Kannada | kn | LTR | same as Devanagari |
+| Thai | th | LTR | no spaces between words: dictionary-based line breaking; stacked tone marks |
+| Ethiopic (Geʽez) | am, ti | LTR | syllabary; word separator; font availability |
+| Myanmar | my | LTR | no spaces; complex stacking and reordering; Unicode only (not Zawgyi) |
+
+Cross-cutting rules (these extend §11.3 and §11.4 and the settled decisions of §19):
+1. **Fonts.** One body font per script (the Noto Serif family, SIL OFL, is the default candidate; TeX Gyre Termes covers only Latin, Cyrillic and Greek), found by file name like decision 16, with a fallback. Fonts a pack needs that the machine lacks are downloaded by `setup` (slice 3) or reported with a clear error before the build; they are not bundled into the install package.
+2. **Shaping, direction, line breaking** are handled by the TeX engine (XeTeX through Tectonic, or XeLaTeX) with OpenType shaping, a right-to-left mode, and language-aware line breaking. Which of these Tectonic's bundle offers offline must be verified in the slice 1b spike (§16 item 8) before the pack format is fixed.
+3. **Numbers keep the source digits and the decimal point** (decision 15). No localization of digits (no Arabic-Indic, Devanagari, Thai … digits); `accept` keeps comparing numbers as multisets.
+4. **Formulas, citations, references and URLs stay left-to-right** inside right-to-left paragraphs; placeholders keep working unchanged.
+5. **The "untranslated" detector depends on the script, not only on the language.** For Han, Kana, Hangul, Arabic, the Indic scripts, Thai, Ethiopic and Myanmar: the ratio of letters that belong to the target script's Unicode blocks. For Latin and Cyrillic languages: function-word and accent ratios from the language pack, as for `vi`. The Han-character ratio must never be used to detect untranslated *source* text (§11.4 already forbids it); here it is only used to confirm the *target* script is present.
+6. **Post-build check** gains a missing-glyph check: any "Missing character" or tofu warning in the TeX log for the target script is a problem reported to the agent.
+7. **A language pack is `tested: true` only after** a sample paper of that script has been built and read by someone who can read it; until then the agent keeps telling the user "this language has not been tested".
+
 ## 12. The agent protocol (content of `SKILL.md`)
 0. Determine the file, target language, save location. Language or save location missing → ask (one sentence, combined) and stop to wait. Result file already exists → ask before overwriting. `rosettex` not installed → the 8.2 flow.
 1. `rosettex status --setup`: if `setup` is not finished, continue it; if the device cache has expired, run `rosettex doctor`.
@@ -316,11 +348,12 @@ If interrupted, or the context is compressed, at any step: run `rosettex status`
 ## 13. Phases
 Phase 1 is done in **vertical slices**, each with its own spec and plan:
 - **Slice 1:** PDF with a text layer → extract → terms/next/accept → validate → render; manual install; formulas/tables that do not compile use the last resort.
+- **Slice 1b (added 2026-11-18, right after slice 1):** script coverage: script profiles and language packs for the 15 scripts of §11.5 (fonts, shaping, right-to-left, line breaking, the per-script "untranslated" detector, missing-glyph post-check), after a spike (§16 item 8).
 - **Slice 2:** `review` (comparison images, fixing formulas/tables).
 - **Slice 3:** `setup`, `doctor`, fault-tolerant model download, GPU and fallback to CPU, `install-skill`.
 - **Slice 4:** scan, OCR, mixed PDFs.
 
-- **Phase 1:** setup, doctor, extract (MinerU, device/tier choice, fallback to CPU, scan, paragraph merging, internal links, text in tables), status, terms, review, next/accept, validate, render (LaTeX, post-build check), the `vi` language pack and the default pack, `SKILL.md` + `install-skill` for Claude Code.
+- **Phase 1:** setup, doctor, extract (MinerU, device/tier choice, fallback to CPU, scan, paragraph merging, internal links, text in tables), status, terms, review, next/accept, validate, render (LaTeX, post-build check), the `vi` language pack, the default pack and the 15-script coverage of §11.5, `SKILL.md` + `install-skill` for Claude Code.
 - **Phase 2:** bilingual HTML for offline reading (one self-contained file, KaTeX embedded, hover to see the original sentence, table of contents, search); an agent loop that looks at and fixes the layout by itself; guidance layers for Codex, Antigravity, Hermes; an MCP server; a PaddleOCR-VL adapter (optional).
 
 ## 14. Testing
@@ -388,6 +421,7 @@ tests/fixtures/          # sample .tex papers, sample MinerU JSON
 5. The proportion of MinerU's LaTeX that compiles right away at tiers `basic` and `standard`.
 6. MinerU time on CPU for a 20-30 page paper at tiers `basic` and `standard` (to set the page-group size and the `status` cycle).
 7. The agent keeps placeholders and number formatting across many batches (measure the rate of batches rejected by `accept`).
+8. **Scripts (first task of slice 1b):** for each of the 15 scripts of §11.5, with Tectonic and XeLaTeX on all three OSes: which fonts are available offline from the bundle or must be downloaded, and their licenses; that OpenType shaping works (Indic, Arabic, Myanmar, Thai); a right-to-left mode that keeps formulas, numbers and placeholders left-to-right and works in two columns; line breaking for Han, Kana, Thai and Myanmar; whether `polyglossia` covers the target languages or per-language setup is needed; the missing-glyph warnings in the log. Output: a table in §4.1 and the final shape of the script profile.
 
 Items 1-3 and 6 need a machine with network access to Hugging Face/ModelScope. If your environment is blocked, stop and ask the user to run the following commands on their machine:
 
@@ -427,7 +461,7 @@ All three target Chinese. mineru-pdf-translate's "untranslated" checker flags a 
 8. A dedicated intermediate format so the extractor can be swapped.
 9. The agent runs to the end without asking again, except for the cases in §6.
 10. If only a directory is given, the file name is `<base-name>.<code>.pdf`; create the directory if missing; ask before overwriting.
-11. The target language is a parameter; phase 1 only optimizes and tests Vietnamese.
+11. The target language is a parameter; ~~phase 1 only optimizes and tests Vietnamese~~ → **amended 2026-11-18 per the user:** Vietnamese comes first (slice 1), then the 15 scripts of §11.5 (slice 1b).
 12. Keep the working directory; delete it with `rosettex clean`.
 13. Tectonic is the default compiler when the machine has no usable LaTeX; not bundled into the install package; TinyTeX as a fallback.
 14. Last resort for formulas/tables that do not compile: LaTeX source as text in a marked box.
@@ -440,3 +474,4 @@ All three target Chinese. mineru-pdf-translate's "untranslated" checker flags a 
 21. Hardware probing and model management go through `mineru-kit hardware` and `mineru-kit models`; MinerU is installed in a separate environment managed by `rosettex`.
 22. Check each batch immediately on submission (`accept`), plus a whole-paper check (`validate`).
 23. All comparisons run on NFC-normalized text.
+24. **Script coverage (added 2026-11-18, decided by the user):** the tool must support target languages in 15 common scripts: Latin, Han, Arabic, Devanagari, Bengali, Cyrillic, Kana, Telugu, Hangul, Tamil, Thai, Gujarati, Kannada, Ethiopic (Geʽez), Myanmar. Built as slice 1b right after slice 1; see §11.5 and §16 item 8.
