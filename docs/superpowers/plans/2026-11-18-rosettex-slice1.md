@@ -1,106 +1,106 @@
-# rosettex lát 1 — Kế hoạch triển khai
+# rosettex slice 1 — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** CLI `rosettex` đưa một bài báo PDF có lớp chữ đi hết luồng `extract → terms → next/accept → validate → render`. Agent ở bất kỳ harness nào là người dịch. Chạy trên Linux, macOS và Windows.
+**Goal:** The `rosettex` CLI takes a text-layer PDF paper through the whole flow `extract → terms → next/accept → validate → render`. The agent, in any harness, is the translator. Runs on Linux, macOS and Windows.
 
-**Architecture:** Lõi gồm các module Python thuần, tất định, không gọi LLM.
-- MinerU (gọi qua subprocess, đầu ra zip) được chuyển thành `document.json` theo định dạng riêng, rồi chia thành các lô dịch có placeholder.
-- Bản dịch được kiểm tra ngay khi nộp. Bản dựng là LaTeX biên dịch bằng Tectonic hoặc XeLaTeX. Công thức hoặc bảng lỗi được tách riêng bằng dấu `\typeout{RX:<id>}` rồi chuyển sang phương án cuối.
-- Tác vụ dài chạy ở tiến trình tách rời, có nhịp tim ghi vào file. Agent luôn làm theo `next_action` mà `rosettex status` trả về.
+**Architecture:** The core is pure, deterministic Python modules that never call an LLM.
+- MinerU (called via subprocess, zip output) is converted into a custom-format `document.json`, then split into translation batches with placeholders.
+- Translations are checked as soon as they are submitted. The build is LaTeX compiled with Tectonic or XeLaTeX. A failing formula or table is isolated with a `\typeout{RX:<id>}` marker and switched to the last-resort fallback.
+- Long tasks run in a detached process that writes a heartbeat to a file. The agent always follows the `next_action` returned by `rosettex status`.
 
-**Tech Stack:** Python ≥ 3.11, phụ thuộc runtime duy nhất `pypdfium2`, pytest (dev), uv, MinerU 4.x (môi trường riêng), Tectonic 0.17.0 hoặc XeLaTeX.
+**Tech Stack:** Python ≥ 3.11, `pypdfium2` as the only runtime dependency, pytest (dev), uv, MinerU 4.x (separate environment), Tectonic 0.17.0 or XeLaTeX.
 
 **Spec:**
-- `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md` (lát 1)
-- `docs/superpowers/specs/2026-11-18-rosettex-design.md` (spec gốc, gọi tắt SG)
+- `docs/superpowers/specs/2026-11-18-rosettex-slice1-design.md` (slice 1)
+- `docs/superpowers/specs/2026-11-18-rosettex-design.md` (master spec, abbreviated SG)
 
 ## Global Constraints
 
-- Chạy trên Linux, macOS (Intel và Apple Silicon), Windows x64; chỉ cần CPU (SG 3.1).
-- Python `>=3.11`. Phụ thuộc runtime **chỉ** `pypdfium2`. Không dùng PyMuPDF (AGPL). Không nhúng mã AGPL hay mã của dự án không có giấy phép.
-- Không gọi lệnh shell của hệ thống từ mã: chỉ dùng `pathlib`/`shutil`/`subprocess` với danh sách đối số, không `shell=True`.
-- Đọc và ghi file luôn `encoding="utf-8"` (đọc JSON bằng `utf-8-sig`), xuống dòng `\n`. Ghi JSON trạng thái qua file tạm rồi `os.replace`.
-- stdout luôn UTF-8. Mọi lệnh có `--json`. Mã thoát: `0` thành công; `1` lỗi kiểm tra; `2` lỗi sử dụng hoặc môi trường.
-- Không bao giờ truyền `--remote` cho MinerU. Không đọc hay ghi `~/.mineru/config.yaml`.
-- So sánh văn bản trên dạng NFC. Placeholder dạng `⟦<loại><số>⟧`, với loại `m` (công thức, chỉ số trên), `c` (trích dẫn), `r` (tham chiếu), `u` (URL/email).
-- Tier mặc định `standard`; hạ xuống `basic` khi RAM khả dụng < 5 GB. Nhóm 5 trang. Lô ≤ 3000 ký tự nguồn. Coi tác vụ nền đã chết khi nhịp tim cũ hơn 60 giây.
-- Font chính `texgyretermes` (nạp theo tên file, `Extension=.otf`). Font toán `latinmodern-math.otf`. `polyglossia` với `vietnamese`.
-- Tỉ lệ độ dài nội dung (tổng chiều cao dòng chữ của bản dịch / bản gốc) ≤ 1,3.
+- Runs on Linux, macOS (Intel and Apple Silicon), Windows x64; CPU only (SG 3.1).
+- Python `>=3.11`. The **only** runtime dependency is `pypdfium2`. No PyMuPDF (AGPL). No embedding AGPL code or code from projects without a license.
+- No system shell commands from code: only `pathlib`/`shutil`/`subprocess` with argument lists, never `shell=True`.
+- Always read and write files with `encoding="utf-8"` (read JSON with `utf-8-sig`), `\n` line endings. Write state JSON through a temp file then `os.replace`.
+- stdout is always UTF-8. Every command has `--json`. Exit codes: `0` success; `1` check failure; `2` usage or environment error.
+- Never pass `--remote` to MinerU. Never read or write `~/.mineru/config.yaml`.
+- Compare text in NFC form. Placeholders have the form `⟦<kind><number>⟧`, with kind `m` (formula, superscript), `c` (citation), `r` (reference), `u` (URL/email).
+- Default tier is `standard`; drop to `basic` when available RAM < 5 GB. Page groups of 5. Batches ≤ 3000 source characters. A background task is considered dead when its heartbeat is older than 60 seconds.
+- Main font `texgyretermes` (loaded by file name, `Extension=.otf`). Math font `latinmodern-math.otf`. `polyglossia` with `vietnamese`.
+- Content length ratio (total text line height of the translation / the original) ≤ 1.3.
 
-**Lệch spec có chủ ý, người dùng đã xác nhận (2026-11-18):** SG 14 và spec lát 1 mục 12 ghi "`accept` từ chối chuỗi NFD". Kế hoạch này **chuẩn hóa NFD về NFC rồi chấp nhận**, không từ chối. Lý do: agent thường không kiểm soát được dạng chuẩn hóa của chuỗi mình xuất ra, nên từ chối sẽ gây vòng lặp nộp lại vô tận. Spec cũng đã yêu cầu mọi so sánh chạy trên NFC. Bản lưu luôn là NFC (có kiểm thử ở Task 8).
+**Deliberate deviation from the spec, confirmed by the user (2026-11-18):** SG 14 and slice 1 spec section 12 say "`accept` rejects NFD strings". This plan **normalizes NFD to NFC and then accepts**, it does not reject. Reason: an agent usually cannot control the normalization form of the strings it emits, so rejecting would cause an endless resubmit loop. The spec also already requires all comparisons to run on NFC. The stored copy is always NFC (tested in Task 8).
 
 ## Review Focus
 
-1. **Đường dẫn có dấu cách và chữ tiếng Việt** (`~/Tài liệu/bài báo.pdf`) cho PDF, nơi lưu và thư mục làm việc phải chạy được mọi lệnh. Kiểm thử ở Task 1 và Task 12.
-2. **File bản dịch có BOM hoặc CRLF** (do trình soạn thảo trên Windows ghi) phải được `accept` nhận bình thường. Kiểm thử ở Task 8.
-3. **Bản dịch chứa ký tự đặc biệt của LaTeX** (`% & _ # { } ~ ^ \`), chữ Hy Lạp hoặc `∗` vẫn phải dựng được PDF, không mất chữ. Kiểm thử ở Task 4, Task 10 và Task 11.
-4. **File kết quả đã tồn tại** phải bị từ chối khi không có `--overwrite` (mã 2, kèm `output_exists`). **Thư mục kết quả chưa có** thì tự tạo. Kiểm thử ở Task 12.
-5. **Tác vụ extract bị giết giữa chừng** (nhóm trang dở dang, chưa có `.done`): chạy lại chỉ làm nhóm dở, không làm lại nhóm đã xong. Kiểm thử ở Task 9.
+1. **Paths with spaces and Vietnamese characters** (`~/Tài liệu/bài báo.pdf`) for the PDF, the output location and the work directory must work in every command. Tested in Task 1 and Task 12.
+2. **A translation file with BOM or CRLF** (written by a Windows editor) must be accepted by `accept` normally. Tested in Task 8.
+3. **A translation containing LaTeX special characters** (`% & _ # { } ~ ^ \`), Greek letters or `∗` must still build a PDF without losing text. Tested in Task 4, Task 10 and Task 11.
+4. **An existing output file** must be rejected without `--overwrite` (exit code 2, with `output_exists`). A **missing output directory** is created automatically. Tested in Task 12.
+5. **An extract task killed midway** (a page group in progress, no `.done` yet): rerunning redoes only the unfinished group, not the finished ones. Tested in Task 9.
 
 ---
 
-## Cấu trúc file
+## File structure
 
 ```
 pyproject.toml, .python-version, .gitignore, README.md
 rosettex/
-  __init__.py            phiên bản
+  __init__.py            version
   __main__.py            python -m rosettex
-  cli.py                 argparse, các lệnh, status/next_action, chạy nền
-  workspace.py           Work (đường dẫn), JSON nguyên tử, nhịp tim, tách tiến trình, UsageError, q()
-  tools.py               tìm mineru-kit / tectonic / xelatex, RAM, chọn tier, verify mô hình
-  pdf.py                 pypdfium2: số trang, ảnh PNG (zlib), chữ trong bbox, toàn văn, chiều cao dòng
+  cli.py                 argparse, commands, status/next_action, background runs
+  workspace.py           Work (paths), atomic JSON, heartbeat, process detaching, UsageError, q()
+  tools.py               locate mineru-kit / tectonic / xelatex, RAM, tier choice, model verify
+  pdf.py                 pypdfium2: page count, PNG images (zlib), text in bbox, full text, line height
   tex.py                 escape_latex
-  checks.py              gói ngôn ngữ, các kiểm tra accept/validate
+  checks.py              language packs, accept/validate checks
   translate.py           terms, outline, next, accept, validate
   extract/__init__.py
-  extract/tables.py      HTML bảng → cells
+  extract/tables.py      HTML table → cells
   extract/mineru_adapter.py  docvortex.middle 2.0 → document.json
-  extract/segment.py     gộp đoạn, vai trò giữ nguyên, placeholder/liên kết, đơn vị dịch, lô
-  extract/run.py         nhóm trang, gọi MinerU, gắn cờ, extract_core
+  extract/segment.py     merge paragraphs, keep-verbatim roles, placeholders/links, translation units, batches
+  extract/run.py         page groups, call MinerU, flagging, extract_core
   render/__init__.py
-  render/latex.py        Renderer: main.tex và probe.tex
-  render/compile.py      chạy TeX, tìm id gây lỗi, phương án cuối, render_core, report
-  render/postcheck.py    kiểm tra sau dựng
+  render/latex.py        Renderer: main.tex and probe.tex
+  render/compile.py      run TeX, find the failing id, last-resort fallback, render_core, report
+  render/postcheck.py    post-build checks
   langpacks/vi.json, langpacks/default.json
   protocol/__init__.py   text(lang), skill_md(), agents_md()
-  protocol/protocol.md   nguồn duy nhất của giao thức
+  protocol/protocol.md   single source of the protocol
   protocol/build.py      ghi skill/SKILL.md, skill/AGENTS.md
-skill/SKILL.md, skill/AGENTS.md   (sinh ra, có commit)
-scripts/get_tectonic.py           tải Tectonic 0.17.0 có kiểm SHA-256
+skill/SKILL.md, skill/AGENTS.md   (generated, committed)
+scripts/get_tectonic.py           download Tectonic 0.17.0 with SHA-256 check
 .github/workflows/ci.yml
 tests/
   conftest.py, fake_mineru.py
   test_workspace.py, test_tools.py, test_pdf.py, test_tex_tables.py, test_adapter.py,
   test_segment.py, test_checks.py, test_translate.py, test_extract.py, test_latex.py,
   test_render.py, test_cli.py, test_protocol.py
-  fixtures/ (đã có từ spike)
+  fixtures/ (already present from the spike)
 ```
 
 ---
 
-### Task 1: Khung dự án + `workspace.py`
+### Task 1: Project skeleton + `workspace.py`
 
 **Files:**
 - Create: `pyproject.toml`, `.python-version`, `.gitignore`, `rosettex/__init__.py`, `rosettex/workspace.py`
 - Test: `tests/test_workspace.py`
 
 **Interfaces:**
-- Consumes: không có.
+- Consumes: none.
 - Produces:
-  - `class UsageError(Exception)` với `(msg, next_action=None, **extra)`, thuộc tính `.next_action`, `.extra`.
+  - `class UsageError(Exception)` with `(msg, next_action=None, **extra)`, attributes `.next_action`, `.extra`.
   - `q(path) -> str`.
   - `write_json(path, obj) -> None`.
   - `read_json(path, default=None)`.
-  - `class Work(root)` với các thuộc tính `root, src_pdf, manifest, progress, logs, mineru, pages, document, batches, terms, flagged, out, report, validate` và hai phương thức `batch_path(bid)`, `translation_path(bid, lang)`.
+  - `class Work(root)` with attributes `root, src_pdf, manifest, progress, logs, mineru, pages, document, batches, terms, flagged, out, report, validate` and two methods `batch_path(bid)`, `translation_path(bid, lang)`.
   - `HEARTBEAT_DEAD_AFTER = 60.0`.
   - `beat(work, command, resume, step, done, total, state="running", error=None)`.
-  - `job_state(work, now=None) -> dict | None` (thêm khóa `dead`).
+  - `job_state(work, now=None) -> dict | None` (adds the key `dead`).
   - `spawn_detached(argv, log) -> int`.
   - `run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval=5.0) -> int`.
 
-- [ ] **Step 1: Khởi tạo repo và khung dự án**
+- [ ] **Step 1: Initialize the repo and project skeleton**
 
 ```bash
 cd /home/admin/Desktop/Learn/rosettex
@@ -112,7 +112,7 @@ git init
 [project]
 name = "rosettex"
 version = "0.1.0"
-description = "Tách, kiểm tra và dựng lại bài báo khoa học PDF để agent trong harness dịch"
+description = "Extract, check and rebuild scientific PDF papers for an in-harness agent to translate"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pypdfium2>=4.30"]
@@ -151,9 +151,9 @@ dist/
 __version__ = "0.1.0"
 ```
 
-Tạo `README.md` một dòng: `# rosettex` (Task 13 viết đầy đủ).
+Create a one-line `README.md`: `# rosettex` (Task 13 writes it in full).
 
-- [ ] **Step 2: Viết test lỗi**
+- [ ] **Step 2: Write the failing test**
 
 `tests/test_workspace.py`:
 ```python
@@ -180,7 +180,7 @@ def test_read_json_accepts_bom_and_missing(tmp_path):
 
 def test_job_state_detects_dead_heartbeat(tmp_path):
     w = Work(tmp_path)
-    beat(w, "extract", "rosettex extract x", "nhóm 1/4", 1, 4)
+    beat(w, "extract", "rosettex extract x", "group 1/4", 1, 4)
     fresh = job_state(w)
     assert fresh["state"] == "running" and fresh["dead"] is False
     assert job_state(w, now=fresh["updated"] + HEARTBEAT_DEAD_AFTER + 1)["dead"] is True
@@ -205,15 +205,15 @@ def test_run_with_heartbeat_beats_while_waiting(tmp_path):
     assert rc == 0 and len(beats) >= 2
 ```
 
-- [ ] **Step 3: Chạy để thấy lỗi**
+- [ ] **Step 3: Run to see the failure**
 
 Run: `uv sync && uv run pytest tests/test_workspace.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.workspace'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.workspace'`
 
-- [ ] **Step 4: Viết `rosettex/workspace.py`**
+- [ ] **Step 4: Write `rosettex/workspace.py`**
 
 ```python
-"""Thư mục làm việc: đường dẫn, ghi JSON nguyên tử, nhịp tim, tách tiến trình."""
+"""Work directory: paths, atomic JSON writes, heartbeat, process detaching."""
 from __future__ import annotations
 
 import json
@@ -222,11 +222,11 @@ import subprocess
 import time
 from pathlib import Path
 
-HEARTBEAT_DEAD_AFTER = 60.0  # giây
+HEARTBEAT_DEAD_AFTER = 60.0  # seconds
 
 
 class UsageError(Exception):
-    """Lỗi sử dụng/môi trường → mã thoát 2."""
+    """Usage/environment error → exit code 2."""
 
     def __init__(self, msg, next_action=None, **extra):
         super().__init__(msg)
@@ -235,7 +235,7 @@ class UsageError(Exception):
 
 
 def q(path) -> str:
-    """Đường dẫn trong lệnh gợi ý cho agent: luôn bọc nháy kép (chạy được ở bash, zsh, cmd, PowerShell)."""
+    """Path in a command hinted to the agent: always wrapped in double quotes (works in bash, zsh, cmd, PowerShell)."""
     return '"' + str(path) + '"'
 
 
@@ -248,7 +248,7 @@ def write_json(path, obj) -> None:
         try:
             os.replace(tmp, path)
             return
-        except PermissionError:  # Windows: file đích đang bị tiến trình khác mở
+        except PermissionError:  # Windows: the target file is open in another process
             time.sleep(0.05 * (attempt + 1))
     os.replace(tmp, path)
 
@@ -301,7 +301,7 @@ def job_state(work: Work, now: float | None = None) -> dict | None:
 
 
 def spawn_detached(argv: list[str], log: Path) -> int:
-    """Chạy tiến trình con tách khỏi lệnh hiện tại (sống tiếp khi harness đóng shell)."""
+    """Run a child process detached from the current command (survives the harness closing its shell)."""
     log = Path(log)
     log.parent.mkdir(parents=True, exist_ok=True)
     kw = {}
@@ -315,7 +315,7 @@ def spawn_detached(argv: list[str], log: Path) -> int:
 
 
 def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5.0) -> int:
-    """Chạy lệnh, gọi on_beat() mỗi `interval` giây trong lúc chờ; trả mã thoát."""
+    """Run a command, calling on_beat() every `interval` seconds while waiting; return the exit code."""
     log = Path(log)
     log.parent.mkdir(parents=True, exist_ok=True)
     with open(log, "ab") as fh:
@@ -328,7 +328,7 @@ def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5
                 on_beat()
 ```
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_workspace.py -v`
 Expected: PASS (5 test)
@@ -337,31 +337,31 @@ Expected: PASS (5 test)
 
 ```bash
 git add -A
-git commit -m "chore: khung dự án rosettex và workspace (JSON nguyên tử, nhịp tim, tách tiến trình)
+git commit -m "chore: rosettex project skeleton and workspace (atomic JSON, heartbeat, process detaching)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 2: `tools.py`: tìm công cụ, RAM, chọn tier
+### Task 2: `tools.py`: locate tools, RAM, tier choice
 
 **Files:**
 - Create: `rosettex/tools.py`
 - Test: `tests/test_tools.py`
 
 **Interfaces:**
-- Consumes: không có.
+- Consumes: none.
 - Produces:
-  - `home() -> Path` (đọc `ROSETTEX_HOME` **mỗi lần gọi**, mặc định `~/.rosettex`).
-  - `find_mineru() -> list[str] | None` (lệnh dạng danh sách).
-  - `find_tex() -> tuple[str, list[str]] | None` với `kind ∈ {"tectonic", "xelatex"}`.
+  - `home() -> Path` (reads `ROSETTEX_HOME` **on every call**, default `~/.rosettex`).
+  - `find_mineru() -> list[str] | None` (command as a list).
+  - `find_tex() -> tuple[str, list[str]] | None` with `kind ∈ {"tectonic", "xelatex"}`.
   - `available_ram_bytes() -> int | None`.
   - `MIN_RAM_STANDARD`.
   - `choose_tier(requested, ram) -> tuple[str, str]`.
   - `verify_models(cmd, tier) -> tuple[bool, str]`.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_tools.py`:
 ```python
@@ -406,15 +406,15 @@ def test_available_ram_positive_or_none():
     assert r is None or r > 0
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_tools.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.tools'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.tools'`
 
-- [ ] **Step 3: Viết `rosettex/tools.py`**
+- [ ] **Step 3: Write `rosettex/tools.py`**
 
 ```python
-"""Tìm công cụ ngoài (MinerU, LaTeX), đọc RAM, chọn tier."""
+"""Locate external tools (MinerU, LaTeX), read RAM, choose the tier."""
 from __future__ import annotations
 
 import ctypes
@@ -477,8 +477,8 @@ def available_ram_bytes() -> int | None:
             if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
                 return int(m.ullAvailPhys)
         else:
-            # ponytail: macOS chỉ đọc được tổng RAM qua sysconf, không có RAM khả dụng; đủ để tránh máy rất yếu.
-            # Nâng cấp: đọc vm_stat qua ctypes (host_statistics64) nếu cần chính xác.
+            # ponytail: on macOS only total RAM is readable via sysconf, not available RAM; enough to avoid very weak machines.
+            # Upgrade: read vm_stat via ctypes (host_statistics64) if precision is needed.
             return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
     except (OSError, ValueError, AttributeError):
         pass
@@ -500,7 +500,7 @@ def verify_models(cmd: list[str], tier: str) -> tuple[bool, str]:
     return p.returncode == 0 and "missing" not in out.lower(), out
 ```
 
-- [ ] **Step 4: Chạy test**
+- [ ] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_tools.py -v`
 Expected: PASS (5 test)
@@ -509,31 +509,31 @@ Expected: PASS (5 test)
 
 ```bash
 git add rosettex/tools.py tests/test_tools.py
-git commit -m "feat: tìm MinerU/LaTeX, đọc RAM, chọn tier
+git commit -m "feat: locate MinerU/LaTeX, read RAM, choose tier
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 3: `pdf.py`: các hàm dùng pypdfium2
+### Task 3: `pdf.py`: pypdfium2 helpers
 
 **Files:**
 - Create: `rosettex/pdf.py`, `tests/conftest.py`
 - Test: `tests/test_pdf.py`
 
 **Interfaces:**
-- Consumes: không có.
+- Consumes: none.
 - Produces:
   - `page_count(path) -> int`.
   - `write_png(path, width, height, pixels: bytes, stride, channels=3)`.
-  - `render_page_png(pdf_path, page_no, out, dpi=150) -> Path` (`page_no` đếm từ 1).
-  - `text_in_bbox(pdf_path, page_no, bbox) -> str` (`bbox` chuẩn hóa 0–1, gốc ở trên-trái).
+  - `render_page_png(pdf_path, page_no, out, dpi=150) -> Path` (`page_no` counts from 1).
+  - `text_in_bbox(pdf_path, page_no, bbox) -> str` (`bbox` normalized 0–1, origin at top-left).
   - `full_text(path) -> str`.
   - `line_height_total(path) -> float`.
-  - `tests/conftest.py`: hằng `FIX`.
+  - `tests/conftest.py`: the `FIX` constant.
 
-- [ ] **Step 1: Viết conftest và test lỗi**
+- [ ] **Step 1: Write conftest and the failing test**
 
 `tests/conftest.py`:
 ```python
@@ -574,15 +574,15 @@ def test_full_text_and_line_heights():
     assert line_height_total(LONG) > line_height_total(SHORT) > 0
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_pdf.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.pdf'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.pdf'`
 
-- [ ] **Step 3: Viết `rosettex/pdf.py`**
+- [ ] **Step 3: Write `rosettex/pdf.py`**
 
 ```python
-"""Đọc/kết xuất PDF bằng pypdfium2 (Apache-2.0/BSD). Không dùng PyMuPDF (AGPL)."""
+"""Read/render PDF with pypdfium2 (Apache-2.0/BSD). No PyMuPDF (AGPL)."""
 from __future__ import annotations
 
 import struct
@@ -608,7 +608,7 @@ def page_count(path) -> int:
 
 
 def write_png(path, width: int, height: int, pixels: bytes, stride: int, channels: int = 3) -> None:
-    """PNG bằng thư viện chuẩn (zlib), để không phải thêm Pillow."""
+    """PNG using the standard library (zlib), so Pillow is not needed."""
     row = width * channels
     raw = b"".join(b"\x00" + pixels[y * stride: y * stride + row] for y in range(height))
 
@@ -644,9 +644,9 @@ def full_text(path) -> str:
 
 
 def line_height_total(path) -> float:
-    """Tổng chiều cao (pt) các dòng chữ, gom ký tự theo (nửa trang trái/phải, tâm dọc làm tròn 4 pt)."""
-    # ponytail: dòng rộng toàn trang bị tính hai lần (nửa trái + nửa phải) ở cả bản gốc lẫn bản dịch nên tỉ lệ
-    # vẫn dùng được; nâng cấp: gom theo khoảng trống ngang thật nếu tỉ lệ sai lệch trên bài thật.
+    """Total height (pt) of text lines, grouping characters by (left/right half of the page, vertical center rounded to 4 pt)."""
+    # ponytail: a full-page-wide line is counted twice (left half + right half) in both the original and the translation, so the ratio
+    # is still usable; upgrade: group by real horizontal gaps if the ratio is off on real papers.
     total = 0.0
     with _open(path) as pdf:
         for page in pdf:
@@ -664,7 +664,7 @@ def line_height_total(path) -> float:
     return total
 ```
 
-- [ ] **Step 4: Chạy test**
+- [ ] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_pdf.py -v`
 Expected: PASS (4 test)
@@ -673,7 +673,7 @@ Expected: PASS (4 test)
 
 ```bash
 git add rosettex/pdf.py tests/conftest.py tests/test_pdf.py
-git commit -m "feat: hàm PDF dùng pypdfium2 (ảnh PNG không cần Pillow, chữ trong bbox, chiều cao dòng)
+git commit -m "feat: PDF helpers using pypdfium2 (PNG images without Pillow, text in bbox, line height)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -683,17 +683,17 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 4: `tex.py` (escape) + `extract/tables.py` (HTML → cells)
 
 **Files:**
-- Create: `rosettex/tex.py`, `rosettex/extract/__init__.py` (rỗng), `rosettex/extract/tables.py`
+- Create: `rosettex/tex.py`, `rosettex/extract/__init__.py` (empty), `rosettex/extract/tables.py`
 - Test: `tests/test_tex_tables.py`
 
 **Interfaces:**
-- Consumes: không có.
+- Consumes: none.
 - Produces:
   - `escape_latex(s: str) -> str`.
-  - `parse_table_html(html: str) -> list[dict]`, mỗi phần tử có `{r, c, rowspan, colspan, text}`.
+  - `parse_table_html(html: str) -> list[dict]`, each element has `{r, c, rowspan, colspan, text}`.
   - `table_shape(cells) -> tuple[int, int]`.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_tex_tables.py`:
 ```python
@@ -729,15 +729,15 @@ def test_parse_table_html_bad_span_defaults_to_one():
     assert [(c["r"], c["c"], c["rowspan"]) for c in cells] == [(0, 0, 1), (0, 1, 1)]
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_tex_tables.py -v`
-Expected: FAIL với `ModuleNotFoundError`
+Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Viết `rosettex/tex.py`**
+- [ ] **Step 3: Write `rosettex/tex.py`**
 
 ```python
-"""Escape văn bản thường để đặt vào LaTeX (XeLaTeX + unicode-math)."""
+"""Escape plain text for placing into LaTeX (XeLaTeX + unicode-math)."""
 
 _ESC = {"\\": r"\textbackslash{}", "{": r"\{", "}": r"\}", "#": r"\#", "$": r"\$", "%": r"\%",
         "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
@@ -749,14 +749,14 @@ def _mathy(c: str) -> bool:
 
 
 def escape_latex(s: str) -> str:
-    # Chữ Hy Lạp và ký hiệu toán đưa sang chế độ toán: font toán có đủ glyph, font chữ thường thì không chắc.
+    # Greek letters and math symbols go to math mode: the math font has all the glyphs, the text font may not.
     return "".join(_ESC.get(c) or (r"\ensuremath{" + c + "}" if _mathy(c) else c) for c in s)
 ```
 
-- [ ] **Step 4: Viết `rosettex/extract/tables.py`**
+- [ ] **Step 4: Write `rosettex/extract/tables.py`**
 
 ```python
-"""Bảng HTML của MinerU (`rowspan`/`colspan`) → danh sách ô có toạ độ lưới."""
+"""MinerU HTML tables (`rowspan`/`colspan`) → list of cells with grid coordinates."""
 from __future__ import annotations
 
 from html.parser import HTMLParser
@@ -820,7 +820,7 @@ def table_shape(cells) -> tuple[int, int]:
     return rows, cols
 ```
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_tex_tables.py -v`
 Expected: PASS (4 test)
@@ -829,14 +829,14 @@ Expected: PASS (4 test)
 
 ```bash
 git add rosettex/tex.py rosettex/extract tests/test_tex_tables.py
-git commit -m "feat: escape LaTeX và phân tích bảng HTML của MinerU
+git commit -m "feat: LaTeX escaping and MinerU HTML table parsing
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 5: Bộ chuyển đổi MinerU → `document.json`
+### Task 5: MinerU → `document.json` adapter
 
 **Files:**
 - Create: `rosettex/extract/mineru_adapter.py`
@@ -846,11 +846,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Consumes: `parse_table_html` (Task 4).
 - Produces:
   - `normalize_tex(s) -> str`.
-  - `spans_of(content) -> list[dict]`, mỗi span có dạng `{"t": "text"|"math"|"sup", "v": str}`.
-  - `adapt(groups: list[tuple[dict, Path]], root: Path) -> dict`, với:
+  - `spans_of(content) -> list[dict]`, each span has the form `{"t": "text"|"math"|"sup", "v": str}`.
+  - `adapt(groups: list[tuple[dict, Path]], root: Path) -> dict`, where:
     - `doc["source"] = {pages, page_size_pt, columns, parser, counts{tables, figures, tagged_equations, references}}`.
-    - `doc["blocks"]`: mỗi khối có `{id:"p<trang>b<index>", kind, page, bbox, …}`.
-    - Theo `kind`, khối có thêm:
+    - `doc["blocks"]`: each block has `{id:"p<page>b<index>", kind, page, bbox, …}`.
+    - Depending on `kind`, the block has extra fields:
       - `heading`: `spans, number, level, label`.
       - `paragraph`: `spans`.
       - `equation`: `tex, tag, label, image`.
@@ -858,10 +858,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
       - `figure`: `caption, label, image`.
       - `footnote`: `spans, mark`.
       - `reference`: `spans, key`.
-    - `table`/`figure`/`equation` có thêm `wide`.
-    - Đường dẫn `image` tương đối so với `root`, dạng POSIX.
+    - `table`/`figure`/`equation` also have `wide`.
+    - `image` paths are relative to `root`, in POSIX form.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_adapter.py`:
 ```python
@@ -911,7 +911,7 @@ def test_adapt_short_standard():
     assert B["p1b22"]["mark"] == "∗" and B["p1b24"]["mark"] == "1"
     assert B["p1b24"]["spans"][0]["v"].startswith("We found warmup")
     assert B["p2b1"]["key"] == "1" and B["p2b1"]["spans"][0]["v"].startswith("A. Vaswani")
-    assert "p1b25" not in B  # page_number bị bỏ
+    assert "p1b25" not in B  # page_number is dropped
     assert [s["t"] for s in B["p1b9"]["spans"]].count("math") == 6
 
 
@@ -931,17 +931,17 @@ def test_adapt_long_dedupes_labels_and_counts():
     assert doc["source"]["pages"] == 20
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_adapter.py -v`
-Expected: FAIL với `ModuleNotFoundError`
+Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Viết `rosettex/extract/mineru_adapter.py`**
+- [ ] **Step 3: Write `rosettex/extract/mineru_adapter.py`**
 
 ```python
-"""MinerU `docvortex.middle` 2.0 (đầu ra --format zip) → document.json (`rosettex.document/1`).
+"""MinerU `docvortex.middle` 2.0 (--format zip output) → document.json (`rosettex.document/1`).
 
-Schema đã kiểm chứng ở SG 4.1: khối → span, chỉ khối có bbox (chuẩn hóa 0–1), page_idx tuyệt đối đếm từ 0.
+Schema verified in SG 4.1: block → span, only blocks with a bbox (normalized 0–1), absolute page_idx counted from 0.
 """
 from __future__ import annotations
 
@@ -963,7 +963,7 @@ _WORDCMD = re.compile(r"\\(operatorname|mathrm|text|mathit|mathbf|mathsf)\s*\{([
 
 
 def normalize_tex(s: str) -> str:
-    """Chỉ gộp khoảng trắng MinerU chèn vào giữa chữ số và giữa chữ cái của lệnh chữ; không đổi ký hiệu."""
+    """Only merges whitespace MinerU inserts between digits and between letters of a text command; does not change symbols."""
     s = _DIGIT_DOT.sub(".", s)
     s = _DIGIT_GAP.sub("", s)
 
@@ -989,7 +989,7 @@ def spans_of(content) -> list[dict]:
 
 
 def _strip(spans, rx):
-    """Cắt tiền tố khớp `rx` khỏi span chữ đầu tiên; trả match hoặc None."""
+    """Cut the prefix matching `rx` off the first text span; return the match or None."""
     for s in spans:
         if s["t"] == "text" and s["v"].strip():
             m = rx.match(s["v"])
@@ -1096,23 +1096,23 @@ def adapt(groups, root) -> dict:
             "blocks": blocks}
 ```
 
-- [ ] **Step 4: Chạy test**
+- [ ] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_adapter.py -v`
-Expected: PASS (4 test). Nếu số ô bảng hoặc số `math` của `p1b9` khác, in khối đó ra và đối chiếu với fixture **trước** khi sửa test. Fixture là sự thật; test chỉ được sửa cho khớp fixture, không sửa fixture.
+Expected: PASS (4 tests). If the table cell count or the `math` count of `p1b9` differs, print that block and compare with the fixture **before** changing the test. The fixture is the truth; the test may only be changed to match the fixture, never the fixture.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add rosettex/extract/mineru_adapter.py tests/test_adapter.py
-git commit -m "feat: chuyển đầu ra MinerU docvortex.middle 2.0 sang document.json
+git commit -m "feat: convert MinerU docvortex.middle 2.0 output to document.json
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 6: `segment.py`: gộp đoạn, giữ nguyên, placeholder, liên kết, lô
+### Task 6: `segment.py`: merge paragraphs, keep verbatim, placeholders, links, batches
 
 **Files:**
 - Create: `rosettex/extract/segment.py`
@@ -1120,17 +1120,17 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes:
-  - `adapt` và cấu trúc khối (Task 5).
+  - `adapt` and the block structure (Task 5).
   - `escape_latex` (Task 4).
 - Produces:
   - `merge_paragraphs(blocks) -> list`.
-  - `assign_roles(blocks) -> None` (gán `role ∈ {authors, affiliation, reference}`).
-  - `encode(spans, ctx) -> tuple[str, dict]`, với `ctx = {"labels": set, "refs": set}`. Phần tử thứ hai là `ph`: `{name: {"src", "tex"}}`.
-  - `build_units(doc) -> list[unit]`, mỗi unit có `{id, type, block, page, section, src, ph}`. `type ∈ {heading, paragraph, footnote, caption, cell}`. Caption có `id = <block>.cap`; ô bảng có `id = <cell id>`.
-  - `make_batches(units, max_chars=3000) -> list[batch]`, mỗi batch có `{batch:"b001", section, items:[{id,type,page,text,placeholders{name:src}}]}`.
-  - `segment(doc, max_chars=3000) -> tuple[doc (thêm "units"), batches]`.
+  - `assign_roles(blocks) -> None` (assigns `role ∈ {authors, affiliation, reference}`).
+  - `encode(spans, ctx) -> tuple[str, dict]`, with `ctx = {"labels": set, "refs": set}`. The second element is `ph`: `{name: {"src", "tex"}}`.
+  - `build_units(doc) -> list[unit]`, each unit has `{id, type, block, page, section, src, ph}`. `type ∈ {heading, paragraph, footnote, caption, cell}`. A caption has `id = <block>.cap`; a table cell has `id = <cell id>`.
+  - `make_batches(units, max_chars=3000) -> list[batch]`, each batch has `{batch:"b001", section, items:[{id,type,page,text,placeholders{name:src}}]}`.
+  - `segment(doc, max_chars=3000) -> tuple[doc (with "units" added), batches]`.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_segment.py`:
 ```python
@@ -1151,8 +1151,8 @@ def test_merge_across_columns_not_across_equation():
     doc, _ = seg()
     B = {b["id"]: b for b in doc["blocks"]}
     assert "p1b20" not in B and B["p1b15"]["merged"] == ["p1b15", "p1b20"]
-    assert "p1b21" in B  # bắt đầu bằng chữ hoa
-    assert "p1b13" in B  # "with λ…" đứng sau phương trình: không gộp qua phương trình
+    assert "p1b21" in B  # starts with a capital letter
+    assert "p1b13" in B  # "with λ…" follows the equation: do not merge across an equation
 
 
 def test_roles():
@@ -1174,9 +1174,9 @@ def test_units_placeholders_and_links():
     assert any(p["tex"] == r"\cite{ref1,ref2}" for p in u["ph"].values())
     texs = [p["tex"] for p in U["p1b15"]["ph"].values()]
     assert r"\ref{tab:1}" in texs and r"\ref{fig:1}" in texs and r"\ref{sec:2}" in texs
-    assert "p1b1" not in U and "p2b1" not in U  # giữ nguyên: không vào lô
-    assert "p1b0" in U and "p1b17.cap" in U and "p1b17r2c0" in U  # tiêu đề, chú thích, ô "ByteNet"
-    assert "p1b17r2c2" not in U and "p1b17r2c1" not in U  # ô số "23.75", "1.2B"
+    assert "p1b1" not in U and "p2b1" not in U  # kept verbatim: not in a batch
+    assert "p1b0" in U and "p1b17.cap" in U and "p1b17r2c0" in U  # heading, caption, cell "ByteNet"
+    assert "p1b17r2c2" not in U and "p1b17r2c1" not in U  # numeric cells "23.75", "1.2B"
 
 
 def test_eq_reference_recognized_inside_math_basic():
@@ -1215,15 +1215,15 @@ def test_batches_keep_tables_together_and_respect_size():
     assert all(len(v) == 1 for v in owner.values())
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_segment.py -v`
-Expected: FAIL với `ModuleNotFoundError`
+Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Viết `rosettex/extract/segment.py`**
+- [ ] **Step 3: Write `rosettex/extract/segment.py`**
 
 ```python
-"""Gộp đoạn, vai trò giữ nguyên, placeholder/liên kết, đơn vị dịch và lô (SG 9.4–9.8, spec lát 1 mục 6)."""
+"""Merge paragraphs, keep-verbatim roles, placeholders/links, translation units and batches (SG 9.4–9.8, slice 1 spec section 6)."""
 from __future__ import annotations
 
 import itertools
@@ -1302,7 +1302,7 @@ def assign_roles(blocks) -> None:
 
 
 def unwrap_text_math(spans) -> list:
-    """`\\mathrm{Eq.~(1)}` (MinerU nhận nhầm tham chiếu thành công thức) → span chữ."""
+    """`\\mathrm{Eq.~(1)}` (MinerU misrecognizes a reference as a formula) → text span."""
     out = []
     for s in spans:
         if s["t"] == "math":
@@ -1331,7 +1331,7 @@ def _expand(keys: str) -> list[str]:
 
 
 def _resolve(kind, m, ctx):
-    """→ (chữ trước, src, tex, chữ sau) hoặc None khi không thành liên kết hợp lệ."""
+    """→ (text before, src, tex, text after) or None when it is not a valid link."""
     if kind == "u":
         url = m.group(0)
         return "", url, "\\url{" + url.replace("%", "\\%").replace("#", "\\#") + "}", ""
@@ -1449,32 +1449,32 @@ def segment(doc, max_chars: int = 3000):
     return doc, make_batches(doc["units"], max_chars)
 ```
 
-- [ ] **Step 4: Chạy test**
+- [ ] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_segment.py -v`
-Expected: PASS (7 test). Nếu `test_units_placeholders_and_links` sai ở chuỗi đầu `p1b11`, in `U["p1b11"]["src"]` ra để xem khoảng trắng MinerU sinh. Chỉ sửa regex dọn khoảng trắng trong `encode`, không nới test.
+Expected: PASS (7 tests). If `test_units_placeholders_and_links` fails on the `p1b11` leading string, print `U["p1b11"]["src"]` to see the whitespace MinerU produced. Only fix the whitespace-cleanup regex in `encode`, do not loosen the test.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add rosettex/extract/segment.py tests/test_segment.py
-git commit -m "feat: gộp đoạn, vai trò giữ nguyên, placeholder và liên kết nội bộ, chia lô
+git commit -m "feat: merge paragraphs, keep-verbatim roles, placeholders and internal links, batching
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 7: Gói ngôn ngữ + `checks.py`
+### Task 7: Language packs + `checks.py`
 
 **Files:**
 - Create: `rosettex/langpacks/vi.json`, `rosettex/langpacks/default.json`, `rosettex/checks.py`
 - Test: `tests/test_checks.py`
 
 **Interfaces:**
-- Consumes: không có.
+- Consumes: none.
 - Produces:
-  - `load_pack(code) -> dict`, có các khóa `code, tested, polyglossia, font{main,options}, check_chars, letters, function_words, min_len_check, min_diacritic_ratio, min_function_ratio, length_ratio, labels{fallback,missing_image}, rules`.
+  - `load_pack(code) -> dict`, with the keys `code, tested, polyglossia, font{main,options}, check_chars, letters, function_words, min_len_check, min_diacritic_ratio, min_function_ratio, length_ratio, labels{fallback,missing_image}, rules`.
   - `nfc(s)`.
   - `PH_RE`.
   - `placeholders(s) -> Counter`.
@@ -1484,7 +1484,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `check_item(item, dst, pack, terms) -> (errors, warnings)`.
   - `check_batch(batch, submitted, pack, terms) -> {"errors": {id: [...]}, "warnings": {id: [...]}}`.
 
-- [ ] **Step 1: Viết hai gói ngôn ngữ**
+- [ ] **Step 1: Write the two language packs**
 
 `rosettex/langpacks/vi.json`:
 ```json
@@ -1506,14 +1506,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
  "length_ratio": [0.7, 2.0],
  "labels": {"fallback": "công thức/bảng chưa dựng được", "missing_image": "thiếu ảnh"},
  "rules": [
-  "Giữ nguyên mọi placeholder ⟦…⟧ đúng như bản gốc (được đổi vị trí trong câu cho tự nhiên).",
-  "Giữ nguyên mọi con số và cách viết số như bản gốc, kể cả dấu chấm thập phân: 0.05 giữ là 0.05, không viết 0,05.",
-  "Không dịch tên riêng, tên phương pháp/mô hình/bộ dữ liệu, đơn vị, email, URL.",
-  "Giữ nguyên mức độ chắc chắn của câu gốc (may, might, suggest, likely, significant…).",
-  "Kiểm tra kỹ phủ định và chiều so sánh (more/less, higher/lower, outperform, at least/at most).",
-  "Dùng đúng thuật ngữ trong terms.json, nhất quán cả bài.",
-  "Ô bảng: dịch chữ, giữ nguyên số và ký hiệu.",
-  "Văn phong học thuật tiếng Việt tự nhiên; không thêm chú thích của người dịch."
+  "Keep every ⟦…⟧ placeholder exactly as in the source (its position in the sentence may change to read naturally).",
+  "Keep every number and its notation as in the source, including the decimal point: 0.05 stays 0.05, do not write 0,05.",
+  "Do not translate proper names, names of methods/models/datasets, units, emails, URLs.",
+  "Preserve the level of certainty of the source sentence (may, might, suggest, likely, significant…).",
+  "Check negation and the direction of comparisons carefully (more/less, higher/lower, outperform, at least/at most).",
+  "Use the exact terms in terms.json, consistently across the whole paper.",
+  "Table cells: translate the text, keep numbers and symbols.",
+  "Natural Vietnamese academic style; add no translator's notes."
  ]
 }
 ```
@@ -1545,7 +1545,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 }
 ```
 
-- [ ] **Step 2: Viết test lỗi (gồm các hồi quy của SG 14)**
+- [ ] **Step 2: Write the failing test (including the SG 14 regressions)**
 
 `tests/test_checks.py`:
 ```python
@@ -1566,7 +1566,7 @@ def errs(dst):
     return check_batch(BATCH, {"p1b20": dst}, VI, TERMS)["errors"]
 
 
-def test_correct_vietnamese_passes():  # hồi quy: bộ kiểm tra dựa chữ Hán báo lỗi bản dịch tiếng Việt đúng
+def test_correct_vietnamese_passes():  # regression: the Han-character-based check flagged a correct Vietnamese translation
     assert errs(GOOD) == {}
 
 
@@ -1579,22 +1579,22 @@ def test_added_number_passes():
     assert errs(GOOD.replace("trước đó", "trước đó (tức 2 hệ thống)")) == {}
 
 
-def test_changed_number_rejected():  # hồi quy: PaperReader chấp nhận bản dịch đã bị sửa số liệu
-    assert "thiếu hoặc đổi số" in " ".join(errs(GOOD.replace("28.4", "28.5"))["p1b20"])
+def test_changed_number_rejected():  # regression: PaperReader accepted a translation whose figures had been altered
+    assert "missing or changed numbers" in " ".join(errs(GOOD.replace("28.4", "28.5"))["p1b20"])
 
 
 def test_decimal_comma_rejected():
-    assert "thiếu hoặc đổi số" in " ".join(errs(GOOD.replace("2.0", "2,0"))["p1b20"])
+    assert "missing or changed numbers" in " ".join(errs(GOOD.replace("2.0", "2,0"))["p1b20"])
 
 
 def test_placeholder_missing_or_altered_rejected():
-    assert "thiếu placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", ""))["p1b20"])
-    assert "thừa hoặc sai placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", "⟦m2⟧"))["p1b20"])
+    assert "missing placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", ""))["p1b20"])
+    assert "extra or wrong placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", "⟦m2⟧"))["p1b20"])
 
 
 def test_english_left_untranslated_rejected():
-    assert "nghi chưa dịch" in errs(SRC)["p1b20"]
-    assert looks_untranslated("short", "short", VI) is False  # đoạn ngắn: không kết luận
+    assert "looks untranslated" in errs(SRC)["p1b20"]
+    assert looks_untranslated("short", "short", VI) is False  # short passage: no conclusion
 
 
 def test_nfd_input_is_equivalent():
@@ -1603,7 +1603,7 @@ def test_nfd_input_is_equivalent():
 
 def test_missing_and_extra_ids():
     res = check_batch(BATCH, {"zzz": GOOD}, VI, TERMS)["errors"]
-    assert res["p1b20"] == ["thiếu bản dịch cho id này"] and res["zzz"] == ["id không thuộc lô này"]
+    assert res["p1b20"] == ["missing translation for this id"] and res["zzz"] == ["id not in this batch"]
 
 
 def test_bad_chars():
@@ -1623,15 +1623,15 @@ def test_term_warning_and_unknown_language_pack():
     assert fr["code"] == "fr" and fr["tested"] is False
 ```
 
-- [ ] **Step 3: Chạy để thấy lỗi**
+- [ ] **Step 3: Run to see the failure**
 
 Run: `uv run pytest tests/test_checks.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.checks'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.checks'`
 
-- [ ] **Step 4: Viết `rosettex/checks.py`**
+- [ ] **Step 4: Write `rosettex/checks.py`**
 
 ```python
-"""Gói ngôn ngữ và kiểm tra bản dịch (accept từng lô, validate toàn bài). So sánh luôn trên NFC."""
+"""Language packs and translation checks (accept per batch, validate for the whole paper). Comparisons always on NFC."""
 from __future__ import annotations
 
 import json
@@ -1709,27 +1709,27 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
     errs, warns = [], []
     src, dst = nfc(item["text"]), nfc(dst or "")
     if not dst.strip():
-        return ["đoạn rỗng"], []
+        return ["empty paragraph"], []
     ps, pd = placeholders(src), placeholders(dst)
     if ps - pd:
-        errs.append("thiếu placeholder: " + " ".join(sorted((ps - pd).elements())))
+        errs.append("missing placeholder: " + " ".join(sorted((ps - pd).elements())))
     if pd - ps:
-        errs.append("thừa hoặc sai placeholder: " + " ".join(sorted((pd - ps).elements())))
+        errs.append("extra or wrong placeholder: " + " ".join(sorted((pd - ps).elements())))
     lost = numbers(src) - numbers(dst)
     if lost:
-        errs.append("thiếu hoặc đổi số: " + " ".join(sorted(lost.elements()))
-                    + " (giữ nguyên dạng số như bản gốc, kể cả dấu chấm thập phân)")
+        errs.append("missing or changed numbers: " + " ".join(sorted(lost.elements()))
+                    + " (keep the number notation as in the source, including the decimal point)")
     if looks_untranslated(src, dst, pack, (terms or {}).get("keep", [])):
-        errs.append("nghi chưa dịch")
+        errs.append("looks untranslated")
     bad = bad_chars(src, dst, pack)
     if bad:
-        errs.append("ký tự lạ (lỗi mã hóa?): " + "".join(sorted(set(bad))))
+        errs.append("unexpected characters (encoding error?): " + "".join(sorted(set(bad))))
     lo, hi = pack["length_ratio"]
     if len(src) >= pack["min_len_check"] and not lo <= len(dst) / len(src) <= hi:
-        warns.append(f"tỉ lệ độ dài {len(dst) / len(src):.2f} ngoài [{lo}, {hi}]")
+        warns.append(f"length ratio {len(dst) / len(src):.2f} outside [{lo}, {hi}]")
     for t in (terms or {}).get("terms", []):
         if t["src"].lower() in src.lower() and nfc(t["dst"]).lower() not in dst.lower():
-            warns.append(f"thuật ngữ '{t['src']}' nên dịch là '{t['dst']}'")
+            warns.append(f"term '{t['src']}' should be translated as '{t['dst']}'")
     return errs, warns
 
 
@@ -1737,10 +1737,10 @@ def check_batch(batch: dict, submitted: dict, pack: dict, terms: dict | None) ->
     errors, warnings = {}, {}
     ids = [it["id"] for it in batch["items"]]
     for extra in sorted(set(submitted) - set(ids)):
-        errors[extra] = ["id không thuộc lô này"]
+        errors[extra] = ["id not in this batch"]
     for it in batch["items"]:
         if it["id"] not in submitted:
-            errors[it["id"]] = ["thiếu bản dịch cho id này"]
+            errors[it["id"]] = ["missing translation for this id"]
             continue
         e, w = check_item(it, submitted[it["id"]], pack, terms)
         if e:
@@ -1750,7 +1750,7 @@ def check_batch(batch: dict, submitted: dict, pack: dict, terms: dict | None) ->
     return {"errors": errors, "warnings": warnings}
 ```
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_checks.py -v`
 Expected: PASS (12 test)
@@ -1759,7 +1759,7 @@ Expected: PASS (12 test)
 
 ```bash
 git add rosettex/langpacks rosettex/checks.py tests/test_checks.py
-git commit -m "feat: gói ngôn ngữ vi/default và các kiểm tra bản dịch (đa tập placeholder và số)
+git commit -m "feat: vi/default language packs and translation checks (placeholder and number multisets)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1770,7 +1770,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `rosettex/translate.py`
-- Modify: `tests/conftest.py` (thêm `make_work`, `fake_vi`, `translate_all`)
+- Modify: `tests/conftest.py` (add `make_work`, `fake_vi`, `translate_all`)
 - Test: `tests/test_translate.py`
 
 **Interfaces:**
@@ -1778,7 +1778,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `Work`, `read_json`, `write_json`, `UsageError`, `q` (Task 1).
   - `render_page_png` (Task 3).
   - `check_batch`, `load_pack`, `nfc` (Task 7).
-  - `adapt`, `segment` (Task 5 và 6, dùng trong conftest).
+  - `adapt`, `segment` (Task 5 and 6, used in conftest).
 - Produces:
   - `manifest(work) -> dict`.
   - `batch_ids(work) -> list[str]`.
@@ -1788,16 +1788,16 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `outline(work) -> dict`.
   - `page_image(work, page) -> Path`.
   - `next_package(work, batch_id=None) -> dict`.
-  - `accept(work, batch_id, file) -> dict` (`{"ok", "errors", "warnings"}`; ghi thêm một dòng vào `logs/accept.jsonl`).
+  - `accept(work, batch_id, file) -> dict` (`{"ok", "errors", "warnings"}`; also appends a line to `logs/accept.jsonl`).
   - `validate(work) -> dict` (`{"ok", "errors", "warnings", "mtime"}`).
   - conftest:
     - `make_work(tmp_path, tier="standard", name="short", lang="vi") -> Work`.
     - `fake_vi(src) -> str`.
     - `translate_all(work)`.
 
-- [ ] **Step 1: Mở rộng `tests/conftest.py`**
+- [ ] **Step 1: Extend `tests/conftest.py`**
 
-Thay toàn bộ `tests/conftest.py` bằng:
+Replace the whole of `tests/conftest.py` with:
 ```python
 import json
 import re
@@ -1810,7 +1810,7 @@ _WORD = re.compile(r"⟦[a-z]\d+⟧|\S+")
 
 
 def fake_vi(src: str) -> str:
-    """'Người dịch giả': giữ placeholder và mọi từ có chữ số, thay từ khác bằng từ tiếng Việt."""
+    """'Fake translator': keep placeholders and every word containing a digit, replace other words with Vietnamese words."""
     out = []
     for i, w in enumerate(_WORD.findall(src)):
         out.append(w if w.startswith("⟦") or re.search(r"\d", w) else ("của" if i % 3 == 0 else "việc"))
@@ -1818,7 +1818,7 @@ def fake_vi(src: str) -> str:
 
 
 def make_work(tmp_path, tier="standard", name="short", lang="vi"):
-    """Thư mục làm việc đã extract xong, dựng thẳng từ fixture (không cần MinerU)."""
+    """A work directory with extraction already done, built straight from the fixture (no MinerU needed)."""
     from rosettex.extract.mineru_adapter import adapt
     from rosettex.extract.segment import segment
     from rosettex.workspace import Work, write_json
@@ -1852,7 +1852,7 @@ TERMS = {"topic": "Kiến trúc chỉ dùng cơ chế chú ý cho dịch máy",
 
 
 def translate_all(work):
-    """Dịch mọi lô bằng fake_vi và ghi thẳng file bản dịch."""
+    """Translate every batch with fake_vi and write the translation files directly."""
     from rosettex.translate import batch_ids
     from rosettex.workspace import read_json, write_json
 
@@ -1863,7 +1863,7 @@ def translate_all(work):
         write_json(work.translation_path(bid, lang), {it["id"]: fake_vi(it["text"]) for it in b["items"]})
 ```
 
-- [ ] **Step 2: Viết test lỗi**
+- [ ] **Step 2: Write the failing test**
 
 `tests/test_translate.py`:
 ```python
@@ -1947,18 +1947,18 @@ def test_validate_reports_untranslated_batches(tmp_path):
     w = make_work(tmp_path)
     translate.write_terms(w, write(tmp_path / "t.json", TERMS))
     v = translate.validate(w)
-    assert v["ok"] is False and v["errors"]["b001"] == ["lô chưa được dịch"]
+    assert v["ok"] is False and v["errors"]["b001"] == ["batch not translated"]
 ```
 
-- [ ] **Step 3: Chạy để thấy lỗi**
+- [ ] **Step 3: Run to see the failure**
 
 Run: `uv run pytest tests/test_translate.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.translate'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.translate'`
 
-- [ ] **Step 4: Viết `rosettex/translate.py`**
+- [ ] **Step 4: Write `rosettex/translate.py`**
 
 ```python
-"""Giao tiếp với agent dịch: terms, outline, next, accept, validate."""
+"""Communication with the translating agent: terms, outline, next, accept, validate."""
 from __future__ import annotations
 
 import json
@@ -1974,7 +1974,7 @@ from .workspace import UsageError, Work, q, read_json, write_json
 def manifest(work: Work) -> dict:
     m = read_json(work.manifest)
     if m is None:
-        raise UsageError(f"không phải thư mục làm việc rosettex: {work.root}")
+        raise UsageError(f"not a rosettex work directory: {work.root}")
     return m
 
 
@@ -1992,25 +1992,25 @@ def translations(work: Work, lang: str) -> dict:
 
 def check_terms(t) -> list[str]:
     if not isinstance(t, dict):
-        return ["terms.json phải là một object JSON"]
+        return ["terms.json must be a JSON object"]
     errs = []
     if not isinstance(t.get("topic"), str) or not t["topic"].strip():
-        errs.append("thiếu 'topic' (một câu tóm tắt chủ đề)")
+        errs.append("missing 'topic' (a one-sentence summary of the subject)")
     seen = set()
     for i, x in enumerate(t.get("terms", [])):
         if not (isinstance(x, dict) and isinstance(x.get("src"), str) and isinstance(x.get("dst"), str)
                 and x["src"].strip() and x["dst"].strip()):
-            errs.append(f"terms[{i}] cần 'src' và 'dst' là chuỗi không rỗng")
+            errs.append(f"terms[{i}] needs 'src' and 'dst' as non-empty strings")
             continue
         key = x["src"].strip().lower()
         if key in seen:
-            errs.append(f"'src' bị trùng: {x['src']}")
+        errs.append(f"duplicate 'src': {x['src']}")
         seen.add(key)
     if not all(isinstance(k, str) for k in t.get("keep", [])):
-        errs.append("'keep' phải là danh sách chuỗi")
+        errs.append("'keep' must be a list of strings")
     for i, x in enumerate(t.get("abbreviations", [])):
         if not (isinstance(x, dict) and isinstance(x.get("abbr"), str) and isinstance(x.get("expansion"), str)):
-            errs.append(f"abbreviations[{i}] cần 'abbr' và 'expansion'")
+            errs.append(f"abbreviations[{i}] needs 'abbr' and 'expansion'")
     return errs
 
 
@@ -2019,7 +2019,7 @@ def write_terms(work: Work, file) -> dict:
     try:
         t = json.loads(Path(file).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as e:
-        return {"ok": False, "errors": [f"không đọc được JSON: {e}"]}
+        return {"ok": False, "errors": [f"cannot read JSON: {e}"]}
     errs = check_terms(t)
     if errs:
         return {"ok": False, "errors": errs}
@@ -2030,7 +2030,7 @@ def write_terms(work: Work, file) -> dict:
 def _doc(work: Work) -> dict:
     doc = read_json(work.document)
     if doc is None:
-        raise UsageError("chưa tách xong nội dung", next_action=f"rosettex status {q(work.root)} --json")
+        raise UsageError("extraction is not finished", next_action=f"rosettex status {q(work.root)} --json")
     return doc
 
 
@@ -2068,7 +2068,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
     lang = m["lang"]
     terms = read_json(work.terms)
     if terms is None:
-        raise UsageError("chưa có terms.json: đọc dàn ý bài rồi ghi thuật ngữ trước",
+        raise UsageError("no terms.json yet: read the paper outline, then write the terms first",
                          next_action=f"rosettex next {q(work.root)} --outline --json")
     ids = batch_ids(work)
     if batch_id is None:
@@ -2077,7 +2077,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
             return {"done": True, "next_action": f"rosettex validate {q(work.root)} --json"}
         batch_id = pending[0]
     if batch_id not in ids:
-        raise UsageError(f"không có lô {batch_id}")
+        raise UsageError(f"no batch {batch_id}")
     batch = read_json(work.batch_path(batch_id))
     prev = None
     i = ids.index(batch_id)
@@ -2088,7 +2088,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
     return {"done": False, "batch": batch, "topic": terms["topic"], "terms": terms, "section": batch["section"],
             "previous": prev, "page_images": [str(page_image(work, p)) for p in pages],
             "rules": load_pack(lang)["rules"],
-            "format": 'JSON {"<id>": "<bản dịch>"} chứa đủ mọi id của lô',
+            "format": 'JSON {"<id>": "<translation>"} containing every id of the batch',
             "submit": f"rosettex accept {q(work.root)} --batch {batch_id} --file <file.json> --json"}
 
 
@@ -2096,27 +2096,27 @@ def accept(work: Work, batch_id: str, file) -> dict:
     m = manifest(work)
     batch = read_json(work.batch_path(batch_id))
     if batch is None:
-        raise UsageError(f"không có lô {batch_id}")
+        raise UsageError(f"no batch {batch_id}")
     try:
         sub = json.loads(Path(file).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as e:
-        res = {"errors": {"_file": [f"không đọc được JSON: {e}"]}, "warnings": {}}
+        res = {"errors": {"_file": [f"cannot read JSON: {e}"]}, "warnings": {}}
     else:
         if not isinstance(sub, dict) or not all(isinstance(v, str) for v in sub.values()):
-            res = {"errors": {"_file": ['file phải là JSON {"<id>": "<bản dịch>"}']}, "warnings": {}}
+            res = {"errors": {"_file": ['the file must be JSON {"<id>": "<translation>"}']}, "warnings": {}}
         else:
             res = check_batch(batch, sub, load_pack(m["lang"]), read_json(work.terms, {}))
     ok = not res["errors"]
     if ok:
         write_json(work.translation_path(batch_id, m["lang"]), {k: nfc(v) for k, v in sub.items()})
     work.logs.mkdir(parents=True, exist_ok=True)
-    # ponytail: nhiều subagent cùng ghi nối dòng ngắn; đủ an toàn cho nhật ký đo tỉ lệ từ chối, không phải trạng thái.
+    # ponytail: several subagents append short lines at once; safe enough for a log that measures the rejection rate, not for state.
     with open(work.logs / "accept.jsonl", "a", encoding="utf-8") as fh:
         fh.write(json.dumps({"batch": batch_id, "ok": ok, "errors": sum(map(len, res["errors"].values())),
                              "t": time.time()}) + "\n")
     out = {"ok": ok, **res}
     if not ok:
-        out["next_action"] = (f"sửa các id trong 'errors' rồi nộp lại cả lô: rosettex accept {q(work.root)} "
+        out["next_action"] = (f"fix the ids in 'errors' and resubmit the whole batch: rosettex accept {q(work.root)} "
                               f"--batch {batch_id} --file <file.json> --json")
     return out
 
@@ -2133,7 +2133,7 @@ def validate(work: Work) -> dict:
     for bid in batch_ids(work):
         tr = read_json(work.translation_path(bid, lang))
         if tr is None:
-            errors[bid] = ["lô chưa được dịch"]
+            errors[bid] = ["batch not translated"]
             continue
         res = check_batch(read_json(work.batch_path(bid)), tr, pack, terms)
         errors.update(res["errors"])
@@ -2144,15 +2144,15 @@ def validate(work: Work) -> dict:
         for p in u["ph"].values():
             for lab in re.findall(r"\\(?:eq)?ref\{([^}]*)\}", p["tex"]):
                 if lab not in labels:
-                    errors.setdefault(u["id"], []).append(f"nhãn không tồn tại: {lab}")
+                    errors.setdefault(u["id"], []).append(f"label does not exist: {lab}")
             for keys in re.findall(r"\\cite\{([^}]*)\}", p["tex"]):
                 for k in keys.split(","):
                     if k[3:] not in refs:
-                        errors.setdefault(u["id"], []).append(f"tài liệu tham khảo không tồn tại: {k}")
+                        errors.setdefault(u["id"], []).append(f"bibliography reference does not exist: {k}")
     return {"ok": not errors, "errors": errors, "warnings": warnings, "mtime": _translations_mtime(work, lang)}
 ```
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_translate.py -v`
 Expected: PASS (6 test)
@@ -2161,14 +2161,14 @@ Expected: PASS (6 test)
 
 ```bash
 git add rosettex/translate.py tests/conftest.py tests/test_translate.py
-git commit -m "feat: terms, outline, next, accept, validate cho agent dịch
+git commit -m "feat: terms, outline, next, accept, validate for the translating agent
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 9: `extract/run.py`: nhóm trang, MinerU, gắn cờ
+### Task 9: `extract/run.py`: page groups, MinerU, flagging
 
 **Files:**
 - Create: `rosettex/extract/run.py`, `tests/fake_mineru.py`
@@ -2181,17 +2181,17 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `adapt` (Task 5), `segment` (Task 6).
 - Produces:
   - `class ExtractError(Exception)`.
-  - `plan_groups(npages, size) -> list[tuple[int, int]]` (đếm từ 1).
-  - `flag_suspicious(doc, pdf_path) -> list[dict]`, mỗi phần tử có `{id, page, reason, tex}`.
-  - `extract_core(work, cmd, on_beat) -> dict`, với `on_beat(done, total)`. Hàm này ghi `document.json` **sau cùng**.
-  - `tests/fake_mineru.py`: hỗ trợ `models verify` và `parse … --pages a-b`. Biến môi trường:
-    - `FAKE_MINERU_FAIL_ONCE=<file cờ>`: lần đầu lỗi.
-    - `FAKE_MINERU_FAIL_ALWAYS=1`: luôn lỗi.
+  - `plan_groups(npages, size) -> list[tuple[int, int]]` (counted from 1).
+  - `flag_suspicious(doc, pdf_path) -> list[dict]`, each element has `{id, page, reason, tex}`.
+  - `extract_core(work, cmd, on_beat) -> dict`, with `on_beat(done, total)`. This function writes `document.json` **last**.
+  - `tests/fake_mineru.py`: supports `models verify` and `parse … --pages a-b`. Environment variables:
+    - `FAKE_MINERU_FAIL_ONCE=<flag file>`: fail the first time.
+    - `FAKE_MINERU_FAIL_ALWAYS=1`: always fail.
 
-- [ ] **Step 1: Viết `tests/fake_mineru.py`**
+- [ ] **Step 1: Write `tests/fake_mineru.py`**
 
 ```python
-"""MinerU giả cho kiểm thử: `parse` trả zip dựng từ fixture (lọc theo --pages); `models verify` luôn đạt."""
+"""Fake MinerU for tests: `parse` returns a zip built from the fixture (filtered by --pages); `models verify` always passes."""
 import json
 import os
 import sys
@@ -2233,7 +2233,7 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
 ```
 
-- [ ] **Step 2: Viết test lỗi**
+- [ ] **Step 2: Write the failing test**
 
 `tests/test_extract.py`:
 ```python
@@ -2296,7 +2296,7 @@ def test_resume_redoes_only_unfinished_group(tmp_path):  # Review Focus 5
     extract_core(w, FAKE, lambda d, t: None)
     done1 = w.mineru / "g001" / ".done"
     stamp = done1.stat().st_mtime_ns
-    (w.mineru / "g002" / ".done").unlink()          # giả lập bị giết giữa nhóm 2
+    (w.mineru / "g002" / ".done").unlink()          # simulate being killed midway through group 2
     shutil.rmtree(w.mineru / "g002" / "x")
     w.document.unlink()
     extract_core(w, FAKE, lambda d, t: None)
@@ -2313,15 +2313,15 @@ def test_flag_dot_artifact_from_basic_tier():
     assert not any(r"\dot" in f["reason"] for f in flag_suspicious(doc2, FIX / "papers" / "short.pdf"))
 ```
 
-- [ ] **Step 3: Chạy để thấy lỗi**
+- [ ] **Step 3: Run to see the failure**
 
 Run: `uv run pytest tests/test_extract.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.extract.run'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.extract.run'`
 
-- [ ] **Step 4: Viết `rosettex/extract/run.py`**
+- [ ] **Step 4: Write `rosettex/extract/run.py`**
 
 ```python
-"""extract: chạy MinerU theo nhóm trang (chạy tiếp được), chuyển đổi, chia lô, gắn cờ."""
+"""extract: run MinerU by page group (resumable), convert, batch, flag."""
 from __future__ import annotations
 
 import re
@@ -2353,14 +2353,14 @@ def flag_suspicious(doc, pdf_path) -> list[dict]:
         layer = None
         for tex in maths:
             if TEXT_IN_MATH.search(tex):
-                flags.append({"id": b["id"], "page": b["page"], "reason": "chữ lọt vào công thức", "tex": tex})
+                flags.append({"id": b["id"], "page": b["page"], "reason": "text leaked into the formula", "tex": tex})
             for cmd, marks in ACCENTS.items():
                 if re.search(re.escape(cmd) + r"(?![a-zA-Z])", tex):
                     if layer is None:
                         layer = text_in_bbox(pdf_path, b["page"], b["bbox"])
                     if layer.strip() and not any(c in layer for c in marks):
                         flags.append({"id": b["id"], "page": b["page"], "tex": tex,
-                                      "reason": f"{cmd} không có dấu tương ứng trong lớp chữ PDF"})
+                                      "reason": f"{cmd} has no matching accent mark in the PDF text layer"})
     return flags
 
 
@@ -2387,7 +2387,7 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
                 (gdir / ".done").write_text("ok", encoding="utf-8")
                 break
         else:
-            raise ExtractError(f"MinerU lỗi hai lần ở trang {a}-{b}; xem {work.logs / f'mineru-g{gi:03d}.log'}")
+            raise ExtractError(f"MinerU failed twice on pages {a}-{b}; see {work.logs / f'mineru-g{gi:03d}.log'}")
         on_beat(gi, len(groups))
     data = [(read_json(work.mineru / f"g{gi:03d}" / "x" / "middle_json.json"), work.mineru / f"g{gi:03d}" / "x")
             for gi in range(1, len(groups) + 1)]
@@ -2396,31 +2396,31 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
     for bt in batches:
         write_json(work.batch_path(bt["batch"]), bt)
     write_json(work.flagged, flags)
-    write_json(work.document, doc)  # ghi sau cùng: có document.json nghĩa là extract đã xong trọn vẹn
+    write_json(work.document, doc)  # written last: having document.json means extraction fully finished
     return {"blocks": len(doc["blocks"]), "units": len(doc["units"]), "batches": len(batches),
             "flagged": len(flags), "columns": doc["source"]["columns"]}
 ```
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_extract.py -v`
-Expected: PASS (6 test). Nếu `test_flag_dot_artifact_from_basic_tier` sai ở nửa sau (bản `standard` cũng bị gắn cờ), in `text_in_bbox` của khối đó ra. Bản gốc không có dấu chấm, nên bản `standard` không được phép bị gắn cờ.
+Expected: PASS (6 tests). If `test_flag_dot_artifact_from_basic_tier` fails in the second half (the `standard` version is also flagged), print the `text_in_bbox` of that block. The original has no dot, so the `standard` version must not be flagged.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add rosettex/extract/run.py tests/fake_mineru.py tests/test_extract.py
-git commit -m "feat: extract theo nhóm trang chạy tiếp được, gắn cờ công thức đáng ngờ
+git commit -m "feat: resumable page-group extract, flag suspicious formulas
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 10: `render/latex.py`: sinh `main.tex` và `probe.tex`
+### Task 10: `render/latex.py`: generate `main.tex` and `probe.tex`
 
 **Files:**
-- Create: `rosettex/render/__init__.py` (rỗng), `rosettex/render/latex.py`
+- Create: `rosettex/render/__init__.py` (empty), `rosettex/render/latex.py`
 - Test: `tests/test_latex.py`
 
 **Interfaces:**
@@ -2428,19 +2428,19 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `PH_RE` (Task 7).
   - `escape_latex` (Task 4).
   - `table_shape` (Task 4).
-  - cấu trúc `doc` gồm block và unit (Task 5 và 6).
+  - the `doc` structure with blocks and units (Task 5 and 6).
 - Produces:
   - `preamble(doc, pack, twocolumn=None) -> str`.
-  - `class Renderer(doc, tr, pack, fallback: set, images: dict)`, với các phương thức:
+  - `class Renderer(doc, tr, pack, fallback: set, images: dict)`, with the methods:
     - `.document() -> str` (main.tex).
     - `.probe() -> str`.
     - `.tabular(b) -> str`.
-  - Khóa trong `fallback`:
-    - id khối (`p1b10`), cho công thức hiển thị, bảng, hình hoặc khối chữ;
-    - `<unit id>:<placeholder>` (`p1b9:m1`), cho công thức giữa dòng.
-  - Mỗi khối có dòng `\typeout{RX:<id>}` đặt ngay trước.
+  - Keys in `fallback`:
+    - a block id (`p1b10`), for a display formula, table, figure or text block;
+    - `<unit id>:<placeholder>` (`p1b9:m1`), for an inline formula.
+  - Every block has a `\typeout{RX:<id>}` line placed right before it.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_latex.py`:
 ```python
@@ -2473,8 +2473,8 @@ def test_placeholders_filled_and_front_matter():
     assert r"\cite{ref4}" in tex and r"\eqref{eq:1}" in tex and r"\ref{tab:1}" in tex
     assert r"\begin{equation}" in tex and r"\tag{1}\label{eq:1}" in tex
     assert r"\rxlabel{2}{sec:2}" in tex and r"\bibitem{ref4}" in tex
-    assert "Alice Nguyen" in tex  # tác giả giữ nguyên
-    assert "References" not in tex  # tiêu đề mục tài liệu tham khảo do thebibliography in
+    assert "Alice Nguyen" in tex  # authors kept verbatim
+    assert "References" not in tex  # the bibliography heading is printed by thebibliography
     assert tex.index("RX:p1b15") < tex.index(r"\begin{table")
 
 
@@ -2516,15 +2516,15 @@ def test_probe_isolates_every_formula():
     assert "twocolumn" not in probe
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_latex.py -v`
-Expected: FAIL với `ModuleNotFoundError`
+Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Viết `rosettex/render/latex.py`**
+- [ ] **Step 3: Write `rosettex/render/latex.py`**
 
 ```python
-"""document.json + bản dịch → main.tex (bản dựng) và probe.tex (biên dịch thử từng công thức/bảng)."""
+"""document.json + translation → main.tex (the build) and probe.tex (trial-compile each formula/table)."""
 from __future__ import annotations
 
 import re
@@ -2574,7 +2574,7 @@ class Renderer:
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
 
-    # ---------- chữ ----------
+    # ---------- text ----------
     @staticmethod
     def mark(b) -> str:
         return "\\typeout{RX:" + b["id"] + "}\n"
@@ -2618,7 +2618,7 @@ class Renderer:
         out.append(escape_latex(t[pos:]))
         return "".join(out)
 
-    # ---------- khối ----------
+    # ---------- blocks ----------
     def heading(self, b) -> str:
         t = self.text(b["id"], b["spans"])
         if b["level"] == 1:
@@ -2713,7 +2713,7 @@ class Renderer:
             return self.float_(b)
         return ""
 
-    # ---------- tài liệu ----------
+    # ---------- document ----------
     def document(self) -> str:
         blocks = self.doc["blocks"]
         order = {b["id"]: i for i, b in enumerate(blocks)}
@@ -2741,7 +2741,7 @@ class Renderer:
                     body.append(self.bibliography(refs))
                 continue
             if k == "heading" and i + 1 < len(blocks) and blocks[i + 1]["kind"] == "reference":
-                continue  # thebibliography tự in tiêu đề theo ngôn ngữ đích
+                continue  # thebibliography prints its own heading in the target language
             body.append(self.mark(b) + self.render_block(b))
             for f in held.pop(b["id"], []):
                 body.append(self.mark(f) + self.float_(f))
@@ -2770,23 +2770,23 @@ class Renderer:
                 + "\n\n\\mbox{}\n\\end{document}\n")
 ```
 
-- [ ] **Step 4: Chạy test**
+- [ ] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_latex.py -v`
-Expected: PASS (6 test). `test_table_spans` đếm 6 dòng (6 hàng của bảng fixture). Nếu sai, in `tab` ra rồi đối chiếu với `cells`.
+Expected: PASS (6 tests). `test_table_spans` counts 6 rows (the 6 rows of the fixture table). If wrong, print `tab` and compare with `cells`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add rosettex/render tests/test_latex.py
-git commit -m "feat: sinh main.tex/probe.tex: placeholder, bảng multirow, float gần tham chiếu, phương án cuối
+git commit -m "feat: generate main.tex/probe.tex: placeholders, multirow tables, floats near references, last-resort fallback
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 11: Biên dịch, phương án cuối, kiểm tra sau dựng, `render_core`
+### Task 11: Compilation, last-resort fallback, post-build checks, `render_core`
 
 **Files:**
 - Create: `rosettex/render/compile.py`, `rosettex/render/postcheck.py`, `scripts/get_tectonic.py`
@@ -2805,13 +2805,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `run_tex(tool, workdir, name, on_beat=None) -> (ok, output, log)`.
   - `culprit(log) -> str | None`.
   - `expand_fallback(doc, key, fb) -> int`.
-  - `render_core(work, out, *, overwrite=False, on_beat=lambda s: None) -> dict report`. Hàm này ghi `report.json` và `manifest["fallback"]`.
+  - `render_core(work, out, *, overwrite=False, on_beat=lambda s: None) -> dict report`. This function writes `report.json` and `manifest["fallback"]`.
   - `postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> {"ok", "problems", "length_ratio"}`.
 
-- [ ] **Step 1: Viết `scripts/get_tectonic.py` và cài Tectonic cho máy dev**
+- [ ] **Step 1: Write `scripts/get_tectonic.py` and install Tectonic on the dev machine**
 
 ```python
-"""Tải Tectonic 0.17.0 dựng sẵn, kiểm SHA-256, đặt vào ~/.rosettex/bin (hoặc thư mục ở đối số 1)."""
+"""Download prebuilt Tectonic 0.17.0, verify SHA-256, place it in ~/.rosettex/bin (or the directory given as argument 1)."""
 import hashlib
 import io
 import os
@@ -2840,13 +2840,13 @@ def main() -> int:
     dest = Path(sys.argv[1]) if len(sys.argv) > 1 else home / "bin"
     key = (platform.system(), platform.machine())
     if key not in ASSETS:
-        print(f"chưa có bản Tectonic dựng sẵn cho {key}; hãy cài TeX Live/MiKTeX (xelatex)", file=sys.stderr)
+        print(f"no prebuilt Tectonic for {key}; install TeX Live/MiKTeX (xelatex)", file=sys.stderr)
         return 2
     name, sha = ASSETS[key]
     url = f"https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40{VER}/tectonic-{VER}-{name}"
     data = urllib.request.urlopen(url, timeout=60).read()
     if hashlib.sha256(data).hexdigest() != sha:
-        print("checksum không khớp, không cài", file=sys.stderr)
+        print("checksum mismatch, not installing", file=sys.stderr)
         return 1
     dest.mkdir(parents=True, exist_ok=True)
     exe = "tectonic.exe" if name.endswith(".zip") else "tectonic"
@@ -2868,7 +2868,7 @@ if __name__ == "__main__":
 Run: `uv run python scripts/get_tectonic.py`
 Expected: in ra `/home/admin/.rosettex/bin/tectonic`
 
-- [ ] **Step 2: Viết test lỗi**
+- [ ] **Step 2: Write the failing test**
 
 `tests/test_render.py`:
 ```python
@@ -2881,7 +2881,7 @@ from rosettex.render.compile import culprit, render_core
 from rosettex.tools import find_tex
 from rosettex.workspace import read_json, write_json
 
-needs_tex = pytest.mark.skipif(find_tex() is None, reason="cần Tectonic hoặc XeLaTeX (scripts/get_tectonic.py)")
+needs_tex = pytest.mark.skipif(find_tex() is None, reason="needs Tectonic or XeLaTeX (scripts/get_tectonic.py)")
 
 
 def test_culprit():
@@ -2915,7 +2915,7 @@ def test_broken_formulas_fall_back_without_breaking_build(tmp_path):
     translate_all(w)
     tr = read_json(w.translation_path("b001", "vi"))
     first = next(iter(tr))
-    tr[first] = tr[first] + " 50% & _ # ~ ^ α ∗"  # Review Focus 3: ký tự đặc biệt trong bản dịch
+    tr[first] = tr[first] + " 50% & _ # ~ ^ α ∗"  # Review Focus 3: special characters in the translation
     write_json(w.translation_path("b001", "vi"), tr)
     rep = render_core(w, tmp_path / "out.pdf")
     ids = {f["id"] for f in rep["fallback"]}
@@ -2923,15 +2923,15 @@ def test_broken_formulas_fall_back_without_breaking_build(tmp_path):
     assert (tmp_path / "out.pdf").is_file() and rep["postcheck"]["ok"], rep["postcheck"]
 ```
 
-- [ ] **Step 3: Chạy để thấy lỗi**
+- [ ] **Step 3: Run to see the failure**
 
 Run: `uv run pytest tests/test_render.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.render.compile'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.render.compile'`
 
-- [ ] **Step 4: Viết `rosettex/render/postcheck.py`**
+- [ ] **Step 4: Write `rosettex/render/postcheck.py`**
 
 ```python
-"""Kiểm tra sau dựng (SG 11.3): log, ký tự, tham chiếu, số đối tượng, tỉ lệ độ dài."""
+"""Post-build checks (SG 11.3): log, characters, references, object counts, length ratio."""
 from __future__ import annotations
 
 import re
@@ -2945,26 +2945,26 @@ MATH_CHARS = re.compile("[\U0001D400-\U0001D7FF]")
 def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
     problems = []
     if re.search(r"^! ", log, re.M):
-        problems.append("log LaTeX có lỗi")
+        problems.append("LaTeX log has errors")
     if "Missing character" in log:
         miss = sorted(set(re.findall(r"Missing character: There is no (.)", log)))
-        problems.append("font thiếu ký tự: " + "".join(miss))
+        problems.append("font is missing characters: " + "".join(miss))
     if re.search(r"LaTeX Warning: (?:Reference|Citation) `[^']*' .*undefined", log):
-        problems.append("có tham chiếu/trích dẫn chưa định nghĩa")
+        problems.append("there are undefined references/citations")
     text = nfc(full_text(pdf))
     if "??" in text or "[?]" in text:
-        problems.append("PDF có '??' hoặc '[?]'")
+        problems.append("PDF contains '??' or '[?]'")
     has_math = any(b["kind"] == "equation" for b in doc["blocks"]) or any(
         p["tex"].startswith("$") for u in doc["units"] for p in u["ph"].values())
     if has_math and not MATH_CHARS.search(text):
-        problems.append("không thấy ký tự toán trong lớp chữ PDF")
+        problems.append("no math characters found in the PDF text layer")
     missing = (set(nfc("".join(tr.values()))) & set(pack.get("check_chars", ""))) - set(text)
     if missing:
-        problems.append("PDF thiếu ký tự: " + "".join(sorted(missing)))
+        problems.append("PDF is missing characters: " + "".join(sorted(missing)))
     expected_links = sum(1 for u in doc["units"] for n in u["ph"] if n[0] in "cr")
     links = len(re.findall(r"\\(?:ref|eqref|cite)\{", tex))
     if links != expected_links:
-        problems.append(f"số liên kết nội bộ {links} ≠ {expected_links}")
+        problems.append(f"internal link count {links} ≠ {expected_links}")
     counts = doc["source"].get("counts", {})
     fb_tags = sum(1 for b in doc["blocks"] if b["kind"] == "equation" and b.get("tag") and b["id"] in fallback)
     have = {"tables": len(re.findall(r"\\begin\{table\*?\}", tex)),
@@ -2973,17 +2973,17 @@ def postcheck(work, pdf, log, tex, doc, tr, pack, fallback) -> dict:
             "references": tex.count("\\bibitem{")}
     for k, v in counts.items():
         if have.get(k) != v:
-            problems.append(f"số {k} trong bản dựng {have.get(k)} ≠ bản gốc {v}")
+            problems.append(f"{k} count in the build {have.get(k)} ≠ original {v}")
     ratio = line_height_total(pdf) / max(line_height_total(work.src_pdf), 1e-9)
     if ratio > 1.3:
-        problems.append(f"tỉ lệ độ dài nội dung {ratio:.2f} > 1,3")
+        problems.append(f"content length ratio {ratio:.2f} > 1.3")
     return {"ok": not problems, "problems": problems, "length_ratio": round(ratio, 3)}
 ```
 
-- [ ] **Step 5: Viết `rosettex/render/compile.py`**
+- [ ] **Step 5: Write `rosettex/render/compile.py`**
 
 ```python
-"""render: biên dịch thử từng mục, phương án cuối, biên dịch toàn bài, kiểm tra sau dựng, report.json."""
+"""render: trial-compile each item, last-resort fallback, compile the whole paper, post-build checks, report.json."""
 from __future__ import annotations
 
 import re
@@ -3072,10 +3072,10 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     pack = load_pack(lang)
     tool = find_tex()
     if tool is None:
-        raise RenderError("không tìm thấy Tectonic hoặc XeLaTeX")
+        raise RenderError("Tectonic or XeLaTeX not found")
     out = Path(out)
     if out.exists() and not overwrite:
-        raise RenderError(f"file kết quả đã tồn tại: {out}")
+        raise RenderError(f"output file already exists: {out}")
     doc, tr = read_json(work.document), translations(work, lang)
     work.out.mkdir(parents=True, exist_ok=True)
     images = copy_assets(work, doc)
@@ -3091,7 +3091,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
             break
         c = culprit(log)
         if c is None or c in fb:
-            raise RenderError("biên dịch thử lỗi mà không xác định được mục: " + _tail(output + log))
+            raise RenderError("trial compile failed and the item could not be identified: " + _tail(output + log))
         fb.add(c)
 
     on_beat("main")
@@ -3103,9 +3103,9 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
             break
         c = culprit(log)
         if not c or not expand_fallback(doc, c, fb):
-            raise RenderError("biên dịch main.tex lỗi: " + _tail(output + log))
+            raise RenderError("compiling main.tex failed: " + _tail(output + log))
     else:
-        raise RenderError("quá 20 lượt sửa lỗi biên dịch main.tex")
+        raise RenderError("more than 20 compile-fix rounds for main.tex")
 
     on_beat("postcheck")
     pdf = work.out / "main.pdf"
@@ -3115,7 +3115,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     terms = read_json(work.terms, {})
     report = {"output": str(out), "lang": lang, "lang_tested": pack["tested"], "topic": terms.get("topic"),
               "key_terms": terms.get("terms", [])[:10], "tier": m.get("tier"), "tier_reason": m.get("tier_reason"),
-              "device": "MinerU tự chọn (lát 1 chưa ép thiết bị)", "tex": tool[0],
+              "device": "chosen by MinerU (slice 1 does not force a device)", "tex": tool[0],
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],
               "flagged": read_json(work.flagged, []), "unreviewed": True, "postcheck": pc}
     write_json(work.report, report)
@@ -3124,38 +3124,38 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     return report
 ```
 
-- [ ] **Step 6: Chạy test**
+- [ ] **Step 6: Run the tests**
 
 Run: `uv run pytest tests/test_render.py -v`
-Expected: PASS (3 test; 2 test cần TeX sẽ bị skip nếu máy không có Tectonic). Lần chạy đầu Tectonic cần mạng để tải bộ gói. Nếu gặp lỗi `dns error`/`Connect`, chạy lại (SG 4.1: client Rust chập chờn trên mạng IPv6 hỏng).
+Expected: PASS (3 tests; the 2 tests that need TeX are skipped if the machine has no Tectonic). On the first run Tectonic needs the network to download its bundle. On a `dns error`/`Connect` error, rerun (SG 4.1: its Rust client is flaky on a broken IPv6 network).
 
-Nếu `postcheck` báo `font thiếu ký tự`, đọc ký tự được in ra rồi thêm khoảng Unicode của nó vào `_mathy` trong `rosettex/tex.py`, chỉ khi ký tự đó là ký hiệu toán. Nếu là chữ cái thì đây là vấn đề font, thuộc lát 3: ghi vào báo cáo, không nới kiểm tra.
+If `postcheck` reports `font is missing characters`, read the printed characters and add their Unicode range to `_mathy` in `rosettex/tex.py`, only if those characters are math symbols. If they are letters this is a font problem, which belongs to slice 3: record it in the report, do not loosen the check.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add rosettex/render scripts/get_tectonic.py tests/test_render.py
-git commit -m "feat: render: biên dịch thử từng mục, phương án cuối, kiểm tra sau dựng, report.json
+git commit -m "feat: render: trial-compile each item, last-resort fallback, post-build checks, report.json
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 12: `cli.py`: các lệnh, `status`/`next_action`, chạy nền, đầu-cuối
+### Task 12: `cli.py`: commands, `status`/`next_action`, background runs, end-to-end
 
 **Files:**
 - Create: `rosettex/cli.py`, `rosettex/__main__.py`
 - Test: `tests/test_cli.py`
 
 **Interfaces:**
-- Consumes: mọi module trên.
+- Consumes: all the modules above.
 - Produces:
   - `main(argv=None) -> int`.
-  - `status(work) -> dict` với `state ∈ {missing, extract_running, extract_dead, extract_failed, render_running, render_dead, render_failed, not_extracted, need_terms, translating, need_validate, need_render, done}` và `next_action`.
-  - Các lệnh: `guide, extract, status, terms, next, accept, validate, render, clean`, và cờ `--version`.
+  - `status(work) -> dict` with `state ∈ {missing, extract_running, extract_dead, extract_failed, render_running, render_dead, render_failed, not_extracted, need_terms, translating, need_validate, need_render, done}` and `next_action`.
+  - Commands: `guide, extract, status, terms, next, accept, validate, render, clean`, and the `--version` flag.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_cli.py`:
 ```python
@@ -3173,7 +3173,7 @@ from rosettex.tools import find_tex
 from rosettex.workspace import Work, beat, read_json
 
 FAKE = str(FIX.parent / "fake_mineru.py")
-needs_tex = pytest.mark.skipif(find_tex() is None, reason="cần Tectonic hoặc XeLaTeX")
+needs_tex = pytest.mark.skipif(find_tex() is None, reason="needs Tectonic or XeLaTeX")
 
 
 def run(capsys, *argv):
@@ -3207,7 +3207,7 @@ def translate_via_cli(capsys, work, tmp_path):
         assert code == 0, res
 
 
-def test_full_flow_foreground(env, capsys, tmp_path):  # Review Focus 1 và 4
+def test_full_flow_foreground(env, capsys, tmp_path):  # Review Focus 1 and 4
     src, outdir = env
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert code == 0 and r["state"] == "extracted" and r["output"].endswith("short paper.vi.pdf")
@@ -3252,7 +3252,7 @@ def test_status_reports_dead_job(env, capsys):
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     w = Work(r["work"])
     w.document.unlink()
-    beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
+    beat(w, "extract", "rosettex extract RESUME", "group 1/1", 0, 1)
     p = read_json(w.progress)
     p["updated"] -= 3600
     w.progress.write_text(json.dumps(p), encoding="utf-8")
@@ -3263,7 +3263,7 @@ def test_status_reports_dead_job(env, capsys):
 def test_errors_and_exit_codes(env, capsys, tmp_path, monkeypatch):
     src, outdir = env
     code, r = run(capsys, "extract", tmp_path / "không có.pdf", "--lang", "vi", "--out", outdir, "--json")
-    assert code == 2 and "không tìm thấy" in r["error"]
+    assert code == 2 and "file not found" in r["error"]
     monkeypatch.setenv("ROSETTEX_MINERU", str(tmp_path / "missing.py"))
     monkeypatch.setenv("PATH", str(tmp_path))
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--json")
@@ -3291,7 +3291,7 @@ def test_guide_and_version(capsys):
         main(["--version"])
 
 
-@pytest.mark.skipif(not os.environ.get("ROSETTEX_REAL"), reason="đặt ROSETTEX_REAL=1 để chạy với MinerU thật")
+@pytest.mark.skipif(not os.environ.get("ROSETTEX_REAL"), reason="set ROSETTEX_REAL=1 to run with the real MinerU")
 @pytest.mark.parametrize("name", ["short", "long"])
 def test_real_mineru_end_to_end(name, tmp_path, capsys, monkeypatch):
     monkeypatch.delenv("ROSETTEX_MINERU", raising=False)
@@ -3305,12 +3305,12 @@ def test_real_mineru_end_to_end(name, tmp_path, capsys, monkeypatch):
         assert code == 0, rep["postcheck"]
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_cli.py -v`
-Expected: FAIL với `ModuleNotFoundError: No module named 'rosettex.cli'`
+Expected: FAIL with `ModuleNotFoundError: No module named 'rosettex.cli'`
 
-- [ ] **Step 3: Viết `rosettex/__main__.py`**
+- [ ] **Step 3: Write `rosettex/__main__.py`**
 
 ```python
 from .cli import main
@@ -3318,10 +3318,10 @@ from .cli import main
 raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Viết `rosettex/cli.py`**
+- [ ] **Step 4: Write `rosettex/cli.py`**
 
 ```python
-"""Giao diện dòng lệnh rosettex. Mọi lệnh có --json; agent luôn làm theo `next_action`."""
+"""rosettex command line. Every command has --json; the agent always follows `next_action`."""
 from __future__ import annotations
 
 import argparse
@@ -3361,27 +3361,27 @@ def _running(job) -> bool:
 # ---------------- extract ----------------
 def cmd_extract(a):
     if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z]{2,8})?", a.lang):
-        raise UsageError(f"mã ngôn ngữ không hợp lệ: {a.lang} (ví dụ: vi, en, fr)")
+        raise UsageError(f"invalid language code: {a.lang} (for example: vi, en, fr)")
     pdf = Path(a.pdf).expanduser().resolve()
     if not pdf.is_file():
-        raise UsageError(f"không tìm thấy file: {pdf}")
+        raise UsageError(f"file not found: {pdf}")
     out = resolve_out(pdf, a.lang, a.out)
     work = Work(a.work or out.parent / ".rosettex" / pdf.stem)
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
     m = read_json(work.manifest)
     if m and m["sha256"] != digest:
-        raise UsageError(f"thư mục làm việc {work.root} thuộc một bài khác",
+        raise UsageError(f"work directory {work.root} belongs to a different paper",
                          next_action=f"rosettex clean {q(work.root)} --json")
     cmd = find_mineru()
     if cmd is None:
-        raise UsageError("chưa cài MinerU 4.x (mineru-kit); xem README mục Cài đặt")
+        raise UsageError("MinerU 4.x (mineru-kit) is not installed; see the README Installation section")
     resume = (f"rosettex extract {q(pdf)} --lang {a.lang} --out {q(out)} -o {q(work.root)} --json"
               + (f" --tier {a.tier}" if a.tier else ""))
     if m is None:
         tier, reason = choose_tier(a.tier, available_ram_bytes())
         ok, log = verify_models(cmd, tier)
         if not ok:
-            raise UsageError(f"mô hình MinerU cho tier {tier} chưa đủ",
+        raise UsageError(f"the MinerU models for tier {tier} are incomplete",
                              next_action=f"mineru-kit models download --tier {tier}", detail=log[-2000:])
         work.root.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(pdf, work.src_pdf)
@@ -3389,7 +3389,7 @@ def cmd_extract(a):
              "pages": page_count(work.src_pdf), "tier": tier, "tier_reason": reason,
              "pages_per_group": a.pages_per_group, "extract_cmd": resume}
         write_json(work.manifest, m)
-    elif a.tier and a.tier != m["tier"]:  # chạy lại với --tier basic sau lỗi: các nhóm còn lại dùng tier mới
+    elif a.tier and a.tier != m["tier"]:  # rerun with --tier basic after a failure: the remaining groups use the new tier
         m["tier"], m["tier_reason"] = a.tier, "requested"
         write_json(work.manifest, m)
     info = {"work": str(work.root), "output": str(out), "output_exists": out.exists(), "pages": m["pages"],
@@ -3402,19 +3402,19 @@ def cmd_extract(a):
                        "next_action": f"rosettex status {q(work.root)} --json", "wait_seconds": 30}
         argv = [sys.executable, "-m", "rosettex", "extract", str(pdf), "--lang", a.lang, "--out", str(out),
                 "-o", str(work.root), "--foreground", "--json"] + (["--tier", a.tier] if a.tier else [])
-        beat(work, "extract", resume, "khởi động", 0, 0)
+        beat(work, "extract", resume, "starting", 0, 0)
         pid = spawn_detached(argv, work.logs / "extract.log")
         return 0, {"ok": True, "state": "started", "pid": pid, **info,
                    "next_action": f"rosettex status {q(work.root)} --json", "wait_seconds": 30}
 
     def on(done, total):
-        beat(work, "extract", resume, f"MinerU: xong {done}/{total} nhóm trang", done, total)
+        beat(work, "extract", resume, f"MinerU: {done}/{total} page groups done", done, total)
 
     on(0, 0)
     try:
         summary = extract_core(work, cmd, on)
     except ExtractError as e:
-        beat(work, "extract", resume + " --tier basic", "lỗi", 0, 0, state="failed", error=str(e))
+        beat(work, "extract", resume + " --tier basic", "error", 0, 0, state="failed", error=str(e))
         return 1, {"ok": False, "error": str(e), "next_action": resume + " --tier basic"}
     beat(work, "extract", resume, "xong", 1, 1, state="done")
     return 0, {"ok": True, "state": "extracted", **info, **summary,
@@ -3425,14 +3425,14 @@ def cmd_extract(a):
 def status(work: Work) -> dict:
     m = read_json(work.manifest)
     if m is None:
-        return {"state": "missing", "message": "chưa có thư mục làm việc; chạy rosettex extract", "next_action": None}
+        return {"state": "missing", "message": "no work directory yet; run rosettex extract", "next_action": None}
     r = q(work.root)
     job = job_state(work)
     if job and job["state"] == "running":
         if not job["dead"]:
             return {"state": job["command"] + "_running", "step": job["step"], "done": job["done"],
                     "total": job["total"], "next_action": f"rosettex status {r} --json", "wait_seconds": 30}
-        return {"state": job["command"] + "_dead", "message": "tác vụ nền đã dừng bất thường; chạy lại để làm tiếp",
+        return {"state": job["command"] + "_dead", "message": "the background task stopped unexpectedly; rerun to continue",
                 "next_action": job["resume"]}
     if job and job["state"] == "failed":
         return {"state": job["command"] + "_failed", "error": job["error"], "next_action": job["resume"]}
@@ -3460,7 +3460,7 @@ def cmd_status(a):
     return 0, status(Work(a.work))
 
 
-# ---------------- dịch ----------------
+# ---------------- translation ----------------
 def cmd_terms(a):
     res = translate.write_terms(Work(a.work), a.file)
     return (0 if res["ok"] else 1), res
@@ -3492,36 +3492,36 @@ def cmd_render(a):
     out = Path(a.out).expanduser().resolve() if a.out else Path(m["out"])
     v = translate.validate(w)
     if not v["ok"]:
-        return 1, {"ok": False, "error": "validate chưa sạch", **v, "next_action": f"rosettex validate {q(w.root)} --json"}
+        return 1, {"ok": False, "error": "validate is not clean", **v, "next_action": f"rosettex validate {q(w.root)} --json"}
     if out.exists() and not a.overwrite:
-        raise UsageError(f"file kết quả đã tồn tại: {out}", next_action="hỏi người dùng; đồng ý thì chạy lại với --overwrite",
+        raise UsageError(f"output file already exists: {out}", next_action="ask the user; if they agree, rerun with --overwrite",
                          output_exists=True)
     if find_tex() is None:
-        raise UsageError("không tìm thấy Tectonic hoặc XeLaTeX; xem README mục Cài đặt")
+        raise UsageError("Tectonic or XeLaTeX not found; see the README Installation section")
     resume = f"rosettex render {q(w.root)} --out {q(out)} --json" + (" --overwrite" if a.overwrite else "")
     if not a.foreground:
         if _running(job_state(w)):
             return 0, {"ok": True, "state": "already_running", "next_action": f"rosettex status {q(w.root)} --json"}
         argv = [sys.executable, "-m", "rosettex", "render", str(w.root), "--out", str(out), "--foreground", "--json"]
-        beat(w, "render", resume, "khởi động", 0, 0)
+        beat(w, "render", resume, "starting", 0, 0)
         pid = spawn_detached(argv + (["--overwrite"] if a.overwrite else []), w.logs / "render.log")
         return 0, {"ok": True, "state": "started", "pid": pid, "next_action": f"rosettex status {q(w.root)} --json",
                    "wait_seconds": 30}
-    beat(w, "render", resume, "bắt đầu", 0, 0)
+    beat(w, "render", resume, "started", 0, 0)
     try:
         rep = render_core(w, out, overwrite=a.overwrite, on_beat=lambda s: beat(w, "render", resume, s, 0, 0))
     except RenderError as e:
-        beat(w, "render", resume, "lỗi", 0, 0, state="failed", error=str(e))
+        beat(w, "render", resume, "error", 0, 0, state="failed", error=str(e))
         return 2, {"ok": False, "error": str(e), "next_action": None}
     beat(w, "render", resume, "xong", 1, 1, state="done")
     return (0 if rep["postcheck"]["ok"] else 1), {"ok": rep["postcheck"]["ok"], **rep, "next_action": None}
 
 
-# ---------------- khác ----------------
+# ---------------- other ----------------
 def cmd_clean(a):
     w = Work(a.work)
     if not w.manifest.exists():
-        raise UsageError(f"không phải thư mục làm việc rosettex (thiếu manifest.json): {w.root}")
+        raise UsageError(f"not a rosettex work directory (manifest.json missing): {w.root}")
     shutil.rmtree(w.root)
     return 0, {"ok": True, "removed": str(w.root)}
 
@@ -3538,17 +3538,17 @@ def cmd_guide(a):
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--json", action="store_true", help="in JSON cho agent")
-    p = argparse.ArgumentParser(prog="rosettex", description="Tách, kiểm tra và dựng lại bài báo PDF để agent dịch.")
+    p = argparse.ArgumentParser(prog="rosettex", description="Extract, check and rebuild PDF papers for an agent to translate.")
     p.add_argument("--version", action="version", version=__version__)
     sub = p.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("guide", parents=[common], help="in giao thức cho agent")
+    s = sub.add_parser("guide", parents=[common], help="print the protocol for the agent")
     s.add_argument("--lang", default="vi")
     s.set_defaults(func=cmd_guide)
-    s = sub.add_parser("extract", parents=[common], help="tách nội dung PDF (chạy nền)")
+    s = sub.add_parser("extract", parents=[common], help="extract the PDF content (runs in the background)")
     s.add_argument("pdf")
     s.add_argument("--lang", required=True)
-    s.add_argument("--out", required=True, help="file .pdf kết quả hoặc thư mục")
-    s.add_argument("-o", "--work", help="thư mục làm việc (mặc định <thư mục kết quả>/.rosettex/<tên>.<mã ngôn ngữ>)")
+    s.add_argument("--out", required=True, help="output .pdf file or directory")
+    s.add_argument("-o", "--work", help="work directory (default <output directory>/.rosettex/<name>.<language code>)")
     s.add_argument("--tier", choices=["standard", "basic"])
     s.add_argument("--pages-per-group", type=int, default=5)
     s.add_argument("--foreground", action="store_true")
@@ -3595,39 +3595,39 @@ def main(argv=None) -> int:
     return code
 ```
 
-`cmd_guide` cần `rosettex.protocol` (Task 13). Để test của Task 12 chạy được, tạo tạm `rosettex/protocol/__init__.py`:
+`cmd_guide` needs `rosettex.protocol` (Task 13). To let Task 12's tests run, create a temporary `rosettex/protocol/__init__.py`:
 ```python
 def text(lang: str = "vi") -> str:
     return "rosettex extract"
 ```
-Task 13 sẽ thay file này.
+Task 13 will replace this file.
 
-- [ ] **Step 5: Chạy test**
+- [ ] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/test_cli.py -v`
-Expected: PASS. Hai test `test_real_mineru_end_to_end` bị skip. Các bước render trong `test_full_flow_foreground` chỉ chạy khi có TeX.
+Expected: PASS. The two `test_real_mineru_end_to_end` tests are skipped. The render steps in `test_full_flow_foreground` only run when TeX is present.
 
-- [ ] **Step 6: Chạy toàn bộ test**
+- [ ] **Step 6: Run the whole test suite**
 
 Run: `uv run pytest -q`
-Expected: toàn bộ PASS (có skip có điều kiện)
+Expected: everything PASS (with conditional skips)
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add rosettex/cli.py rosettex/__main__.py rosettex/protocol/__init__.py tests/test_cli.py
-git commit -m "feat: CLI rosettex với status/next_action và tác vụ nền chạy tiếp được
+git commit -m "feat: rosettex CLI with status/next_action and resumable background tasks
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 13: Giao thức một nguồn, `guide`, `SKILL.md`/`AGENTS.md`, README
+### Task 13: Single-source protocol, `guide`, `SKILL.md`/`AGENTS.md`, README
 
 **Files:**
 - Create: `rosettex/protocol/protocol.md`, `rosettex/protocol/build.py`, `skill/SKILL.md`, `skill/AGENTS.md` (sinh ra)
-- Modify: `rosettex/protocol/__init__.py` (thay bản tạm), `README.md`
+- Modify: `rosettex/protocol/__init__.py` (replace the temporary version), `README.md`
 - Test: `tests/test_protocol.py`
 
 **Interfaces:**
@@ -3636,9 +3636,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `text(lang="vi") -> str`.
   - `skill_md() -> str`.
   - `agents_md() -> str`.
-  - `python -m rosettex.protocol.build` ghi `skill/SKILL.md` và `skill/AGENTS.md`.
+  - `python -m rosettex.protocol.build` writes `skill/SKILL.md` and `skill/AGENTS.md`.
 
-- [ ] **Step 1: Viết test lỗi**
+- [ ] **Step 1: Write the failing test**
 
 `tests/test_protocol.py`:
 ```python
@@ -3668,90 +3668,90 @@ def test_skill_frontmatter_triggers():
     assert "name: rosettex" in head and "dịch bài báo" in head and "translate this paper" in head
 ```
 
-- [ ] **Step 2: Chạy để thấy lỗi**
+- [ ] **Step 2: Run to see the failure**
 
 Run: `uv run pytest tests/test_protocol.py -v`
-Expected: FAIL với `ImportError: cannot import name 'agents_md'`
+Expected: FAIL with `ImportError: cannot import name 'agents_md'`
 
-- [ ] **Step 3: Viết `rosettex/protocol/protocol.md`**
+- [ ] **Step 3: Write `rosettex/protocol/protocol.md`**
 
 ````markdown
-# rosettex — giao thức dịch bài báo PDF
+# rosettex — PDF paper translation protocol
 
-Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm tra và dựng PDF. Quy tắc chung:
-- Mỗi lần chỉ chạy **một** lệnh `rosettex …`, luôn thêm `--json`. Không nối lệnh, không dùng ống dẫn.
-- Mọi kết quả đều có `next_action`: đó là lệnh nên chạy tiếp theo.
-- Lệnh trả mã 2 là lỗi môi trường hoặc sử dụng: báo người dùng nội dung `error` và `next_action`, rồi dừng.
+You (the agent) are the translator. `rosettex` extracts the content, splits it into batches, checks it and builds the PDF. General rules:
+- Run only **one** `rosettex …` command at a time, always with `--json`. Do not chain commands, do not use pipes.
+- Every result has a `next_action`: that is the next command to run.
+- A command that returns exit code 2 is an environment or usage error: tell the user the `error` and `next_action`, then stop.
 
-## 0. Trước khi chạy
-- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
-- Không chạy được lệnh `rosettex` thì báo người dùng cài theo README của rosettex.
+## 0. Before running
+- You need three pieces of information: the PDF file, the target language, and where to save (a directory or a .pdf file). If the language or the location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
+- If the `rosettex` command cannot run, tell the user to install it following the rosettex README.
 
-## 1. Tách nội dung
-Chạy `rosettex extract "<pdf>" --lang <mã> --out "<nơi lưu>" --json`.
-- `output_exists: true`: hỏi người dùng có ghi đè file kết quả không, và nhớ câu trả lời cho bước 5.
-- `lang_tested: false`: báo người dùng "ngôn ngữ này chưa được kiểm thử".
-- Ghi lại `work` (thư mục làm việc).
+## 1. Extract
+Run `rosettex extract "<pdf>" --lang <code> --out "<location>" --json`.
+- `output_exists: true`: ask the user whether to overwrite the output file, and remember the answer for step 5.
+- `lang_tested: false`: tell the user "this language has not been tested".
+- Record `work` (the work directory).
 
-Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần, cho tới khi `state` không còn là `extract_running`. Báo người dùng tiến độ ngắn gọn theo `step`.
+Then every 30–60 seconds run `rosettex status "<work>" --json`, until `state` is no longer `extract_running`. Report progress to the user briefly, following `step`.
 
-## 2. Thuật ngữ
-Chạy `rosettex next "<work>" --outline --json` để đọc tiêu đề, tóm tắt và các tiêu đề mục. Ghi một file JSON:
-`{"topic": "<một câu>", "terms": [{"src": "<thuật ngữ gốc>", "dst": "<bản dịch>"}], "keep": ["<giữ nguyên>"], "abbreviations": [{"abbr": "<viết tắt>", "expansion": "<dạng đầy đủ>"}]}`
-rồi chạy `rosettex terms "<work>" --file "<file>" --json`.
+## 2. Terms
+Run `rosettex next "<work>" --outline --json` to read the title, abstract and section headings. Write a JSON file:
+`{"topic": "<one sentence>", "terms": [{"src": "<source term>", "dst": "<translation>"}], "keep": ["<keep verbatim>"], "abbreviations": [{"abbr": "<abbreviation>", "expansion": "<full form>"}]}`
+then run `rosettex terms "<work>" --file "<file>" --json`.
 
-## 3. Dịch từng lô
-Lặp lại các bước sau:
-1. Chạy `rosettex next "<work>" --json`. Nếu nhận `done: true` thì sang bước 4.
-2. Dịch mọi `batch.items[].text` theo quy tắc ở cuối tài liệu. Dùng `terms`, `topic`, `section` và `previous` (đoạn cuối lô trước) để giữ mạch văn.
-3. Ghi file JSON `{"<id>": "<bản dịch>"}` chứa đủ mọi `id` của lô.
-4. Chạy đúng lệnh trong `submit`, thay `<file.json>` bằng file vừa ghi.
-5. Nếu nhận `ok: false`, sửa đúng các `id` có trong `errors` rồi nộp lại cả lô.
+## 3. Translate batch by batch
+Repeat these steps:
+1. Run `rosettex next "<work>" --json`. If you receive `done: true`, go to step 4.
+2. Translate every `batch.items[].text` following the rules at the end of this document. Use `terms`, `topic`, `section` and `previous` (the last paragraph of the previous batch) to keep the text coherent.
+3. Write a JSON file `{"<id>": "<translation>"}` containing every `id` of the batch.
+4. Run exactly the command in `submit`, replacing `<file.json>` with the file you just wrote.
+5. If you receive `ok: false`, fix exactly the `id`s listed in `errors` and resubmit the whole batch.
 
-Thêm:
-- Nếu bạn đọc được ảnh, xem `page_images` khi câu gốc khó hiểu.
-- Có subagent thì giao mỗi subagent một lô qua `rosettex next "<work>" --batch <id> --json`. Mỗi subagent tự nộp lô của mình.
+Also:
+- If you can read images, look at `page_images` when the source sentence is hard to understand.
+- If you have subagents, give each subagent one batch via `rosettex next "<work>" --batch <id> --json`. Each subagent submits its own batch.
 
-## 4. Kiểm tra toàn bài
-Chạy `rosettex validate "<work>" --json`. Còn lỗi thì nộp lại lô chứa các `id` bị báo, cho tới khi `ok: true`.
+## 4. Validate the whole paper
+Run `rosettex validate "<work>" --json`. If errors remain, resubmit the batches containing the reported `id`s, until `ok: true`.
 
-## 5. Dựng PDF
-Chạy `rosettex render "<work>" --json`. Thêm `--overwrite` nếu ở bước 1 người dùng đã đồng ý ghi đè.
+## 5. Build the PDF
+Run `rosettex render "<work>" --json`. Add `--overwrite` if the user agreed to overwrite in step 1.
 
-Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần, cho tới khi `state` là `done`. Nếu bạn đọc được ảnh hoặc PDF, mở file kết quả và xem trang đầu, một trang có bảng, một trang có công thức.
+Then every 30–60 seconds run `rosettex status "<work>" --json`, until `state` is `done`. If you can read images or PDFs, open the output file and look at the first page, a page with a table, and a page with a formula.
 
-## 6. Báo kết quả
-Đọc file `report.json` (đường dẫn có trong `status`) rồi báo người dùng ngắn gọn:
-- đường dẫn file kết quả;
-- chủ đề và vài thuật ngữ chính;
-- tier đã dùng;
-- các mục trong `fallback`, kèm trang: công thức hoặc bảng đang hiển thị dạng mã LaTeX;
-- các mục trong `flagged`, kèm trang: công thức đáng ngờ;
-- câu "công thức và bảng chưa được đối chiếu với bản gốc";
-- các vấn đề trong `postcheck.problems`, nếu có.
+## 6. Report the result
+Read the `report.json` file (its path is in `status`) and report briefly to the user:
+- the output file path;
+- the topic and a few key terms;
+- the tier used;
+- the items in `fallback`, with pages: formulas or tables shown as LaTeX code;
+- the items in `flagged`, with pages: suspicious formulas;
+- the sentence "formulas and tables have not been checked against the original";
+- any problems in `postcheck.problems`.
 
-## Bị gián đoạn hoặc mất ngữ cảnh
-Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>.<mã ngôn ngữ>`.
+## Interrupted or lost context
+Run `rosettex status "<work>" --json` and follow `next_action`. If you do not remember `<work>`, it is at `<directory containing the output file>/.rosettex/<original PDF file name>.<language code>`.
 
-## Quy tắc dịch
+## Translation rules
 {{RULES}}
 ````
 
-- [ ] **Step 4: Viết `rosettex/protocol/__init__.py` và `build.py`**
+- [ ] **Step 4: Write `rosettex/protocol/__init__.py` and `build.py`**
 
 `rosettex/protocol/__init__.py`:
 ```python
-"""Giao thức cho agent: một nguồn (protocol.md), in bằng `rosettex guide`, sinh SKILL.md và AGENTS.md."""
+"""Protocol for the agent: a single source (protocol.md), printed by `rosettex guide`, generates SKILL.md and AGENTS.md."""
 from importlib.resources import files
 
 from ..checks import load_pack
 
 FRONTMATTER = """---
 name: rosettex
-description: Dịch trọn bài báo khoa học PDF sang ngôn ngữ khác (mặc định tiếng Việt), giữ công thức, bảng, số liệu và trích dẫn, dựng lại PDF. Dùng khi người dùng nói "dịch bài báo", "dịch file PDF này sang…", "dịch paper", "translate this paper/PDF to…".
+description: Translate a whole scientific PDF paper into another language (Vietnamese by default), keeping formulas, tables, figures and citations, and rebuild the PDF. Use when the user says "translate this paper", "translate this PDF to…", "dịch bài báo", "dịch file PDF này sang…", "dịch paper".
 ---
 
-Chạy `rosettex guide` để xem bản mới nhất của giao thức dưới đây, rồi làm theo.
+Run `rosettex guide` to see the latest version of the protocol below, then follow it.
 
 """
 
@@ -3772,7 +3772,7 @@ def agents_md() -> str:
 
 `rosettex/protocol/build.py`:
 ```python
-"""Ghi skill/SKILL.md và skill/AGENTS.md từ protocol.md. Chạy: uv run python -m rosettex.protocol.build"""
+"""Write skill/SKILL.md and skill/AGENTS.md from protocol.md. Run: uv run python -m rosettex.protocol.build"""
 from pathlib import Path
 
 from . import agents_md, skill_md
@@ -3791,51 +3791,51 @@ if __name__ == "__main__":
 ```
 
 Run: `uv run python -m rosettex.protocol.build`
-Expected: in ra đường dẫn `…/rosettex/skill`
+Expected: prints the path `…/rosettex/skill`
 
-- [ ] **Step 5: Viết `README.md`**
+- [ ] **Step 5: Write `README.md`**
 
 ````markdown
 # rosettex
 
-Công cụ để **agent trong harness** (Claude Code, Codex, …) dịch trọn bài báo khoa học PDF. rosettex không tự dịch:
-nó tách nội dung (MinerU), chia lô có placeholder, kiểm tra bản dịch và dựng lại PDF bằng LaTeX, với công thức và bảng là ký tự thật.
-Lát 1 hỗ trợ PDF có lớp chữ.
+A tool for an **in-harness agent** (Claude Code, Codex, …) to translate a whole scientific PDF paper. rosettex does not translate itself:
+it extracts the content (MinerU), splits it into batches with placeholders, checks the translation and rebuilds the PDF with LaTeX, with formulas and tables as real characters.
+Slice 1 supports PDFs with a text layer.
 
-## Cài đặt (lát 1: cài thủ công)
+## Installation (slice 1: manual install)
 
 ```bash
-uv tool install <đường-dẫn-repo-rosettex>          # hoặc: pipx install <đường-dẫn>
+uv tool install <path-to-rosettex-repo>          # or: pipx install <path>
 uv venv --python 3.12 ~/.rosettex/mineru-venv
 uv pip install --python ~/.rosettex/mineru-venv "mineru>=4,<5"
 ~/.rosettex/mineru-venv/bin/mineru-kit models download --tier standard --source modelscope
 #   Windows: %USERPROFILE%\.rosettex\mineru-venv\Scripts\mineru-kit.exe models download --tier standard
-#   Tải bị treo: dừng rồi chạy lại (tải nối tiếp được), hoặc đổi --source huggingface
-uv run python scripts/get_tectonic.py               # Tectonic 0.17.0 → ~/.rosettex/bin (bỏ qua nếu đã có xelatex)
+#   Download hangs: stop and rerun (downloads resume), or switch to --source huggingface
+uv run python scripts/get_tectonic.py               # Tectonic 0.17.0 → ~/.rosettex/bin (skip if xelatex is already installed)
 ```
 
-Biến môi trường tùy chọn (người dùng đặt một lần): `ROSETTEX_MINERU` (đường dẫn `mineru-kit`), `ROSETTEX_TEX` (đường dẫn `tectonic`/`xelatex`), `ROSETTEX_HOME` (mặc định `~/.rosettex`).
+Optional environment variables (set once by the user): `ROSETTEX_MINERU` (path to `mineru-kit`), `ROSETTEX_TEX` (path to `tectonic`/`xelatex`), `ROSETTEX_HOME` (default `~/.rosettex`).
 
-## Gắn vào harness
+## Attaching to a harness
 
-- **Claude Code:** chép `skill/SKILL.md` vào `~/.claude/skills/rosettex/SKILL.md`.
-- **Codex và harness đọc AGENTS.md:** chép nội dung `skill/AGENTS.md` vào `AGENTS.md` của bạn.
-- **Harness khác:** bảo agent "chạy `rosettex guide` rồi làm theo".
+- **Claude Code:** copy `skill/SKILL.md` to `~/.claude/skills/rosettex/SKILL.md`.
+- **Codex and harnesses that read AGENTS.md:** copy the contents of `skill/AGENTS.md` into your `AGENTS.md`.
+- **Other harnesses:** tell the agent "run `rosettex guide` then follow it".
 
-Sau đó chỉ cần nói: *"Dịch bài báo ~/papers/attention.pdf sang tiếng Việt, lưu ở ~/dich/"*.
+After that just say: *"Translate the paper ~/papers/attention.pdf into Vietnamese, save it to ~/dich/"*.
 
-## Phát triển
+## Development
 
 ```bash
 uv sync
-uv run pytest -q                                   # ROSETTEX_REAL=1 để chạy thêm đầu-cuối với MinerU thật
-uv run python -m rosettex.protocol.build           # sau khi sửa rosettex/protocol/protocol.md
+uv run pytest -q                                   # ROSETTEX_REAL=1 to also run end-to-end with the real MinerU
+uv run python -m rosettex.protocol.build           # after editing rosettex/protocol/protocol.md
 ```
 
-Spec: `docs/superpowers/specs/`. Kế hoạch: `docs/superpowers/plans/`.
+Spec: `docs/superpowers/specs/`. Plans: `docs/superpowers/plans/`.
 ````
 
-- [ ] **Step 6: Chạy test**
+- [ ] **Step 6: Run the tests**
 
 Run: `uv run pytest tests/test_protocol.py tests/test_cli.py::test_guide_and_version -v`
 Expected: PASS
@@ -3844,23 +3844,23 @@ Expected: PASS
 
 ```bash
 git add rosettex/protocol skill README.md tests/test_protocol.py
-git commit -m "feat: giao thức một nguồn (rosettex guide), sinh SKILL.md và AGENTS.md, README
+git commit -m "feat: single-source protocol (rosettex guide), generate SKILL.md and AGENTS.md, README
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 14: CI trên ba hệ điều hành
+### Task 14: CI on three operating systems
 
 **Files:**
 - Create: `.github/workflows/ci.yml`
 
 **Interfaces:**
-- Consumes: `scripts/get_tectonic.py` (Task 11), bộ test.
-- Produces: ma trận CI.
+- Consumes: `scripts/get_tectonic.py` (Task 11), the test suite.
+- Produces: the CI matrix.
 
-- [ ] **Step 1: Viết `.github/workflows/ci.yml`**
+- [ ] **Step 1: Write `.github/workflows/ci.yml`**
 
 ```yaml
 name: ci
@@ -3876,15 +3876,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Cài Python
+      - name: Install Python
         run: uv python install ${{ matrix.python }}
-      - name: Cài Tectonic 0.17.0 (kiểm SHA-256)
+      - name: Install Tectonic 0.17.0 (SHA-256 verified)
         run: uv run --python ${{ matrix.python }} python scripts/get_tectonic.py
-      - name: Kiểm thử
+      - name: Run tests
         run: uv run --python ${{ matrix.python }} pytest -q
 ```
 
-- [ ] **Step 2: Kiểm tra cú pháp YAML tại chỗ**
+- [ ] **Step 2: Check the YAML syntax locally**
 
 Run: `uv run --with pyyaml python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci.yml')); print('ok')"`
 Expected: `ok`
@@ -3893,25 +3893,25 @@ Expected: `ok`
 
 ```bash
 git add .github/workflows/ci.yml
-git commit -m "ci: chạy kiểm thử trên Linux/macOS/Windows, Python 3.11 và 3.12
+git commit -m "ci: run tests on Linux/macOS/Windows, Python 3.11 and 3.12
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-Repo chưa có remote. Việc tạo repo GitHub và push là quyết định của người dùng, nên **hỏi trước**, không tự làm. Khi đã push, xem kết quả bằng `gh run list` và `gh run view`.
+The repo has no remote yet. Creating the GitHub repo and pushing is the user's decision, so **ask first**, do not do it on your own. After pushing, check the result with `gh run list` and `gh run view`.
 
 ---
 
-### Task 15: Nghiệm thu lát 1 (máy thật, MinerU thật, agent thật)
+### Task 15: Slice 1 acceptance (real machine, real MinerU, real agent)
 
 **Files:**
 - Create: `docs/superpowers/notes/2026-11-18-slice1-acceptance.md`
 
 **Interfaces:**
-- Consumes: toàn bộ.
-- Produces: biên bản nghiệm thu, có số liệu cho SG 16 mục 7.
+- Consumes: everything.
+- Produces: the acceptance record, with figures for SG 16 section 7.
 
-- [ ] **Step 1: Cài như người dùng**
+- [ ] **Step 1: Install like a user**
 
 ```bash
 uv tool install --editable .
@@ -3919,43 +3919,43 @@ uv venv --python 3.12 ~/.rosettex/mineru-venv
 uv pip install --python ~/.rosettex/mineru-venv "mineru>=4,<5"
 ~/.rosettex/mineru-venv/bin/mineru-kit models verify --tier standard
 ```
-Expected: `MinerU2.5-Pro-2605-1.2B-GGUF: ok` (mô hình đã có trong `~/.mineru/models` từ spike).
+Expected: `MinerU2.5-Pro-2605-1.2B-GGUF: ok` (the model is already in `~/.mineru/models` from the spike).
 
-- [ ] **Step 2: Đầu-cuối với MinerU thật, dùng người dịch giả (tiêu chí thành công 1)**
+- [ ] **Step 2: End-to-end with the real MinerU, using the fake translator (success criterion 1)**
 
 Run: `ROSETTEX_REAL=1 uv run pytest tests/test_cli.py -k real -v`
-Expected: PASS cho cả `short` và `long`. Bài `long` mất khoảng 6 phút ở tier `standard` trên CPU.
+Expected: PASS for both `short` and `long`. The `long` paper takes about 6 minutes at tier `standard` on CPU.
 
-- [ ] **Step 3: Agent thật (tiêu chí thành công 2)**
+- [ ] **Step 3: Real agent (success criterion 2)**
 
-Chép skill: `mkdir -p ~/.claude/skills/rosettex && cp skill/SKILL.md ~/.claude/skills/rosettex/SKILL.md`.
+Copy the skill: `mkdir -p ~/.claude/skills/rosettex && cp skill/SKILL.md ~/.claude/skills/rosettex/SKILL.md`.
 
-Mở một phiên Claude Code mới trong một thư mục trống và gõ đúng một câu:
-`Dịch bài báo /home/admin/Desktop/Learn/rosettex/tests/fixtures/papers/short.pdf sang tiếng Việt, lưu ở ~/dich-thu/`
+Open a new Claude Code session in an empty directory and type exactly one sentence:
+`Translate the paper /home/admin/Desktop/Learn/rosettex/tests/fixtures/papers/short.pdf into Vietnamese, save it to ~/dich-thu/`
 
-Ghi lại vào biên bản:
-- agent có hỏi lại câu nào không (không được hỏi);
-- số lệnh agent đã chạy;
-- PDF có ra không;
-- bạn đọc thử bản dịch thấy có chấp nhận được không.
+Record in the report:
+- whether the agent asked any question (it must not);
+- the number of commands the agent ran;
+- whether a PDF was produced;
+- whether, reading the translation yourself, you find it acceptable.
 
-- [ ] **Step 4: Đo tỉ lệ lô bị từ chối ở lần nộp đầu (tiêu chí 4, SG 16 mục 7)**
+- [ ] **Step 4: Measure the rate of batches rejected on first submit (criterion 4, SG 16 section 7)**
 
-Lặp lại Step 3 với `long.pdf`. Sau đó chạy lệnh dưới, thay `<work>` bằng `~/dich-thu/.rosettex/long.vi`:
+Repeat Step 3 with `long.pdf`. Then run the command below, replacing `<work>` with `~/dich-thu/.rosettex/long.vi`:
 ```bash
-uv run python -c "import json,sys; r=[json.loads(l) for l in open(sys.argv[1], encoding='utf-8')]; first={}; [first.setdefault(x['batch'], x['ok']) for x in r]; print(len(first), 'lô;', sum(not v for v in first.values()), 'bị từ chối ở lần nộp đầu')" <work>/logs/accept.jsonl
+uv run python -c "import json,sys; r=[json.loads(l) for l in open(sys.argv[1], encoding='utf-8')]; first={}; [first.setdefault(x['batch'], x['ok']) for x in r]; print(len(first), 'batches;', sum(not v for v in first.values()), 'rejected on first submit')" <work>/logs/accept.jsonl
 ```
 
-- [ ] **Step 5: Viết biên bản và commit**
+- [ ] **Step 5: Write the record and commit**
 
-`docs/superpowers/notes/2026-11-18-slice1-acceptance.md` gồm:
-- kết quả Step 2–4 (số liệu thật);
-- danh sách vấn đề gặp phải, mỗi vấn đề ghi lát sẽ xử lý;
-- trạng thái các tiêu chí nghiệm thu của SG 14 có thể kiểm ở lát 1.
+`docs/superpowers/notes/2026-11-18-slice1-acceptance.md` containing:
+- the results of Steps 2–4 (real figures);
+- the list of problems encountered, each noting which slice will handle it;
+- the status of the SG 14 acceptance criteria that can be checked in slice 1.
 
 ```bash
 git add docs/superpowers/notes
-git commit -m "docs: biên bản nghiệm thu lát 1
+git commit -m "docs: slice 1 acceptance record
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```

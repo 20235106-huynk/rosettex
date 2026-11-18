@@ -1,101 +1,101 @@
-# Spec lát 1: `rosettex` — luồng đầu-cuối cho PDF có lớp chữ
+# Slice 1 spec: `rosettex` — end-to-end flow for PDFs with a text layer
 
-Ngày: 2026-11-18 · Trạng thái: **chờ người dùng duyệt** · Spec gốc: `2026-11-18-rosettex-design.md` (gọi tắt **SG**)
+Date: 2026-11-18 · Status: **awaiting user approval** · Base spec: `2026-11-18-rosettex-design.md` (abbreviated **SG**)
 
-> Lát này hiện thực một phần của SG. Chỗ nào lát 1 không nói thì SG quyết định. Chỗ nào lát 1 cố ý làm khác hoặc cụ thể hơn SG thì ghi rõ "≠ SG" hoặc "cụ thể hóa SG".
+> This slice implements part of the SG. Where slice 1 is silent, the SG decides. Where slice 1 deliberately differs from the SG or is more specific, it says "≠ SG" or "refines SG".
 
-## 1. Mục tiêu của lát
+## 1. Goal of the slice
 
-Một agent trong **bất kỳ harness nào có shell và đọc/ghi file**, trên **Linux, macOS hoặc Windows**, nhận một câu lệnh "dịch bài báo X sang tiếng Việt, lưu ở Y" và trả về PDF tiếng Việt cho **bài báo có lớp chữ**. PDF đầu ra có công thức và bảng là ký tự thật, liên kết nội bộ bấm được, và qua được kiểm tra sau dựng (SG 11.3).
+An agent in **any harness that has a shell and file read/write**, on **Linux, macOS or Windows**, receives a command such as "`Dịch bài báo X sang tiếng Việt, lưu ở Y`" (translate paper X into Vietnamese, save it at Y) and returns a Vietnamese PDF for a **paper with a text layer**. The output PDF has real characters for formulas and tables, clickable internal links, and passes the post-build checks (SG 11.3).
 
-**Thành công khi:**
-1. Hai bài mẫu `tests/fixtures/papers/short.pdf` và `long.pdf` (nguồn `.tex` nằm cùng thư mục) đi hết luồng `extract → terms → next/accept → validate → render` mà không cần sửa tay. Có thể chạy tự động với một "người dịch giả" trong kiểm thử, hoặc chạy bởi agent thật.
-2. Agent thật (Claude Code) dịch trọn `short.pdf` chỉ từ một câu lệnh, chỉ dựa vào hướng dẫn in ra bởi `rosettex guide`.
-3. Kiểm thử đơn vị và kiểm thử dựng PDF (không cần MinerU) chạy xanh trên Linux, macOS và Windows.
-4. Đo được mục 7 của SG 16: tỉ lệ lô bị `accept` từ chối ở lần nộp đầu, trên `long.pdf`.
+**Success when:**
+1. The two sample papers `tests/fixtures/papers/short.pdf` and `long.pdf` (the `.tex` sources sit in the same directory) go through the whole `extract → terms → next/accept → validate → render` flow with no manual fixes. This can run automatically with a "fake translator" in tests, or be run by a real agent.
+2. A real agent (Claude Code) translates `short.pdf` in full from a single command, relying only on the guide printed by `rosettex guide`.
+3. Unit tests and PDF-build tests (no MinerU needed) pass on Linux, macOS and Windows.
+4. SG 16 §7 is measured: the rate of batches rejected by `accept` on first submission, on `long.pdf`.
 
-## 2. Phạm vi
+## 2. Scope
 
-**Trong lát 1:**
+**In slice 1:**
 - `extract`, `status`, `terms`, `next`, `accept`, `validate`, `render`, `guide`, `clean`.
-- Bộ chuyển đổi MinerU (`docvortex.middle 2.0`, đầu ra zip) → `document.json`.
-- Gộp đoạn, placeholder, liên kết nội bộ, danh sách giữ nguyên tự động, chữ trong ô bảng.
-- Phân tích bảng HTML → `tabular`. Phương án cuối (SG 10) cho công thức/bảng không biên dịch được.
-- Gói ngôn ngữ `vi` và gói `default`.
-- Giao thức một nguồn → `rosettex guide`, `SKILL.md`, `AGENTS.md`.
+- The MinerU adapter (`docvortex.middle 2.0`, zip output) → `document.json`.
+- Paragraph merging, placeholders, internal links, automatic keep-as-is lists, text in table cells.
+- HTML table parsing → `tabular`. The last-resort fallback (SG 10) for formulas/tables that do not compile.
+- The `vi` language pack and the `default` pack.
+- A single-source protocol → `rosettex guide`, `SKILL.md`, `AGENTS.md`.
 
-**Ngoài lát 1** (để các lát sau; lát 1 phải để sẵn chỗ nối nhưng không làm trước):
-- `review` (lát 2).
-- `setup`, `doctor`, tự tải mô hình/Tectonic/font, `install-skill`, tự quay về CPU khi GPU lỗi (lát 3).
-- Trang scan và OCR (lát 4).
-- HTML (giai đoạn 2).
+**Outside slice 1** (left for later slices; slice 1 must leave a place to hook them in but not build them ahead of time):
+- `review` (slice 2).
+- `setup`, `doctor`, auto-download of models/Tectonic/fonts, `install-skill`, automatic fallback to CPU when the GPU fails (slice 3).
+- Scanned pages and OCR (slice 4).
+- HTML (phase 2).
 
-**Điều kiện tiên quyết** (lát 1 không tự cài; thiếu thì báo lỗi rõ ràng và nói cách cài thủ công):
+**Prerequisites** (slice 1 does not install them itself; if missing it reports a clear error and says how to install manually):
 
-| Thứ cần | Tìm theo thứ tự |
+| Needed | Looked up in this order |
 |---|---|
-| MinerU 4.x | biến `ROSETTEX_MINERU` (đường dẫn tới `mineru-kit`), `~/.rosettex/mineru-venv/{bin,Scripts}/mineru-kit`, `mineru-kit` trên `PATH` |
-| Mô hình của tier đã chọn | `mineru-kit models verify --tier <tier>` đạt |
-| LaTeX | biến `ROSETTEX_TEX`, `~/.rosettex/bin/tectonic[.exe]`, `tectonic` trên `PATH`, `xelatex` trên `PATH` |
+| MinerU 4.x | the `ROSETTEX_MINERU` variable (path to `mineru-kit`), `~/.rosettex/mineru-venv/{bin,Scripts}/mineru-kit`, `mineru-kit` on `PATH` |
+| Models of the chosen tier | `mineru-kit models verify --tier <tier>` passes |
+| LaTeX | the `ROSETTEX_TEX` variable, `~/.rosettex/bin/tectonic[.exe]`, `tectonic` on `PATH`, `xelatex` on `PATH` |
 
-Biến `ROSETTEX_*` là thứ **người dùng** đặt một lần khi cài, không phải agent đặt khi chạy, nên không vi phạm SG 3.1.
+The `ROSETTEX_*` variables are set **by the user** once at install time, not by the agent at run time, so they do not violate SG 3.1.
 
-## 3. Ràng buộc đa nền tảng áp dụng ở lát này
+## 3. Cross-platform constraints applied in this slice
 
-Toàn bộ SG 3.1 áp dụng. Cụ thể cho lát 1:
+All of SG 3.1 applies. Specifically for slice 1:
 
-- **Phụ thuộc runtime:** chỉ `pypdfium2`. Thư viện chuẩn lo phần còn lại: `argparse`, `json`, `html.parser`, `unicodedata`, `subprocess`, `zipfile`, `re`, `pathlib`. Không dùng PyMuPDF (AGPL). `pypdfium2` dùng để đếm trang, trích chữ từ PDF đầu ra cho kiểm tra sau dựng, và kết xuất ảnh trang cho `next`.
-- **Python:** `>=3.11`. Cài bằng `uv tool install` hoặc `pipx install`, hoặc chạy `python -m rosettex` từ mã nguồn.
-- **Chạy nền:** `rosettex extract` và `rosettex render` tự sinh tiến trình con tách rời (SG 3.1) rồi trả về ngay. Tiến trình con ghi nhịp tim mỗi ≤ 10 giây. `status` coi tác vụ là **chết** khi nhịp tim cũ hơn 60 giây và trạng thái chưa là `done`/`failed`. Cờ `--foreground` chạy đồng bộ, dùng cho kiểm thử và gỡ lỗi. `status` **chỉ đọc**, không ghi file nào. Bộ đếm `retries` trong `progress.json` tăng khi tiến trình chạy tiếp thật sự khởi động sau một lần chết; tác vụ chết lần hai, hoặc lỗi không lường trước trong tiến trình con, thì `status` trả `next_action: null` kèm `error` và đường dẫn log (agent báo người dùng rồi dừng). Mỗi lần gọi MinerU hoặc TeX có giới hạn tổng thời gian (MinerU: 900 giây cộng 120 giây mỗi trang của nhóm; TeX: 300 giây mỗi lần chạy; nhân với biến môi trường `ROSETTEX_TIMEOUT_SCALE`). Quá hạn thì tiến trình con bị giết và tác vụ chuyển sang `failed`.
-- **Gọi MinerU và LaTeX:** chép PDF nguồn vào `work/src.pdf` (tên ASCII), chạy với `cwd=work/…` và tên file tương đối. Truyền cấu hình MinerU qua biến môi trường của tiến trình con (SG 8.1), không đọc hay ghi `~/.mineru/config.yaml`.
+- **Runtime dependencies:** only `pypdfium2`. The standard library handles the rest: `argparse`, `json`, `html.parser`, `unicodedata`, `subprocess`, `zipfile`, `re`, `pathlib`. No PyMuPDF (AGPL). `pypdfium2` is used to count pages, extract text from the output PDF for the post-build check, and render page images for `next`.
+- **Python:** `>=3.11`. Install with `uv tool install` or `pipx install`, or run `python -m rosettex` from source.
+- **Background running:** `rosettex extract` and `rosettex render` spawn a detached child process (SG 3.1) and return immediately. The child writes a heartbeat at least every 10 seconds. `status` treats a task as **dead** when the heartbeat is older than 60 seconds and the state is not yet `done`/`failed`. The `--foreground` flag runs synchronously, for tests and debugging. `status` is **read-only** and writes no file. The `retries` counter in `progress.json` is incremented when a resumed process actually starts after a death; if the task dies a second time, or the child hits an unexpected error, `status` returns `next_action: null` with `error` and the log path (the agent tells the user and stops). Each MinerU or TeX call has a total time limit (MinerU: 900 seconds plus 120 seconds per page of the group; TeX: 300 seconds per run; multiplied by the `ROSETTEX_TIMEOUT_SCALE` environment variable). When the limit is exceeded the child process is killed and the task moves to `failed`.
+- **Calling MinerU and LaTeX:** copy the source PDF to `work/src.pdf` (ASCII name), run with `cwd=work/…` and relative file names. Pass MinerU configuration through the child process's environment variables (SG 8.1); do not read or write `~/.mineru/config.yaml`.
 
-## 4. Thư mục làm việc
+## 4. Working directory
 
-Mặc định `<thư-mục-kết-quả>/.rosettex/<tên-gốc>.<mã-ngôn-ngữ>/` (có mã ngôn ngữ để dịch cùng một PDF sang nhiều ngôn ngữ không dùng chung thư mục), đổi bằng `-o`. `manifest.json` mang dấu `"schema": "rosettex.work/1"`; `clean`, `extract`, `status` và `render` chỉ nhận thư mục có manifest hợp lệ. `extract` từ chối (mã 2) thư mục đã có nội dung mà không phải thư mục làm việc của rosettex, và từ chối thư mục làm việc có `--lang` khác với manifest. Thư mục rỗng hoặc chưa có thì tự tạo. Thư mục chưa có manifest chỉ được nhận lại (và `clean` chỉ dọn) khi có `src.pdf` và mọi mục đều thuộc rosettex hoặc là file tạm `.*.tmp`: đó là dấu vết của một lần `extract` bị ngắt. `extract` kiểm tra PDF (đọc được số trang) trước khi tạo thư mục, nên PDF hỏng hoặc có mật khẩu không để lại thư mục nào:
+Default `<output-dir>/.rosettex/<base-name>.<lang-code>/` (it includes the language code so that translating the same PDF into several languages does not share a directory), changed with `-o`. `manifest.json` carries the marker `"schema": "rosettex.work/1"`; `clean`, `extract`, `status` and `render` accept only directories with a valid manifest. `extract` refuses (exit code 2) a directory that already has content but is not a rosettex working directory, and refuses a working directory whose `--lang` differs from the manifest. An empty or missing directory is created. A directory without a manifest is accepted again (and `clean` only cleans it) only when it has `src.pdf` and every entry either belongs to rosettex or is a `.*.tmp` temp file: that is the trace of an interrupted `extract`. `extract` checks the PDF (the page count must be readable) before creating the directory, so a corrupt or password-protected PDF leaves no directory behind:
 
 ```
-src.pdf                  bản sao PDF nguồn
-manifest.json            trạng thái tổng (mục 5)
-progress.json            tác vụ nền đang chạy: lệnh, pid, nhịp tim, bước, n/tổng
-logs/                    stdout/stderr của MinerU, LaTeX
-mineru/g001/…            kết quả zip đã giải nén của từng nhóm trang
-pages/p001.png           ảnh từng trang (150 dpi) cho agent xem
-document.json            định dạng trung gian (mục 6)
-batches/b001.json        lô dịch (mục 7)
-batches/b001.vi.json     bản dịch đã được accept
+src.pdf                  copy of the source PDF
+manifest.json            overall state (§5)
+progress.json            running background task: command, pid, heartbeat, step, n/total
+logs/                    stdout/stderr of MinerU, LaTeX
+mineru/g001/…            unpacked zip result of each page group
+pages/p001.png           image of each page (150 dpi) for the agent to look at
+document.json            intermediate format (§6)
+batches/b001.json        translation batch (§7)
+batches/b001.vi.json     accepted translation
 terms.json
 out/main.tex, out/*.log, out/assets/
 report.json
 ```
 
-**Quy tắc ghi:** mỗi file chỉ do **một** lệnh ghi. Ghi luôn qua file tạm rồi `os.replace`. Lô đã dịch là file riêng (`bNNN.<lang>.json`), nên nhiều subagent `accept` song song không tranh nhau. `manifest.json` chỉ được ghi bởi `extract` và `render`. `status` tổng hợp tình trạng lô bằng cách liệt kê thư mục `batches/`, và không ghi file nào.
+**Write rule:** each file is written by **one** command only. Always write through a temp file then `os.replace`. A translated batch is its own file (`bNNN.<lang>.json`), so several `accept` subagents in parallel do not contend. `manifest.json` is written only by `extract` and `render`. `status` summarizes batch state by listing the `batches/` directory, and writes no file.
 
-## 5. Lệnh
+## 5. Commands
 
-Mọi lệnh nhận `--json`. Mã thoát: `0` là thành công; `1` là lỗi kiểm tra (danh sách lỗi theo `id` nằm trong JSON); `2` là lỗi sử dụng hoặc môi trường (thiếu MinerU, thiếu LaTeX, sai đường dẫn).
+Every command accepts `--json`. Exit codes: `0` is success; `1` is a check failure (the list of errors by `id` is in the JSON); `2` is a usage or environment error (MinerU missing, LaTeX missing, wrong path).
 
-| Lệnh | Việc làm ở lát 1 |
+| Command | What it does in slice 1 |
 |---|---|
-| `rosettex guide [--lang vi]` | In giao thức cho agent (mục 10) |
-| `rosettex extract <pdf> --lang <mã> -o <work> [--tier standard\|basic] [--pages-per-group N] [--foreground]` | Mục 6, mục 7. Idempotent: bỏ qua nhóm trang đã có `mineru/gNNN/.done` |
-| `rosettex status <work> [--json]` | Bước hiện tại, tiến độ, tác vụ chết hay không, và **`next_action`**: một lệnh `rosettex …` cụ thể agent cần chạy tiếp |
-| `rosettex terms <work> --file <terms.json>` | Kiểm tra cấu trúc rồi ghi `terms.json` |
-| `rosettex next <work> [--json]` | Gói dịch cho lô chưa có bản dịch, theo thứ tự lô (mục 7.3). Hết lô thì trả `{"done": true}` |
-| `rosettex accept <work> --batch <id> --file <f>` | Mục 8. Đạt thì ghi `bNNN.<lang>.json`; không đạt thì mã thoát 1, kèm lỗi theo `id` đoạn |
-| `rosettex validate <work>` | Mục 8, toàn bài |
-| `rosettex render <work> --out <đường-dẫn> [--overwrite] [--foreground]` | Mục 9. Đích đã tồn tại mà không có `--overwrite` thì mã thoát 2, và giao thức yêu cầu agent hỏi người dùng |
-| `rosettex clean <work>` | Chỉ xóa các mục do rosettex tạo (danh sách `OWNED` trong `workspace.py`, cộng file tạm `.*.tmp`); xóa `manifest.json` sau cùng; chỉ gỡ thư mục khi nó đã rỗng, còn file của người dùng thì giữ lại và liệt kê trong `kept` |
+| `rosettex guide [--lang vi]` | Prints the protocol for the agent (§10) |
+| `rosettex extract <pdf> --lang <code> -o <work> [--tier standard\|basic] [--pages-per-group N] [--foreground]` | §6, §7. Idempotent: skips page groups that already have `mineru/gNNN/.done` |
+| `rosettex status <work> [--json]` | Current step, progress, whether the task is dead, and **`next_action`**: one concrete `rosettex …` command the agent should run next |
+| `rosettex terms <work> --file <terms.json>` | Validates the structure then writes `terms.json` |
+| `rosettex next <work> [--json]` | The translation package for a batch with no translation yet, in batch order (§7.3). When no batches remain it returns `{"done": true}` |
+| `rosettex accept <work> --batch <id> --file <f>` | §8. On success writes `bNNN.<lang>.json`; otherwise exit code 1, with errors by paragraph `id` |
+| `rosettex validate <work>` | §8, whole paper |
+| `rosettex render <work> --out <path> [--overwrite] [--foreground]` | §9. If the destination exists and there is no `--overwrite`, exit code 2, and the protocol tells the agent to ask the user |
+| `rosettex clean <work>` | Deletes only items created by rosettex (the `OWNED` list in `workspace.py`, plus `.*.tmp` temp files); deletes `manifest.json` last; removes the directory only when it is empty, while user files are kept and listed in `kept` |
 
-**Tier mặc định:** `standard` (SG 8.3 đã sửa). Lát 1 chưa có `doctor`, nên `extract` hạ xuống `basic` theo quy tắc của SG 8.3, đọc RAM khả dụng bằng thư viện chuẩn trên từng HĐH. Nếu không đọc được RAM thì giữ `standard`. Mô hình của tier chưa đạt `verify` thì mã thoát 2, kèm lệnh tải thủ công.
+**Default tier:** `standard` (SG 8.3 as amended). Slice 1 has no `doctor`, so `extract` drops to `basic` according to the rule in SG 8.3, reading available RAM with the standard library on each OS. If RAM cannot be read, it stays at `standard`. If the tier's models have not passed `verify`, exit code 2, with the manual download command.
 
-**Nhóm trang:** mặc định 5 trang (khoảng 90 giây/nhóm ở `standard` trên CPU, theo SG 4.1). Nhóm lỗi thì thử lại một lần. Lỗi lần hai thì đánh dấu `failed` trong `progress.json`, và `status` đề xuất `extract --tier basic` (đã ở `basic` thì dừng với `next_action: null`). Nhóm bị quá hạn (xem mục 3) không được thử lại. Nội dung MinerU trả về mà bộ chuyển đổi không hiểu (loại khối, span hoặc phần lạ) được ghi vào `document.json` ở `source.dropped` và đếm trong `report.json`, để agent báo người dùng; trang số, đầu trang và chân trang là nhiễu có chủ ý nên không ghi.
+**Page groups:** default 5 pages (about 90 seconds per group at `standard` on CPU, per SG 4.1). A failed group is retried once. On a second failure it is marked `failed` in `progress.json`, and `status` suggests `extract --tier basic` (if already at `basic`, it stops with `next_action: null`). A group that timed out (see §3) is not retried. Content returned by MinerU that the adapter does not understand (unknown block types, spans or parts) is written to `document.json` under `source.dropped` and counted in `report.json`, so the agent can tell the user; page numbers, headers and footers are deliberate noise and are not recorded.
 
 ## 6. `extract`: MinerU → `document.json`
 
-### 6.1 Gọi MinerU
-`mineru-kit parse src.pdf -o mineru/gNNN --format zip --tier <tier> --pages <a-b>`, sau đó giải nén. Phải kiểm tra trong kế hoạch: `page_idx` trong kết quả của một nhóm là chỉ số tuyệt đối hay tương đối. Bộ chuyển đổi chuẩn hóa về **số trang tuyệt đối, đếm từ 1**.
+### 6.1 Calling MinerU
+`mineru-kit parse src.pdf -o mineru/gNNN --format zip --tier <tier> --pages <a-b>`, then unzip. The plan must verify whether `page_idx` in a group's result is an absolute or a relative index. The adapter normalizes to **absolute page numbers, counted from 1**.
 
-### 6.2 Định dạng trung gian (`document.json`, `schema: "rosettex.document/1"`)
+### 6.2 Intermediate format (`document.json`, `schema: "rosettex.document/1"`)
 ```json
 {"source": {"pages": 20, "page_size_pt": [[612,792], …], "columns": 2, "parser": "mineru-4.2.3/standard"},
  "blocks": [
@@ -110,31 +110,31 @@ Mọi lệnh nhận `--json`. Mã thoát: `0` là thành công; `1` là lỗi ki
   {"id": "p1b22", "kind": "footnote", …}, {"id": "p9b40", "kind": "reference", "key": "1", …}
  ]}
 ```
-- `kind` ánh xạ từ loại khối MinerU: `doc_title`/`paragraph_title` → `heading`; `text` → `paragraph`; `equation` → `equation`; `table` → `table`; `chart`/`image` → `figure`; `page_footnote` → `footnote`; `ref_text` → `reference`. Bỏ `page_number`, `header`, `footer`.
-- **`role`** đánh dấu khối giữ nguyên tự động (SG 9.6): `authors` (khối chữ ngắn giữa tiêu đề và Abstract trên trang 1), `affiliation`, `email`, `reference`.
-- **Số cột:** đếm khối `paragraph` có bbox nằm gọn ở nửa trái hoặc nửa phải trang. Nếu ≥ 60% khối như vậy thì `columns: 2`. Khối rộng quá 60% chiều ngang trang thì `wide: true`.
-- **Chuẩn hóa LaTeX** (SG 9.10): chỉ gộp khoảng trắng giữa chữ số và giữa các chữ cái trong `\operatorname{…}`/`\mathrm{…}`. Không đổi ký hiệu.
-- **Bảng:** `html.parser` đọc `<tr>/<td rowspan colspan>` thành `cells`. Giá trị ô thuần số (sau khi bỏ khoảng trắng) không vào lô dịch.
+- `kind` is mapped from MinerU block types: `doc_title`/`paragraph_title` → `heading`; `text` → `paragraph`; `equation` → `equation`; `table` → `table`; `chart`/`image` → `figure`; `page_footnote` → `footnote`; `ref_text` → `reference`. `page_number`, `header`, `footer` are dropped.
+- **`role`** marks blocks kept as-is automatically (SG 9.6): `authors` (short text blocks between the title and the Abstract on page 1), `affiliation`, `email`, `reference`.
+- **Column count:** count `paragraph` blocks whose bbox lies entirely in the left or right half of the page. If ≥ 60% of blocks are like that, then `columns: 2`. A block wider than 60% of the page width gets `wide: true`.
+- **LaTeX normalization** (SG 9.10): only merge whitespace between digits and between letters inside `\operatorname{…}`/`\mathrm{…}`. Symbols are not changed.
+- **Tables:** `html.parser` reads `<tr>/<td rowspan colspan>` into `cells`. Cells whose value is purely numeric (after stripping whitespace) do not enter the translation batches.
 
-### 6.3 Gộp đoạn (SG 9.4)
-Khối `paragraph` A nối với khối `paragraph` B kế tiếp theo thứ tự đọc (kể cả khi B ở cột hoặc trang sau, bỏ qua các khối float như hình, bảng, phương trình, chú thích chân trang nằm giữa) khi: A không kết thúc bằng `. ! ? :` (sau khi bỏ khoảng trắng), **và** B bắt đầu bằng chữ thường hoặc span `math`. Đoạn gộp lấy `id` của A. `continues` lưu danh sách khối gốc để ánh xạ lại vị trí.
+### 6.3 Paragraph merging (SG 9.4)
+A `paragraph` block A joins the next `paragraph` block B in reading order (even when B is in the next column or page, skipping float blocks such as figures, tables, equations and footnotes in between) when: A does not end with `. ! ? :` (after stripping whitespace), **and** B starts with a lowercase letter or a `math` span. The merged paragraph takes A's `id`. `continues` stores the list of original blocks for mapping positions back.
 
-### 6.4 Placeholder và liên kết (SG 9.5, 9.8)
-Placeholder dạng `⟦<loại><số>⟧`, đánh số riêng trong từng đoạn:
+### 6.4 Placeholders and links (SG 9.5, 9.8)
+Placeholders have the form `⟦<kind><number>⟧`, numbered separately within each paragraph:
 
-| Loại | Nguồn | Khi dựng thành |
+| Kind | Source | Built as |
 |---|---|---|
-| `m` | span `math` | `$…$` |
-| `c` | trích dẫn `[1]`, `[1, 2]`, `[3–5]` khớp khóa có thật trong `reference` | `\cite{ref1,ref2}` |
-| `r` | "Figure 3", "Fig. 3", "Table 2", "Section 4", "Sec. 4", "Eq. (5)", "Equation 5", "(5)" ngay sau "Eq."; tìm cả trong span `math` (SG 9.5 đã sửa) | `\ref`/`\eqref` tới nhãn tương ứng; chữ "Figure/Hình" do agent dịch, chỉ con số là placeholder |
-| `u` | URL, email | `\url{…}` |
+| `m` | `math` span | `$…$` |
+| `c` | citations `[1]`, `[1, 2]`, `[3–5]` matching real keys in `reference` | `\cite{ref1,ref2}` |
+| `r` | "Figure 3", "Fig. 3", "Table 2", "Section 4", "Sec. 4", "Eq. (5)", "Equation 5", "(5)" right after "Eq."; also searched inside `math` spans (SG 9.5 as amended) | `\ref`/`\eqref` to the corresponding label; the word "Figure/Hình" is translated by the agent, only the number is the placeholder |
+| `u` | URLs, emails | `\url{…}` |
 
-**≠ SG 9.8:** không có placeholder `n` cho số. Số nằm nguyên trong văn bản để agent dịch tự nhiên, và được kiểm bằng đa tập (mục 8). Ngoài ra, một số có đơn vị như "4.5 million" thường phải đổi thứ tự hoặc đổi cách viết khi dịch, nên đóng khung nó thành placeholder sẽ làm câu dịch gượng.
+**≠ SG 9.8:** there is no `n` placeholder for numbers. Numbers stay in the text so the agent translates naturally, and they are checked as a multiset (§8). Also, a number with a unit such as "4.5 million" often has to change order or phrasing in translation, so wrapping it as a placeholder would make the translated sentence awkward.
 
-### 6.5 Lô dịch
-- Đơn vị dịch là **đoạn** (sau khi gộp), tiêu đề mục, chú thích hình/bảng, chú thích chân trang, và ô bảng có chữ. Không bao giờ cắt một đoạn ra hai lô.
-- Mỗi lô khoảng ≤ 3000 ký tự nguồn. Ô của một bảng luôn nằm cùng lô.
-- Khối có `role` giữ nguyên không vào lô (giữ nguyên văn khi dựng).
+### 6.5 Translation batches
+- The translation unit is the **paragraph** (after merging), section headings, figure/table captions, footnotes, and table cells that contain text. A paragraph is never split across two batches.
+- Each batch is about ≤ 3000 source characters. The cells of one table always sit in the same batch.
+- Blocks with a keep-as-is `role` do not enter batches (kept verbatim at build time).
 - `batches/bNNN.json`:
 ```json
 {"batch": "b003", "section": "2 Method", "items": [
@@ -142,141 +142,141 @@ Placeholder dạng `⟦<loại><số>⟧`, đánh số riêng trong từng đo�
    "placeholders": {"m1": "x = (x_1,\\dots,x_n)", "c1": "[1, 2]"}}]}
 ```
 
-### 6.6 Gắn cờ (SG 9.9, phần làm được không cần `review`)
-Ghi vào `flagged.json` để báo cáo cuối liệt kê:
-- công thức chứa `$`, hoặc chứa chữ thường dạng `e.g.`/`i.e.` trong `\mathrm`;
-- công thức có dấu phụ (`\dot`, `\ddot`, `\hat`, `\tilde`, `\bar`) mà lớp chữ PDF trong bbox của khối không có ký tự dấu tương ứng (đọc lớp chữ bằng `pypdfium2`);
-- công thức không biên dịch được (phát hiện ở `render`).
+### 6.6 Flagging (SG 9.9, the part doable without `review`)
+Written to `flagged.json` so the final report can list them:
+- formulas containing `$`, or containing lowercase text such as `e.g.`/`i.e.` inside `\mathrm`;
+- formulas with diacritics (`\dot`, `\ddot`, `\hat`, `\tilde`, `\bar`) where the PDF text layer inside the block's bbox has no corresponding accent character (the text layer is read with `pypdfium2`);
+- formulas that do not compile (detected at `render`).
 
-Lát 1 chỉ **báo**, không sửa. Sửa là việc của lát 2.
+Slice 1 only **reports**, it does not fix. Fixing is slice 2's job.
 
-## 7. `terms` và `next`
+## 7. `terms` and `next`
 
 ### 7.1 `terms.json`
 ```json
-{"topic": "một câu", "terms": [{"src": "attention", "dst": "cơ chế chú ý"}],
+{"topic": "one sentence", "terms": [{"src": "attention", "dst": "cơ chế chú ý"}],
  "keep": ["Transformer", "BLEU"], "abbreviations": [{"abbr": "FFN", "expansion": "feed-forward network"}]}
 ```
-`rosettex terms` từ chối file sai cấu trúc, `src` trùng lặp, hoặc chuỗi rỗng.
+`rosettex terms` rejects a file with a wrong structure, duplicate `src`, or empty strings.
 
-### 7.2 Thứ tự
-`next` yêu cầu `terms.json` đã có. Nếu chưa có, nó trả lỗi kèm `next_action` gợi ý agent đọc tiêu đề, tóm tắt và tiêu đề mục. Phần này lấy được qua `rosettex next <work> --outline`, lệnh in tiêu đề, tóm tắt và cây mục.
+### 7.2 Order
+`next` requires `terms.json` to exist. If it does not, it returns an error with a `next_action` suggesting the agent read the title, abstract and section headings. That part is obtained with `rosettex next <work> --outline`, a command that prints the title, abstract and section tree.
 
-### 7.3 Gói trả về của `next --json`
-Gồm: `batch` (nội dung lô), `topic`, `terms`, `section`, `previous` (đoạn cuối của lô trước, cả bản gốc và bản dịch, nếu lô trước đã có), `page_images` (đường dẫn tuyệt đối tới ảnh các trang có trong lô), `rules` (quy tắc dịch rút gọn từ gói ngôn ngữ), `submit` (lệnh `accept` chính xác để nộp).
+### 7.3 Package returned by `next --json`
+Contains: `batch` (the batch content), `topic`, `terms`, `section`, `previous` (the last paragraph of the previous batch, both original and translation, if the previous batch already has one), `page_images` (absolute paths to the images of the pages present in the batch), `rules` (abridged translation rules from the language pack), `submit` (the exact `accept` command to submit with).
 
-Nhiều subagent có thể gọi `next --batch <id>` để lấy một lô cụ thể. `next` không có `--batch` trả về lô **đầu tiên chưa có bản dịch**. Lát 1 không "giữ chỗ" lô: điều phối song song là việc của agent chính.
+Several subagents can call `next --batch <id>` to get a specific batch. `next` without `--batch` returns the **first batch with no translation**. Slice 1 does not "reserve" batches: parallel orchestration is the main agent's job.
 
-### 7.4 File nộp cho `accept`
-JSON `{"<id>": "<bản dịch>", …}`, chứa đủ mọi `id` của lô.
+### 7.4 File submitted to `accept`
+JSON `{"<id>": "<translation>", …}`, containing every `id` of the batch.
 
-## 8. Kiểm tra (`accept` từng lô, `validate` toàn bài)
+## 8. Checks (`accept` per batch, `validate` for the whole paper)
 
-Mọi so sánh chạy trên văn bản đã chuẩn hóa NFC. **Lỗi** thì từ chối; **cảnh báo** thì vẫn ghi, kèm cảnh báo trong JSON.
+All comparisons run on NFC-normalized text. An **error** causes rejection; a **warning** is still written, with the warning in the JSON.
 
-| Kiểm tra | Mức | Ghi chú |
+| Check | Level | Notes |
 |---|---|---|
-| Thiếu hoặc thừa `id`; đoạn rỗng | lỗi | |
-| Placeholder thiếu, thừa hoặc bị sửa (so theo **đa tập**) | lỗi | **≠ SG cũ:** đổi thứ tự được phép (SG 11.2 đã sửa, chờ duyệt) |
-| Số của bản gốc (ngoài placeholder) thiếu hoặc đổi giá trị (so theo **đa tập**) | lỗi | **≠ SG cũ:** được thêm số. Chuẩn hóa số trước khi so: `1,000` = `1000`; giữ dấu chấm thập phân, nên `0,05` thay cho `0.05` là **lỗi** (SG quyết định 15) |
-| Nghi chưa dịch (gói ngôn ngữ) | lỗi | Bỏ qua đoạn ≤ 40 ký tự chữ, và bỏ qua `keep`/tên riêng khi tính |
-| Ký tự ngoài bảng chữ cho phép | lỗi | Bảng chữ của `vi`: Latin cơ bản, 134 chữ có dấu, dấu câu Unicode thông dụng, Hy Lạp, ký hiệu toán và đơn vị |
-| Tỉ lệ độ dài bản dịch / bản gốc ngoài [0,7; 2,0] | cảnh báo | Ngưỡng nằm trong gói ngôn ngữ |
-| Thuật ngữ `src` xuất hiện trong bản gốc mà `dst` không có trong bản dịch | cảnh báo | |
+| Missing or extra `id`; empty paragraph | error | |
+| Placeholder missing, extra or modified (compared as a **multiset**) | error | **≠ earlier SG:** reordering is allowed (SG 11.2 as amended, awaiting approval) |
+| A number of the original (outside placeholders) missing or changed in value (compared as a **multiset**) | error | **≠ earlier SG:** adding numbers is allowed. Normalize numbers before comparing: `1,000` = `1000`; the decimal point is kept, so `0,05` in place of `0.05` is an **error** (SG decision 15) |
+| Suspected untranslated (language pack) | error | Skip paragraphs ≤ 40 letter characters, and ignore `keep`/proper names when computing |
+| Characters outside the allowed alphabet | error | The `vi` alphabet: basic Latin, 134 accented letters, common Unicode punctuation, Greek, math symbols and units |
+| Translation/original length ratio outside [0.7, 2.0] | warning | The thresholds live in the language pack |
+| A term `src` appears in the original but its `dst` is not in the translation | warning | |
 
-`validate` chạy lại toàn bộ kiểm tra trên mọi lô. Ngoài ra nó kiểm tra: mọi lô đều đã có bản dịch; mọi nhãn mà `r`/`c` trỏ tới đều tồn tại; số hình, bảng, phương trình có số và tài liệu tham khảo trong `document.json` khớp với số đếm từ MinerU.
+`validate` reruns all checks on every batch. In addition it checks: every batch has a translation; every label that `r`/`c` point to exists; the numbers of figures, tables, numbered equations and references in `document.json` match the counts from MinerU.
 
-**Bộ phát hiện "chưa dịch" của `vi`** (SG 11.4): một đoạn bị coi là nghi chưa dịch khi trùng nguyên văn bản gốc, **hoặc** khi thỏa cả hai điều kiện sau:
-- tỉ lệ ký tự có dấu riêng của tiếng Việt < 3% số chữ cái;
-- tỉ lệ từ chức năng tiếng Việt < 5% số từ.
+**The `vi` "untranslated" detector** (SG 11.4): a paragraph is considered suspected-untranslated when it matches the original text exactly, **or** when it satisfies both of the following conditions:
+- the ratio of Vietnamese-specific accented characters < 3% of the letters;
+- the ratio of Vietnamese function words < 5% of the words.
 
-Ngưỡng ban đầu này được chỉnh trên bản dịch thật của `long.pdf` trong kế hoạch. Có kiểm thử hồi quy: bản dịch tiếng Việt đúng phải **đạt**.
+These initial thresholds are tuned in the plan on a real translation of `long.pdf`. There is a regression test: a correct Vietnamese translation must **pass**.
 
 ## 9. `render`
 
-1. **Kiểm tra trước từng mục:** gom mọi công thức và bảng vào một file `out/probe.tex`. Trước mỗi mục ghi `\message{RX:<id>}` để xác định mục nào gây lỗi. Biên dịch file này. Gặp lỗi thì đọc `id` cuối cùng trong log, chuyển mục đó sang **phương án cuối** (SG 10: mã LaTeX gốc dạng chữ, trong khung `\fbox` có ghi "công thức chưa dựng được"), rồi lặp lại cho tới khi sạch. Tối đa N lượt, với N là số mục.
-2. **Sinh `out/main.tex`:**
-   - Lớp `article`, `twocolumn` nếu `columns: 2`.
-   - `geometry` theo khổ giấy gốc, lề lấy từ bbox nhỏ nhất và lớn nhất của các khối.
-   - `fontspec` với Termes nạp theo tên file, dự phòng Noto Serif; `unicode-math` với `latinmodern-math.otf`; `polyglossia` với `vietnamese`; `hyperref`, `booktabs`, `multirow`, `graphicx`, `url`.
-   - Escape `\ # $ % & _ { } ~ ^` trong **mọi văn bản dịch nằm ngoài placeholder**.
-   - Hình và bảng dùng float `[tbp]` đặt ngay sau đoạn chứa tham chiếu đầu tiên tới nó; nếu không có tham chiếu thì đặt theo thứ tự trong tài liệu. Dùng `figure*`/`table*` khi `wide: true`.
-   - Bảng: `tabular` với `\multirow`/`\multicolumn` theo `cells`. Bảng quá rộng thì bọc trong `\resizebox{\linewidth}{!}{…}`.
-   - Tài liệu tham khảo: `thebibliography` giữ nguyên văn, `\bibitem{refN}`.
-3. **Biên dịch:** Tectonic biên dịch một lần (nó tự chạy lại cho đủ lượt). Với `xelatex` thì chạy 2–3 lượt cho tới khi log hết "Rerun". Nếu biên dịch toàn bài vẫn lỗi, ánh xạ dòng lỗi về `id` qua chú thích `%RX:<id>` đặt trong `main.tex`, chuyển mục đó sang phương án cuối và biên dịch lại (SG 11.3).
-4. **Kiểm tra sau dựng** (SG 11.3, dùng `pypdfium2`):
-   - log không có lỗi, không có "Missing character", không có tham chiếu chưa định nghĩa;
-   - lớp chữ của PDF không chứa `??` hay `[?]`;
-   - trích chữ được và thấy ký tự của công thức;
-   - số liên kết nội bộ khớp;
-   - đủ 134 chữ có dấu nếu bài có dùng;
-   - **tỉ lệ độ dài nội dung** ≤ 1,3, tính như sau: lấy tổng chiều cao (pt) của mọi dòng chữ trong PDF đầu ra chia cho tổng chiều cao tương ứng trong PDF gốc. Cả hai đều đo bằng `pypdfium2` qua hộp bao của từng ký tự, gom theo dòng.
-5. **Ghi kết quả:** ghi `report.json` (SG 6: đường dẫn, chủ đề, thuật ngữ chính, tier, các mục ở phương án cuối kèm số trang, các mục bị gắn cờ, cảnh báo) rồi chép PDF tới `--out`.
+1. **Per-item pre-check:** gather every formula and table into one file `out/probe.tex`. Before each item write `\message{RX:<id>}` to identify which item causes an error. Compile this file. On an error, read the last `id` in the log, move that item to the **last-resort fallback** (SG 10: the raw LaTeX source as text, inside an `\fbox` box labeled "công thức chưa dựng được" ("formula could not be built")), and repeat until clean. At most N passes, where N is the number of items.
+2. **Generate `out/main.tex`:**
+   - `article` class, `twocolumn` if `columns: 2`.
+   - `geometry` per the original paper size, margins taken from the smallest and largest bbox of the blocks.
+   - `fontspec` with Termes loaded by file name, Noto Serif as fallback; `unicode-math` with `latinmodern-math.otf`; `polyglossia` with `vietnamese`; `hyperref`, `booktabs`, `multirow`, `graphicx`, `url`.
+   - Escape `\ # $ % & _ { } ~ ^` in **all translated text outside placeholders**.
+   - Figures and tables use a `[tbp]` float placed right after the paragraph containing the first reference to it; if there is no reference, place it by document order. Use `figure*`/`table*` when `wide: true`.
+   - Tables: `tabular` with `\multirow`/`\multicolumn` per `cells`. A table that is too wide is wrapped in `\resizebox{\linewidth}{!}{…}`.
+   - References: `thebibliography` kept verbatim, `\bibitem{refN}`.
+3. **Compile:** Tectonic compiles once (it reruns itself as needed). With `xelatex`, run 2-3 passes until the log has no more "Rerun". If compiling the whole paper still fails, map the error line back to an `id` via the `%RX:<id>` comments placed in `main.tex`, move that item to the last-resort fallback and recompile (SG 11.3).
+4. **Post-build check** (SG 11.3, using `pypdfium2`):
+   - the log has no errors, no "Missing character", no undefined references;
+   - the PDF text layer contains no `??` or `[?]`;
+   - text can be extracted and the formula characters are visible;
+   - the number of internal links matches;
+   - all 134 accented letters are present if the paper uses them;
+   - **content length ratio** ≤ 1.3, computed as follows: take the total height (pt) of all text lines in the output PDF divided by the corresponding total height in the original PDF. Both are measured with `pypdfium2` via the bounding box of each character, grouped by line.
+5. **Write results:** write `report.json` (SG 6: path, topic, key terms, tier, items at the last-resort fallback with page numbers, flagged items, warnings) then copy the PDF to `--out`.
 
-## 10. Giao thức cho agent (một nguồn)
+## 10. Agent protocol (single source)
 
-- Nguồn duy nhất là `rosettex/protocol/protocol.md`, có các chỗ thay thế như `{{lang_rules}}`.
-- `rosettex guide` in nội dung này ra.
-- `SKILL.md` (Claude Code) và `AGENTS.md` được **sinh lúc build** từ cùng nguồn. Bước build kiểm tra hai file sinh ra trùng với nguồn, để chúng không lệch nhau.
-- `SKILL.md` gồm frontmatter (tên, và mô tả kích hoạt bằng câu tiếng Việt và tiếng Anh) cộng một dòng: "Chạy `rosettex guide` và làm theo." Toàn văn giao thức được chèn bên dưới để không mất thêm một lượt gọi lệnh.
+- The single source is `rosettex/protocol/protocol.md`, with substitution points such as `{{lang_rules}}`.
+- `rosettex guide` prints this content.
+- `SKILL.md` (Claude Code) and `AGENTS.md` are **generated at build time** from the same source. The build step checks that the two generated files match the source, so they cannot drift apart.
+- `SKILL.md` consists of frontmatter (name, and an activation description in Vietnamese and English sentences) plus one line: "Run `rosettex guide` and follow it." The full protocol text is inserted below it so that no extra command call is lost.
 
-**Nội dung giao thức:** các bước 0–8 của SG 12, **trừ bước 1** (`setup`/`doctor`, để lát 3) và **bước 4** (`review`, để lát 2). Thêm các quy tắc:
-- chỉ chạy lệnh `rosettex …` đơn lẻ, không dùng ống dẫn;
-- sau mỗi lần bị gián đoạn, chạy `rosettex status <work> --json` rồi làm đúng `next_action`;
-- khi `status` báo tác vụ chạy nền đang chạy, gọi lại `status` sau khoảng 30–60 giây; cách chờ là việc của từng harness, giao thức không quy định.
+**Protocol content:** steps 0-8 of SG 12, **except step 1** (`setup`/`doctor`, left for slice 3) and **step 4** (`review`, left for slice 2). Plus these rules:
+- run only single `rosettex …` commands, no pipes;
+- after every interruption, run `rosettex status <work> --json` then do exactly the `next_action`;
+- when `status` reports that a background task is running, call `status` again after about 30-60 seconds; how to wait is up to each harness, the protocol does not prescribe it.
 
-**Cài thủ công ở lát 1:** README ghi cách chép `SKILL.md` vào thư mục skill của Claude Code và cách đặt `AGENTS.md`. Với harness khác, chỉ cần bảo agent "chạy `rosettex guide`".
+**Manual install in slice 1:** the README says how to copy `SKILL.md` into Claude Code's skill directory and how to place `AGENTS.md`. For other harnesses, just tell the agent "run `rosettex guide`".
 
-## 11. Cấu trúc mã
+## 11. Code structure
 
 ```
 rosettex/
-  __main__.py, cli.py        argparse, đầu ra --json UTF-8, mã thoát
-  workspace.py               đường dẫn, ghi nguyên tử, progress/nhịp tim, tách tiến trình (POSIX/Windows)
-  tools.py                   tìm mineru-kit, tectonic/xelatex; đọc RAM khả dụng
+  __main__.py, cli.py        argparse, UTF-8 --json output, exit codes
+  workspace.py               paths, atomic writes, progress/heartbeat, process detaching (POSIX/Windows)
+  tools.py                   find mineru-kit, tectonic/xelatex; read available RAM
   extract/
-    run.py                   nhóm trang, gọi mineru-kit, idempotent
+    run.py                   page groups, call mineru-kit, idempotent
     mineru_adapter.py        docvortex.middle 2.0 → document.json
     tables.py                HTML → cells
-    segment.py               gộp đoạn, role giữ nguyên, placeholder, liên kết, lô, gắn cờ
+    segment.py               paragraph merging, keep-as-is role, placeholders, links, batches, flagging
   translate.py               terms, next, accept
-  checks.py                  các kiểm tra mục 8 (dùng chung cho accept/validate)
+  checks.py                  the §8 checks (shared by accept/validate)
   render/
-    latex.py                 document + bản dịch → main.tex, escape
-    compile.py               probe, biên dịch, ánh xạ lỗi → id, phương án cuối
-    postcheck.py             kiểm tra sau dựng, report.json
+    latex.py                 document + translation → main.tex, escaping
+    compile.py               probe, compile, map errors → id, last-resort fallback
+    postcheck.py             post-build check, report.json
   langpacks/vi.json, langpacks/default.json
   protocol/protocol.md, build_protocol.py
 tests/
-  fixtures/papers/, fixtures/mineru-4.2.3-{basic,standard}/   (đã có từ spike)
+  fixtures/papers/, fixtures/mineru-4.2.3-{basic,standard}/   (already present from the spike)
   test_adapter.py, test_segment.py, test_checks.py, test_render.py, test_workspace.py, test_e2e_fake_translator.py
 ```
 
-Gói ngôn ngữ là JSON (font, ký tự kiểm tra, bảng chữ, từ chức năng, ngưỡng, nhãn) chứ không phải mã. Thêm ngôn ngữ chỉ cần thêm một file.
+A language pack is JSON (font, check characters, alphabet, function words, thresholds, labels) rather than code. Adding a language only needs adding one file.
 
-## 12. Kiểm thử
+## 12. Testing
 
-- **Đơn vị**, chạy không cần MinerU, không cần LaTeX, trên 3 HĐH:
-  - bộ chuyển đổi chạy trên fixture thật;
-  - gộp đoạn vắt qua cột và trang của `long`;
-  - placeholder và liên kết, kể cả "Eq. (1)" nằm trong `\mathrm`;
-  - bảng HTML có `rowspan`/`colspan`;
-  - `accept` từ chối: sửa số, `0.05` thành `0,05`, thiếu hoặc sửa placeholder, nộp nguyên văn tiếng Anh;
-  - `accept` chấp nhận: bản dịch tiếng Việt đúng, bản dịch có placeholder đổi thứ tự, bản dịch thêm số, bản dịch ở dạng NFD (chuẩn hóa về NFC, bản lưu luôn là NFC);
-  - escape LaTeX;
-  - tách tiến trình và phát hiện tác vụ chết bằng nhịp tim (giả lập tiến trình bị giết).
-- **Dựng PDF**, cần LaTeX, trên 3 HĐH: `render` chạy từ `document.json` của fixture cộng một "người dịch giả" (lấy bản gốc rồi thêm từ chức năng tiếng Việt và chữ có dấu). Kiểm tra: PDF ra đúng, sau dựng sạch, và một công thức hỏng có chủ ý được chuyển sang phương án cuối thay vì làm hỏng cả bản dựng.
-- **Đầu-cuối**, cần MinerU, chạy trên máy dev: `short.pdf` và `long.pdf` với người dịch giả; sau đó dịch `short.pdf` bằng agent thật (tiêu chí thành công số 2); đo tỉ lệ bị từ chối (tiêu chí số 4).
-- **CI:** ma trận GitHub Actions `ubuntu-latest`/`macos-latest`/`windows-latest`, Python 3.11 và 3.12. Bước dựng PDF tải Tectonic bản cố định có kiểm tra checksum. Thư mục dự án hiện **chưa là repo git**; khởi tạo repo là bước đầu của kế hoạch.
+- **Unit**, run without MinerU, without LaTeX, on 3 OSes:
+  - the adapter run on the real fixtures;
+  - paragraph merging across columns and pages in `long`;
+  - placeholders and links, including "Eq. (1)" inside `\mathrm`;
+  - HTML tables with `rowspan`/`colspan`;
+  - `accept` rejects: a changed number, `0.05` turned into `0,05`, a missing or modified placeholder, a submission of the unchanged English text;
+  - `accept` accepts: a correct Vietnamese translation, a translation with reordered placeholders, a translation with added numbers, a translation in NFD form (normalized to NFC, the stored copy is always NFC);
+  - LaTeX escaping;
+  - process detaching and heartbeat-based dead-task detection (simulating a killed process).
+- **PDF build**, needs LaTeX, on 3 OSes: `render` run from the fixture's `document.json` plus a "fake translator" (takes the original then adds Vietnamese function words and accented letters). Check: the output PDF is correct, the post-build check is clean, and a deliberately broken formula is moved to the last-resort fallback instead of breaking the whole build.
+- **End-to-end**, needs MinerU, run on the dev machine: `short.pdf` and `long.pdf` with the fake translator; then translate `short.pdf` with a real agent (success criterion 2); measure the rejection rate (criterion 4).
+- **CI:** a GitHub Actions matrix `ubuntu-latest`/`macos-latest`/`windows-latest`, Python 3.11 and 3.12. The PDF-build step downloads a pinned Tectonic version with a checksum check. The project directory is currently **not a git repo**; initializing the repo is the first step of the plan.
 
-## 13. Quyết định đã có trong lát này (cần người dùng duyệt)
+## 13. Decisions in this slice (need user approval)
 
-1. Phụ thuộc runtime chỉ có `pypdfium2`; không dùng PyMuPDF vì AGPL.
-2. Placeholder so theo đa tập, cho phép đổi thứ tự.
-3. Số so theo đa tập: được thêm số, không được thiếu hay đổi giá trị.
-4. Số không dùng placeholder; `n` của SG bị bỏ.
-5. Tier mặc định `standard`; nhóm 5 trang; lô ≤ 3000 ký tự.
-6. Tiến trình nền phát hiện chết bằng nhịp tim 60 giây.
-7. Giao thức một nguồn, in bằng `rosettex guide`; `SKILL.md` và `AGENTS.md` được sinh ra từ nguồn đó.
-8. Lát 1 không giữ chỗ lô cho subagent; agent chính tự phân lô.
-9. Gắn cờ công thức đáng ngờ chỉ để báo cáo; sửa là việc của lát 2.
+1. The only runtime dependency is `pypdfium2`; no PyMuPDF because of AGPL.
+2. Placeholders are compared as a multiset, allowing reordering.
+3. Numbers are compared as a multiset: adding numbers is allowed, missing or changed values are not.
+4. Numbers do not use placeholders; the SG's `n` is dropped.
+5. Default tier `standard`; 5-page groups; batches ≤ 3000 characters.
+6. Background processes are detected as dead by a 60-second heartbeat.
+7. Single-source protocol, printed by `rosettex guide`; `SKILL.md` and `AGENTS.md` are generated from that source.
+8. Slice 1 does not reserve batches for subagents; the main agent partitions batches itself.
+9. Flagging suspicious formulas is for reporting only; fixing is slice 2's job.
