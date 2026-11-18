@@ -167,3 +167,8 @@ def test_decimal_comma_languages_may_localise_numbers():
     assert missing_numbers(src, "Erreurs de 0,05 à 0,01 sur 1,000 essais et 5 000 pas.", fr) == {"1000": 1}  # reads as 1
     assert missing_numbers(src, "Erreurs de 0,5 à 0,01 sur 1 000 essais et 5 000 pas.", fr) == {"0.05": 1}
     assert missing_numbers(src, "Lỗi 0,05 đến 0,01 qua 1,000 lần và 5,000 bước.", vi) == {"0.05": 1, "0.01": 1}  # vi: as before
+
+
+def test_narrow_spaces_are_typeset_by_tex():
+    from rosettex.tex import escape_latex
+    assert escape_latex("1 000 et 5 000") == r"1\,000 et 5~000"

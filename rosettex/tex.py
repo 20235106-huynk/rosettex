@@ -5,7 +5,9 @@ import unicodedata
 from .checks import in_blocks
 
 _ESC = {"\\": r"\textbackslash{}", "{": r"\{", "}": r"\}", "#": r"\#", "$": r"\$", "%": r"\%",
-        "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
+        "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}",
+        # spaces some fonts lack (Termes has no U+202F): TeX's own spacing instead of a glyph ("1 000" in French)
+        "\u00a0": "~", "\u202f": r"\,", "\u2009": r"\,"}
 
 
 def _mathy(c: str) -> bool:
