@@ -1,6 +1,6 @@
 ---
 name: rosettex
-description: Dịch trọn bài báo khoa học PDF sang ngôn ngữ khác (mặc định tiếng Việt), giữ công thức, bảng, số liệu và trích dẫn, dựng lại PDF. Dùng khi người dùng nói "dịch bài báo", "dịch file PDF này sang…", "dịch paper", "translate this paper/PDF to…".
+description: Dịch trọn bài báo khoa học PDF sang ngôn ngữ khác (hỏi người dùng ngôn ngữ đích nếu chưa nêu), giữ công thức, bảng, số liệu và trích dẫn, dựng lại PDF. Dùng khi người dùng nói "dịch bài báo", "dịch file PDF này sang…", "dịch paper", "translate this paper/PDF to…".
 ---
 
 Chạy `rosettex guide` để xem bản mới nhất của giao thức dưới đây, rồi làm theo.
@@ -14,7 +14,7 @@ Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm
 - `next_action` là null kèm `error` → báo lỗi cho người dùng và dừng.
 
 ## 0. Trước khi chạy
-- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
+- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Không tự đoán ngôn ngữ đích (không mặc định tiếng Việt hay tiếng Anh). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
 - Không chạy được lệnh `rosettex` thì báo người dùng cài theo README của rosettex.
 
 ## 1. Tách nội dung

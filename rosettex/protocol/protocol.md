@@ -7,7 +7,7 @@ Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm
 - `next_action` là null kèm `error` → báo lỗi cho người dùng và dừng.
 
 ## 0. Trước khi chạy
-- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
+- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Không tự đoán ngôn ngữ đích (không mặc định tiếng Việt hay tiếng Anh). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
 - Không chạy được lệnh `rosettex` thì báo người dùng cài theo README của rosettex.
 
 ## 1. Tách nội dung
