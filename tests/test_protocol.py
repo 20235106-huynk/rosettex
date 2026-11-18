@@ -33,5 +33,5 @@ def test_agents_md_states_when_to_use():
 
 def test_target_language_is_asked_not_defaulted():
     from rosettex.protocol import skill_md, text
-    assert "Vietnamese by default" not in skill_md().split("---")[1] and "mặc định" not in skill_md().split("---")[1]
-    assert "Không tự đoán ngôn ngữ đích" in text("vi")
+    assert "Vietnamese by default" not in skill_md().split("---")[1] and "by default" not in skill_md().split("---")[1]
+    assert "Do not guess the target language" in text("vi")

@@ -1,4 +1,4 @@
-"""render: biên dịch thử từng mục, phương án cuối, biên dịch toàn bài, kiểm tra sau dựng, report.json."""
+"""render: trial-compile each item, last-resort fallback, compile the whole paper, post-build check, report.json."""
 from __future__ import annotations
 
 import re
@@ -30,7 +30,7 @@ def run_tex(tool, workdir: Path, name: str, on_beat=None) -> tuple[bool, str, st
             rc = run_with_heartbeat(argv, cwd=workdir, log=runf, on_beat=on_beat or (lambda: None),
                                     timeout=timeout_for(300))
         except TimeoutError as e:
-            raise RenderError(f"biên dịch {name} quá thời gian: {e}")
+            raise RenderError(f"compiling {name} timed out: {e}")
         out = runf.read_text(encoding="utf-8", errors="replace") if runf.exists() else ""
         log = logf.read_text(encoding="utf-8", errors="replace") if logf.exists() else ""
         if rc != 0:
@@ -91,10 +91,10 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     pack = load_pack(lang)
     tool = find_tex()
     if tool is None:
-        raise RenderError("không tìm thấy Tectonic hoặc XeLaTeX")
+        raise RenderError("Tectonic or XeLaTeX not found")
     out = Path(out)
     if out.exists() and not overwrite:
-        raise RenderError(f"file kết quả đã tồn tại: {out}")
+        raise RenderError(f"output file already exists: {out}")
     doc, tr = read_json(work.document), translations(work, lang)
     work.out.mkdir(parents=True, exist_ok=True)
     images = copy_assets(work, doc)
@@ -110,7 +110,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
             break
         c = culprit(log)
         if c is None or c in fb:
-            raise RenderError("biên dịch thử lỗi mà không xác định được mục: " + _tail(output + log))
+            raise RenderError("trial compile failed and the failing item could not be identified: " + _tail(output + log))
         fb.add(c)
 
     on_beat("main")
@@ -122,9 +122,9 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
             break
         c = culprit(log)
         if not c or not expand_fallback(doc, c, fb):
-            raise RenderError("biên dịch main.tex lỗi: " + _tail(output + log))
+            raise RenderError("compiling main.tex failed: " + _tail(output + log))
     else:
-        raise RenderError("quá 20 lượt sửa lỗi biên dịch main.tex")
+        raise RenderError("more than 20 repair passes compiling main.tex")
 
     on_beat("postcheck")
     pdf = work.out / "main.pdf"
@@ -134,7 +134,7 @@ def render_core(work: Work, out, *, overwrite: bool = False, on_beat=lambda step
     terms = read_json(work.terms, {})
     report = {"output": str(out), "lang": lang, "lang_tested": pack["tested"], "topic": terms.get("topic"),
               "key_terms": terms.get("terms", [])[:10], "tier": m.get("tier"), "tier_reason": m.get("tier_reason"),
-              "device": "MinerU tự chọn (lát 1 chưa ép thiết bị)", "tex": tool[0],
+              "device": "MinerU chooses (slice 1 does not force a device)", "tex": tool[0],
               "fallback": [{"id": k, "page": _page_of(k)} for k in sorted(fb)],
               "flagged": read_json(work.flagged, []), "dropped": len(doc["source"].get("dropped", [])),
               "unreviewed": True, "postcheck": pc}

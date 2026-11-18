@@ -57,7 +57,7 @@ def test_resume_redoes_only_unfinished_group(tmp_path):  # Review Focus 5
     extract_core(w, FAKE, lambda d, t: None)
     done1 = w.mineru / "g001" / ".done"
     stamp = done1.stat().st_mtime_ns
-    (w.mineru / "g002" / ".done").unlink()          # giả lập bị giết giữa nhóm 2
+    (w.mineru / "g002" / ".done").unlink()          # simulate being killed in the middle of group 2
     shutil.rmtree(w.mineru / "g002" / "x")
     w.document.unlink()
     extract_core(w, FAKE, lambda d, t: None)

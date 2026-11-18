@@ -1,4 +1,4 @@
-"""Giao tiếp với agent dịch: terms, outline, next, accept, validate."""
+"""Interface to the translating agent: terms, outline, next, accept, validate."""
 from __future__ import annotations
 
 import json
@@ -14,7 +14,7 @@ from .workspace import UsageError, Work, q, read_json, read_manifest, write_json
 def manifest(work: Work) -> dict:
     m = read_manifest(work)
     if m is None:
-        raise UsageError(f"không phải thư mục làm việc rosettex: {work.root}")
+        raise UsageError(f"not a rosettex work directory: {work.root}")
     return m
 
 
@@ -32,31 +32,31 @@ def translations(work: Work, lang: str) -> dict:
 
 def check_terms(t) -> list[str]:
     if not isinstance(t, dict):
-        return ["terms.json phải là một object JSON"]
+        return ["terms.json must be a JSON object"]
     errs = []
     if not isinstance(t.get("topic"), str) or not t["topic"].strip():
-        errs.append("thiếu 'topic' (một câu tóm tắt chủ đề)")
+        errs.append("missing 'topic' (a one-sentence summary of the subject)")
     seen = set()
     lists = {}
-    for key, what in (("terms", "danh sách object"), ("keep", "danh sách chuỗi"), ("abbreviations", "danh sách object")):
+    for key, what in (("terms", "a list of objects"), ("keep", "a list of strings"), ("abbreviations", "a list of objects")):
         v = t.get(key, [])
         lists[key] = v if isinstance(v, list) else []
         if lists[key] is not v:
-            errs.append(f"'{key}' phải là {what}")
+            errs.append(f"'{key}' must be {what}")
     for i, x in enumerate(lists["terms"]):
         if not (isinstance(x, dict) and isinstance(x.get("src"), str) and isinstance(x.get("dst"), str)
                 and x["src"].strip() and x["dst"].strip()):
-            errs.append(f"terms[{i}] cần 'src' và 'dst' là chuỗi không rỗng")
+            errs.append(f"terms[{i}] needs 'src' and 'dst' as non-empty strings")
             continue
         key = x["src"].strip().lower()
         if key in seen:
-            errs.append(f"'src' bị trùng: {x['src']}")
+            errs.append(f"duplicate 'src': {x['src']}")
         seen.add(key)
     if not all(isinstance(k, str) for k in lists["keep"]):
-        errs.append("'keep' phải là danh sách chuỗi")
+        errs.append("'keep' must be a list of strings")
     for i, x in enumerate(lists["abbreviations"]):
         if not (isinstance(x, dict) and isinstance(x.get("abbr"), str) and isinstance(x.get("expansion"), str)):
-            errs.append(f"abbreviations[{i}] cần 'abbr' và 'expansion'")
+            errs.append(f"abbreviations[{i}] needs 'abbr' and 'expansion'")
     return errs
 
 
@@ -65,7 +65,7 @@ def write_terms(work: Work, file) -> dict:
     try:
         t = json.loads(Path(file).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as e:
-        return {"ok": False, "errors": [f"không đọc được JSON: {e}"]}
+        return {"ok": False, "errors": [f"cannot read JSON: {e}"]}
     errs = check_terms(t)
     if errs:
         return {"ok": False, "errors": errs}
@@ -76,7 +76,7 @@ def write_terms(work: Work, file) -> dict:
 def _doc(work: Work) -> dict:
     doc = read_json(work.document)
     if doc is None:
-        raise UsageError("chưa tách xong nội dung", next_action=f"rosettex status {q(work.root)} --json")
+        raise UsageError("extraction has not finished", next_action=f"rosettex status {q(work.root)} --json")
     return doc
 
 
@@ -114,7 +114,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
     lang = m["lang"]
     terms = read_json(work.terms)
     if terms is None:
-        raise UsageError("chưa có terms.json: đọc dàn ý bài rồi ghi thuật ngữ trước",
+        raise UsageError("no terms.json yet: read the paper outline and write the terms first",
                          next_action=f"rosettex next {q(work.root)} --outline --json")
     ids = batch_ids(work)
     if batch_id is None:
@@ -123,7 +123,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
             return {"done": True, "next_action": f"rosettex validate {q(work.root)} --json"}
         batch_id = pending[0]
     if batch_id not in ids:
-        raise UsageError(f"không có lô {batch_id}")
+        raise UsageError(f"no such batch {batch_id}")
     batch = read_json(work.batch_path(batch_id))
     prev = None
     i = ids.index(batch_id)
@@ -134,7 +134,7 @@ def next_package(work: Work, batch_id: str | None = None) -> dict:
     return {"done": False, "batch": batch, "topic": terms["topic"], "terms": terms, "section": batch["section"],
             "previous": prev, "page_images": [str(page_image(work, p)) for p in pages],
             "rules": load_pack(lang)["rules"],
-            "format": 'JSON {"<id>": "<bản dịch>"} chứa đủ mọi id của lô',
+            "format": 'JSON {"<id>": "<translation>"} containing every id of the batch',
             "submit": f"rosettex accept {q(work.root)} --batch {batch_id} --file <file.json> --json"}
 
 
@@ -142,14 +142,14 @@ def accept(work: Work, batch_id: str, file) -> dict:
     m = manifest(work)
     batch = read_json(work.batch_path(batch_id))
     if batch is None:
-        raise UsageError(f"không có lô {batch_id}")
+        raise UsageError(f"no such batch {batch_id}")
     try:
         sub = json.loads(Path(file).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as e:
-        res = {"errors": {"_file": [f"không đọc được JSON: {e}"]}, "warnings": {}}
+        res = {"errors": {"_file": [f"cannot read JSON: {e}"]}, "warnings": {}}
     else:
         if not isinstance(sub, dict) or not all(isinstance(v, str) for v in sub.values()):
-            res = {"errors": {"_file": ['file phải là JSON {"<id>": "<bản dịch>"}']}, "warnings": {}}
+            res = {"errors": {"_file": ['the file must be JSON {"<id>": "<translation>"}']}, "warnings": {}}
         else:
             res = check_batch(batch, sub, load_pack(m["lang"]), read_json(work.terms, {}))
     ok = not res["errors"]
@@ -157,13 +157,13 @@ def accept(work: Work, batch_id: str, file) -> dict:
         typ = {it["id"]: it["type"] for it in batch["items"]}
         write_json(work.translation_path(batch_id, m["lang"]), {k: normalize_ws(typ[k], nfc(v)) for k, v in sub.items()})
     work.logs.mkdir(parents=True, exist_ok=True)
-    # ponytail: nhiều subagent cùng ghi nối dòng ngắn; đủ an toàn cho nhật ký đo tỉ lệ từ chối, không phải trạng thái.
+    # ponytail: several subagents appending short lines at once; safe enough for a log measuring the rejection rate, not for state.
     with open(work.logs / "accept.jsonl", "a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps({"batch": batch_id, "ok": ok, "errors": sum(map(len, res["errors"].values())),
                              "t": time.time()}) + "\n")
     out = {"ok": ok, **res}
     if not ok:
-        out["next_action"] = (f"sửa các id trong 'errors' rồi nộp lại cả lô: rosettex accept {q(work.root)} "
+        out["next_action"] = (f"fix the ids in 'errors', then resubmit the whole batch: rosettex accept {q(work.root)} "
                               f"--batch {batch_id} --file <file.json> --json")
     return out
 
@@ -180,7 +180,7 @@ def validate(work: Work) -> dict:
     for bid in batch_ids(work):
         tr = read_json(work.translation_path(bid, lang))
         if tr is None:
-            errors[bid] = ["lô chưa được dịch"]
+            errors[bid] = ["batch has not been translated"]
             continue
         res = check_batch(read_json(work.batch_path(bid)), tr, pack, terms)
         errors.update(res["errors"])
@@ -191,9 +191,9 @@ def validate(work: Work) -> dict:
         for p in u["ph"].values():
             for lab in re.findall(r"\\(?:eq)?ref\{([^}]*)\}", p["tex"]):
                 if lab not in labels:
-                    errors.setdefault(u["id"], []).append(f"nhãn không tồn tại: {lab}")
+                    errors.setdefault(u["id"], []).append(f"label does not exist: {lab}")
             for keys in re.findall(r"\\cite\{([^}]*)\}", p["tex"]):
                 for k in keys.split(","):
                     if k[3:] not in refs:
-                        errors.setdefault(u["id"], []).append(f"tài liệu tham khảo không tồn tại: {k}")
+                        errors.setdefault(u["id"], []).append(f"reference does not exist: {k}")
     return {"ok": not errors, "errors": errors, "warnings": warnings, "mtime": _translations_mtime(work, lang)}

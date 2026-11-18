@@ -15,8 +15,8 @@ def test_merge_across_columns_not_across_equation():
     doc, _ = seg()
     B = {b["id"]: b for b in doc["blocks"]}
     assert "p1b20" not in B and B["p1b15"]["merged"] == ["p1b15", "p1b20"]
-    assert "p1b21" in B  # bắt đầu bằng chữ hoa
-    assert "p1b13" in B  # "with λ…" đứng sau phương trình: không gộp qua phương trình
+    assert "p1b21" in B  # starts with a capital letter
+    assert "p1b13" in B  # "with λ…" comes after an equation: do not merge across the equation
 
 
 def test_roles():
@@ -38,9 +38,9 @@ def test_units_placeholders_and_links():
     assert any(p["tex"] == r"\cite{ref1,ref2}" for p in u["ph"].values())
     texs = [p["tex"] for p in U["p1b15"]["ph"].values()]
     assert r"\ref{tab:1}" in texs and r"\ref{fig:1}" in texs and r"\ref{sec:2}" in texs
-    assert "p1b1" not in U and "p2b1" not in U  # giữ nguyên: không vào lô
-    assert "p1b0" in U and "p1b17.cap" in U and "p1b17r2c0" in U  # tiêu đề, chú thích, ô "ByteNet"
-    assert "p1b17r2c2" not in U and "p1b17r2c1" not in U  # ô số "23.75", "1.2B"
+    assert "p1b1" not in U and "p2b1" not in U  # kept as is: not in a batch
+    assert "p1b0" in U and "p1b17.cap" in U and "p1b17r2c0" in U  # title, caption, cell "ByteNet"
+    assert "p1b17r2c2" not in U and "p1b17r2c1" not in U  # number cells "23.75", "1.2B"
 
 
 def test_eq_reference_recognized_inside_math_basic():

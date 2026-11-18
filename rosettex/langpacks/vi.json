@@ -1,6 +1,6 @@
 {
  "code": "vi",
- "name": "Tiếng Việt",
+ "name": "Vietnamese",
  "tested": true,
  "polyglossia": "vietnamese",
  "font": {"main": "texgyretermes",
@@ -16,13 +16,13 @@
  "length_ratio": [0.7, 2.0],
  "labels": {"fallback": "công thức/bảng chưa dựng được", "missing_image": "thiếu ảnh"},
  "rules": [
-  "Giữ nguyên mọi placeholder ⟦…⟧ đúng như bản gốc (được đổi vị trí trong câu cho tự nhiên).",
-  "Giữ nguyên mọi con số và cách viết số như bản gốc, kể cả dấu chấm thập phân: 0.05 giữ là 0.05, không viết 0,05.",
-  "Không dịch tên riêng, tên phương pháp/mô hình/bộ dữ liệu, đơn vị, email, URL.",
-  "Giữ nguyên mức độ chắc chắn của câu gốc (may, might, suggest, likely, significant…).",
-  "Kiểm tra kỹ phủ định và chiều so sánh (more/less, higher/lower, outperform, at least/at most).",
-  "Dùng đúng thuật ngữ trong terms.json, nhất quán cả bài.",
-  "Ô bảng: dịch chữ, giữ nguyên số và ký hiệu.",
-  "Văn phong học thuật tiếng Việt tự nhiên; không thêm chú thích của người dịch."
+  "Keep every placeholder ⟦…⟧ exactly as in the source (you may move it within the sentence to read naturally).",
+  "Keep every number and its notation exactly as in the source, including the decimal point: 0.05 stays 0.05, do not write 0,05.",
+  "Do not translate proper names, method/model/dataset names, units, emails, URLs.",
+  "Keep the level of certainty of the source sentence (may, might, suggest, likely, significant…).",
+  "Check negations and the direction of comparisons carefully (more/less, higher/lower, outperform, at least/at most).",
+  "Use the terms in terms.json exactly, consistently across the whole paper.",
+  "Table cells: translate the text, keep numbers and symbols unchanged.",
+  "Write natural academic Vietnamese; add no translator notes."
  ]
 }

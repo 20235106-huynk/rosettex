@@ -1,4 +1,4 @@
-"""Escape văn bản thường để đặt vào LaTeX (XeLaTeX + unicode-math)."""
+"""Escape plain text for LaTeX (XeLaTeX + unicode-math)."""
 
 _ESC = {"\\": r"\textbackslash{}", "{": r"\{", "}": r"\}", "#": r"\#", "$": r"\$", "%": r"\%",
         "&": r"\&", "_": r"\_", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
@@ -10,5 +10,5 @@ def _mathy(c: str) -> bool:
 
 
 def escape_latex(s: str) -> str:
-    # Chữ Hy Lạp và ký hiệu toán đưa sang chế độ toán: font toán có đủ glyph, font chữ thường thì không chắc.
+    # Greek letters and math symbols go to math mode: the math font has all the glyphs, the text font may not.
     return "".join(_ESC.get(c) or (r"\ensuremath{" + c + "}" if _mathy(c) else c) for c in s)

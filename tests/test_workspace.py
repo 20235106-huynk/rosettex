@@ -21,7 +21,7 @@ def test_read_json_accepts_bom_and_missing(tmp_path):
 
 def test_job_state_detects_dead_heartbeat(tmp_path):
     w = Work(tmp_path)
-    beat(w, "extract", "rosettex extract x", "nhóm 1/4", 1, 4)
+    beat(w, "extract", "rosettex extract x", "group 1/4", 1, 4)
     fresh = job_state(w)
     assert fresh["state"] == "running" and fresh["dead"] is False
     assert job_state(w, now=fresh["updated"] + HEARTBEAT_DEAD_AFTER + 1)["dead"] is True
@@ -58,7 +58,7 @@ def test_run_with_heartbeat_kills_hung_child(tmp_path):
     time.sleep(0.3)
     flag.unlink()
     time.sleep(0.3)
-    assert not flag.exists()  # tiến trình con đã bị giết, không còn ghi file
+    assert not flag.exists()  # the child process was killed and no longer writes the file
 
 
 def test_retries_reset_after_failed_or_other_command(tmp_path):
@@ -67,9 +67,9 @@ def test_retries_reset_after_failed_or_other_command(tmp_path):
     p = read_json(w.progress)
     p["updated"] -= 3600
     write_json(w.progress, p)
-    beat(w, "extract", "r", "x", 0, 1)  # chạy lại thật sự
+    beat(w, "extract", "r", "x", 0, 1)  # a real rerun
     assert read_json(w.progress)["retries"] == 1
-    beat(w, "extract", "r", "lỗi", 0, 1, state="failed", error="e")
-    assert read_json(w.progress)["retries"] == 1  # vẫn thuộc lần chạy này
-    beat(w, "extract", "r", "x", 0, 1)  # lần chạy mới sau failed
+    beat(w, "extract", "r", "error", 0, 1, state="failed", error="e")
+    assert read_json(w.progress)["retries"] == 1  # still part of this run
+    beat(w, "extract", "r", "x", 0, 1)  # a new run after failed
     assert read_json(w.progress)["retries"] == 0

@@ -12,7 +12,7 @@ from rosettex.tools import find_tex
 from rosettex.workspace import Work, beat, read_json
 
 FAKE = str(FIX.parent / "fake_mineru.py")
-needs_tex = pytest.mark.skipif(find_tex() is None, reason="cần Tectonic hoặc XeLaTeX")
+needs_tex = pytest.mark.skipif(find_tex() is None, reason="needs Tectonic or XeLaTeX")
 
 
 def run(capsys, *argv):
@@ -46,7 +46,7 @@ def translate_via_cli(capsys, work, tmp_path):
         assert code == 0, res
 
 
-def test_full_flow_foreground(env, capsys, tmp_path):  # Review Focus 1 và 4
+def test_full_flow_foreground(env, capsys, tmp_path):  # Review Focus 1 and 4
     src, outdir = env
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert code == 0 and r["state"] == "extracted" and r["output"].endswith("short paper.vi.pdf")
@@ -91,7 +91,7 @@ def test_status_reports_dead_job(env, capsys):
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     w = Work(r["work"])
     w.document.unlink()
-    beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
+    beat(w, "extract", "rosettex extract RESUME", "group 1/1", 0, 1)
     p = read_json(w.progress)
     p["updated"] -= 3600
     w.progress.write_text(json.dumps(p), encoding="utf-8")
@@ -102,7 +102,7 @@ def test_status_reports_dead_job(env, capsys):
 def test_errors_and_exit_codes(env, capsys, tmp_path, monkeypatch):
     src, outdir = env
     code, r = run(capsys, "extract", tmp_path / "không có.pdf", "--lang", "vi", "--out", outdir, "--json")
-    assert code == 2 and "không tìm thấy" in r["error"]
+    assert code == 2 and "file not found" in r["error"]
     monkeypatch.setenv("ROSETTEX_MINERU", str(tmp_path / "missing.py"))
     monkeypatch.setenv("PATH", str(tmp_path))
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--json")
@@ -130,7 +130,7 @@ def test_guide_and_version(capsys):
         main(["--version"])
 
 
-@pytest.mark.skipif(not os.environ.get("ROSETTEX_REAL"), reason="đặt ROSETTEX_REAL=1 để chạy với MinerU thật")
+@pytest.mark.skipif(not os.environ.get("ROSETTEX_REAL"), reason="set ROSETTEX_REAL=1 to run with real MinerU")
 @pytest.mark.parametrize("name", ["short", "long"])
 def test_real_mineru_end_to_end(name, tmp_path, capsys, monkeypatch):
     monkeypatch.delenv("ROSETTEX_MINERU", raising=False)
@@ -157,10 +157,10 @@ def test_batch_id_guard_and_next_action(env, capsys, tmp_path):
     assert code == 1 and r["next_action"]
 
 
-def test_render_refuses_existing_output_without_tex(env, capsys, tmp_path, monkeypatch):  # Review Focus 4, không cần TeX
+def test_render_refuses_existing_output_without_tex(env, capsys, tmp_path, monkeypatch):  # Review Focus 4, no TeX needed
     src, outdir = env
     r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")[1]
-    assert outdir.is_dir()  # thư mục kết quả thiếu được tự tạo
+    assert outdir.is_dir()  # the missing output directory is created automatically
     translate_via_cli(capsys, r["work"], tmp_path)
     assert run(capsys, "validate", r["work"], "--json")[0] == 0
     (outdir / "short paper.vi.pdf").write_bytes(b"x")
@@ -215,7 +215,7 @@ def test_extract_failure_at_basic_tier_stops(env, capsys, monkeypatch):
 
 
 def _die(w):
-    beat(w, "extract", "rosettex extract RESUME", "nhóm 1/1", 0, 1)
+    beat(w, "extract", "rosettex extract RESUME", "group 1/1", 0, 1)
     p = read_json(w.progress)
     p["updated"] -= 3600
     w.progress.write_text(json.dumps(p), encoding="utf-8")
@@ -238,12 +238,12 @@ def test_dead_job_resumed_once_then_stops(env, capsys):
     w.document.unlink()
     _die(w)
     assert run(capsys, "status", w.root, "--json")[1]["next_action"] == "rosettex extract RESUME"
-    _die(w)  # tiến trình chạy lại thật sự khởi động (beat đếm lần chạy lại) rồi lại chết
+    _die(w)  # the rerun process really starts (beat counts reruns) and then dies again
     st = run(capsys, "status", w.root, "--json")[1]
     assert st["next_action"] is None and st["error"]
 
 
-# ---------------- đợt sửa sau review ----------------
+# ---------------- fixes after review ----------------
 def _foreign_dir(tmp_path):
     d = tmp_path / "dự án khác"
     d.mkdir()
@@ -279,7 +279,7 @@ def test_extract_hang_times_out_and_fails(env, capsys, monkeypatch):
     t0 = time.time()
     code, r = run(capsys, "extract", src, "--lang", "vi", "--out", outdir, "--foreground", "--json")
     assert time.time() - t0 < 30
-    assert code == 2 and "quá" in r["error"] and r["next_action"].startswith("rosettex extract")
+    assert code == 2 and "timed out" in r["error"] and r["next_action"].startswith("rosettex extract")
     st = _fail_status(capsys, outdir / ".rosettex" / "short paper.vi")
     assert st["state"] == "extract_failed"
 
@@ -297,7 +297,7 @@ def test_render_hang_times_out_and_fails(env, capsys, tmp_path, monkeypatch):
     monkeypatch.setattr(comp, "find_tex", lambda: hang)
     monkeypatch.setenv("ROSETTEX_TIMEOUT_SCALE", "0.005")
     code, res = run(capsys, "render", r["work"], "--foreground", "--json")
-    assert code == 2 and "quá" in res["error"]
+    assert code == 2 and "timed out" in res["error"]
     st = _fail_status(capsys, r["work"])
     assert st["state"] == "render_failed" and st["next_action"] is None
 
@@ -339,7 +339,7 @@ def test_clean_foreign_hint_has_no_dash_o(capsys, tmp_path):
     assert code == 2 and "-o" not in r["next_action"]
 
 
-# ---------------- đợt sửa 3 việc sau lát 1 ----------------
+# ---------------- 3 fixes after slice 1 ----------------
 def test_extract_corrupt_pdf_is_usage_error_and_leaves_no_dir(env, capsys, tmp_path):
     _, outdir = env
     bad = tmp_path / "x.pdf"
@@ -390,7 +390,7 @@ def test_clean_symlinked_out_is_retryable(env, capsys, tmp_path):
     try:
         (w.root / "out").symlink_to(target, target_is_directory=True)
     except OSError:
-        pytest.skip("không tạo được symlink")
+        pytest.skip("cannot create symlink")
     code, r = run(capsys, "clean", w.root, "--json")
     assert code == 0 and (target / "f").exists() and not w.root.exists()
 

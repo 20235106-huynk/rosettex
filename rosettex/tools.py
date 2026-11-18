@@ -1,4 +1,4 @@
-"""Tìm công cụ ngoài (MinerU, LaTeX), đọc RAM, chọn tier."""
+"""Find external tools (MinerU, LaTeX), read RAM, pick the tier."""
 from __future__ import annotations
 
 import ctypes
@@ -61,8 +61,8 @@ def available_ram_bytes() -> int | None:
             if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
                 return int(m.ullAvailPhys)
         else:
-            # ponytail: macOS chỉ đọc được tổng RAM qua sysconf, không có RAM khả dụng; đủ để tránh máy rất yếu.
-            # Nâng cấp: đọc vm_stat qua ctypes (host_statistics64) nếu cần chính xác.
+            # ponytail: macOS only exposes total RAM via sysconf, not available RAM; enough to avoid very weak machines.
+            # Upgrade: read vm_stat via ctypes (host_statistics64) if precision is needed.
             return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
     except (OSError, ValueError, AttributeError):
         pass
@@ -82,6 +82,6 @@ def verify_models(cmd: list[str], tier: str, timeout: float = 120) -> tuple[bool
         p = subprocess.run(cmd + ["models", "verify", "--tier", tier], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as e:
-        return False, f"không chạy được kiểm tra mô hình: {e!r}"
+        return False, f"could not run the model check: {e!r}"
     out = p.stdout + p.stderr
     return p.returncode == 0 and "missing" not in out.lower(), out

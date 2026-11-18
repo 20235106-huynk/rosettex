@@ -1,4 +1,4 @@
-"""Ghi skill/SKILL.md và skill/AGENTS.md từ protocol.md. Chạy: uv run python -m rosettex.protocol.build"""
+"""Write skill/SKILL.md and skill/AGENTS.md from protocol.md. Run: uv run python -m rosettex.protocol.build"""
 from pathlib import Path
 
 from . import agents_md, skill_md

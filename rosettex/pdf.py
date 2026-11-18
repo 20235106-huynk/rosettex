@@ -1,4 +1,4 @@
-"""Đọc/kết xuất PDF bằng pypdfium2 (Apache-2.0/BSD). Không dùng PyMuPDF (AGPL)."""
+"""Read/render PDF with pypdfium2 (Apache-2.0/BSD). Does not use PyMuPDF (AGPL)."""
 from __future__ import annotations
 
 import struct
@@ -24,7 +24,7 @@ def page_count(path) -> int:
 
 
 def write_png(path, width: int, height: int, pixels: bytes, stride: int, channels: int = 3) -> None:
-    """PNG bằng thư viện chuẩn (zlib), để không phải thêm Pillow."""
+    """PNG via the standard library (zlib), so Pillow is not needed."""
     row = width * channels
     raw = b"".join(b"\x00" + pixels[y * stride: y * stride + row] for y in range(height))
 
@@ -60,9 +60,9 @@ def full_text(path) -> str:
 
 
 def line_height_total(path) -> float:
-    """Tổng chiều cao (pt) các dòng chữ, gom ký tự theo (nửa trang trái/phải, tâm dọc làm tròn 4 pt)."""
-    # ponytail: dòng rộng toàn trang bị tính hai lần (nửa trái + nửa phải) ở cả bản gốc lẫn bản dịch nên tỉ lệ
-    # vẫn dùng được; nâng cấp: gom theo khoảng trống ngang thật nếu tỉ lệ sai lệch trên bài thật.
+    """Total height (pt) of text lines, grouping characters by (left/right page half, vertical centre rounded to 4 pt)."""
+    # ponytail: a full-width line is counted twice (left half + right half) in both source and translation, so the ratio
+    # stays usable; upgrade: group by real horizontal gaps if the ratio is off on real papers.
     total = 0.0
     with _open(path) as pdf:
         for page in pdf:

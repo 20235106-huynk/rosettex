@@ -1,4 +1,4 @@
-"""Thư mục làm việc: đường dẫn, ghi JSON nguyên tử, nhịp tim, tách tiến trình."""
+"""Work directory: paths, atomic JSON writes, heartbeat, detaching processes."""
 from __future__ import annotations
 
 import json
@@ -7,11 +7,11 @@ import subprocess
 import time
 from pathlib import Path
 
-HEARTBEAT_DEAD_AFTER = 60.0  # giây
+HEARTBEAT_DEAD_AFTER = 60.0  # seconds
 
 
 class UsageError(Exception):
-    """Lỗi sử dụng/môi trường → mã thoát 2."""
+    """Usage/environment error → exit code 2."""
 
     def __init__(self, msg, next_action=None, **extra):
         super().__init__(msg)
@@ -20,7 +20,7 @@ class UsageError(Exception):
 
 
 def q(path) -> str:
-    """Đường dẫn trong lệnh gợi ý cho agent: luôn bọc nháy kép (chạy được ở bash, zsh, cmd, PowerShell)."""
+    """A path in a command suggested to the agent: always wrapped in double quotes (works in bash, zsh, cmd, PowerShell)."""
     return '"' + str(path) + '"'
 
 
@@ -33,7 +33,7 @@ def write_json(path, obj) -> None:
         try:
             os.replace(tmp, path)
             return
-        except PermissionError:  # Windows: file đích đang bị tiến trình khác mở
+        except PermissionError:  # Windows: the target file is open in another process
             time.sleep(0.05 * (attempt + 1))
     os.replace(tmp, path)
 
@@ -48,14 +48,14 @@ def read_json(path, default=None):
 SCHEMA = "rosettex.work/1"
 
 
-# Mọi tên rosettex tự tạo trong thư mục làm việc; `clean` chỉ xóa những tên này.
+# Every name rosettex creates in the work directory; `clean` only deletes these names.
 OWNED = ("src.pdf", "manifest.json", "progress.json", "document.json", "terms.json", "flagged.json",
          "report.json", "validate.json", "logs", "mineru", "pages", "batches", "out")
 
 
 def is_leftover(root: Path) -> bool:
-    """Chưa có manifest, có src.pdf (thứ đầu tiên extract ghi) và mọi mục đều của rosettex (hoặc file .*.tmp):
-    dấu vết của lần chạy bị ngắt. Thư mục trống hay chỉ có `out/` của người dùng thì không tính."""
+    """No manifest yet, has src.pdf (the first thing extract writes) and every entry belongs to rosettex (or a .*.tmp file):
+    traces of an interrupted run. An empty directory, or one with only the user's `out/`, does not count."""
     return (root / "src.pdf").is_file() and all(p.name in OWNED or (p.name.startswith(".") and p.name.endswith(".tmp")) for p in root.iterdir())
 
 
@@ -83,17 +83,17 @@ class Work:
         return self.batches / f"{bid}.{lang}.json"
 
 
-def read_manifest(work: Work, hint: str = "chọn thư mục làm việc khác") -> dict | None:
-    """manifest.json của thư mục làm việc rosettex; None nếu chưa có; UsageError nếu là file của thứ khác."""
+def read_manifest(work: Work, hint: str = "choose another work directory") -> dict | None:
+    """manifest.json of the rosettex work directory; None if absent; UsageError if it belongs to something else."""
     try:
         m = read_json(work.manifest)
     except ValueError:
         m = "?"
     if m is None:
         return None
-    # thư mục tạo trước khi có dấu schema: nhận qua bộ khóa đặc trưng
+    # directory created before the schema marker existed: recognised by its characteristic key set
     if not (isinstance(m, dict) and (m.get("schema") == SCHEMA or {"sha256", "extract_cmd", "lang"} <= m.keys())):
-        raise UsageError(f"{work.manifest} không phải manifest của rosettex; không đụng vào thư mục này",
+        raise UsageError(f"{work.manifest} is not a rosettex manifest; not touching this directory",
                          next_action=hint)
     return m
 
@@ -103,7 +103,7 @@ def beat(work: Work, command: str, resume: str, step: str, done: int, total: int
     prev = read_json(work.progress) or {}
     same = prev.get("state") == "running" and prev.get("command") == command
     retries = prev.get("retries", 0) if same and state != "done" else 0
-    # tiến trình mới bắt đầu khi bản ghi trước đã chết (nhịp tim quá hạn) = một lần chạy lại thật sự
+    # a new process starting when the previous record is dead (heartbeat expired) = a real rerun
     if prev.get("state") == "running" and time.time() - prev.get("updated", 0) > HEARTBEAT_DEAD_AFTER:
         retries += 1
     write_json(work.progress, {"command": command, "resume": resume, "pid": os.getpid(), "state": state,
@@ -121,7 +121,7 @@ def job_state(work: Work, now: float | None = None) -> dict | None:
 
 
 def spawn_detached(argv: list[str], log: Path) -> int:
-    """Chạy tiến trình con tách khỏi lệnh hiện tại (sống tiếp khi harness đóng shell)."""
+    """Run a child process detached from the current command (keeps living when the harness closes the shell)."""
     log = Path(log)
     log.parent.mkdir(parents=True, exist_ok=True)
     kw = {}
@@ -135,7 +135,7 @@ def spawn_detached(argv: list[str], log: Path) -> int:
 
 
 def timeout_for(seconds: float) -> float:
-    """Giới hạn thời gian; ROSETTEX_TIMEOUT_SCALE nhân giới hạn (kiểm thử dùng giá trị rất nhỏ)."""
+    """Time limit; ROSETTEX_TIMEOUT_SCALE multiplies the limit (tests use a very small value)."""
     try:
         return seconds * float(os.environ.get("ROSETTEX_TIMEOUT_SCALE", "1"))
     except ValueError:
@@ -143,8 +143,8 @@ def timeout_for(seconds: float) -> float:
 
 
 def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5.0, timeout: float | None = None) -> int:
-    """Chạy lệnh, gọi on_beat() mỗi `interval` giây trong lúc chờ; trả mã thoát.
-    Quá `timeout` giây (tổng) thì giết tiến trình con và ném TimeoutError."""
+    """Run a command, calling on_beat() every `interval` seconds while waiting; return the exit code.
+    After `timeout` seconds (total), kill the child process and raise TimeoutError."""
     log = Path(log)
     log.parent.mkdir(parents=True, exist_ok=True)
     deadline = None if timeout is None else time.monotonic() + timeout
@@ -160,7 +160,7 @@ def run_with_heartbeat(argv, *, cwd, log, on_beat, env=None, interval: float = 5
                 except subprocess.TimeoutExpired:
                     p.kill()
                     p.wait()
-                raise TimeoutError(f"tiến trình con chạy quá {timeout:g} giây nên bị dừng: {Path(argv[0]).name}")
+                raise TimeoutError(f"child process ran over {timeout:g} seconds and was stopped: {Path(argv[0]).name}")
             try:
                 return p.wait(timeout=interval if left is None else min(interval, left))
             except subprocess.TimeoutExpired:

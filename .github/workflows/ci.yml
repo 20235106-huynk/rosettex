@@ -11,9 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Cài Python
+      - name: Install Python
         run: uv python install ${{ matrix.python }}
-      - name: Cài Tectonic 0.17.0 (kiểm SHA-256)
+      - name: Install Tectonic 0.17.0 (verify SHA-256)
         run: uv run --python ${{ matrix.python }} python scripts/get_tectonic.py
-      - name: Kiểm thử
+      - name: Tests
         run: uv run --python ${{ matrix.python }} pytest -q

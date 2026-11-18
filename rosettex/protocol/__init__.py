@@ -1,10 +1,10 @@
-"""Giao thức cho agent: một nguồn (protocol.md), in bằng `rosettex guide`, sinh SKILL.md và AGENTS.md."""
+"""Agent protocol: a single source (protocol.md), printed by `rosettex guide`, generates SKILL.md and AGENTS.md."""
 from importlib.resources import files
 
 from ..checks import load_pack
 
-# Mô tả kích hoạt: tiếng Anh, tự đứng được, dùng chung cho SKILL.md (frontmatter) và AGENTS.md (đầu file)
-# để harness chọn skill theo mô tả lẫn harness chỉ đọc file quy tắc đều biết khi nào dùng. Giữ <= 1024 ký tự, một dòng.
+# Activation description: self-contained, shared by SKILL.md (frontmatter) and AGENTS.md (top of file)
+# so both a harness that picks skills by description and one that only reads a rules file know when to use it. Keep <= 1024 characters, one line.
 DESCRIPTION = (
     "Translate a whole scientific paper PDF (text layer required) into another language and rebuild it as a PDF "
     "that keeps formulas, tables, numbers, citations and clickable cross-references. Use when the user asks to "
@@ -18,7 +18,7 @@ name: rosettex
 description: {DESCRIPTION}
 ---
 
-Chạy `rosettex guide` để xem bản mới nhất của giao thức dưới đây, rồi làm theo.
+Run `rosettex guide` to see the latest version of the protocol below, then follow it.
 
 """
 

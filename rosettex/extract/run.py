@@ -1,4 +1,4 @@
-"""extract: chạy MinerU theo nhóm trang (chạy tiếp được), chuyển đổi, chia lô, gắn cờ."""
+"""extract: run MinerU by page group (resumable), convert, split into batches, set flags."""
 from __future__ import annotations
 
 import re
@@ -30,14 +30,14 @@ def flag_suspicious(doc, pdf_path) -> list[dict]:
         layer = None
         for tex in maths:
             if TEXT_IN_MATH.search(tex):
-                flags.append({"id": b["id"], "page": b["page"], "reason": "chữ lọt vào công thức", "tex": tex})
+                flags.append({"id": b["id"], "page": b["page"], "reason": "text leaked into formula", "tex": tex})
             for cmd, marks in ACCENTS.items():
                 if re.search(re.escape(cmd) + r"(?![a-zA-Z])", tex):
                     if layer is None:
                         layer = text_in_bbox(pdf_path, b["page"], b["bbox"])
                     if layer.strip() and not any(c in layer for c in marks):
                         flags.append({"id": b["id"], "page": b["page"], "tex": tex,
-                                      "reason": f"{cmd} không có dấu tương ứng trong lớp chữ PDF"})
+                                      "reason": f"{cmd} has no matching mark in the PDF text layer"})
     return flags
 
 
@@ -58,8 +58,8 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
                            "--tier", m["tier"], "--pages", f"{a}-{b}"],
                     cwd=work.root, log=work.logs / f"mineru-g{gi:03d}.log",
                     on_beat=lambda: on_beat(gi - 1, len(groups)), timeout=timeout_for(900 + 120 * (b - a + 1)))
-            except TimeoutError as e:  # treo thì chạy lại cũng treo: dừng ngay, không thử lần hai
-                raise ExtractError(f"MinerU quá thời gian ở trang {a}-{b}: {e}; xem {work.logs / f'mineru-g{gi:03d}.log'}")
+            except TimeoutError as e:  # a hang will hang again: stop now, no second try
+                raise ExtractError(f"MinerU timed out on pages {a}-{b}: {e}; see {work.logs / f'mineru-g{gi:03d}.log'}")
             zips = sorted(gdir.glob("*.zip"))
             if rc == 0 and len(zips) == 1:
                 with zipfile.ZipFile(zips[0]) as z:
@@ -67,7 +67,7 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
                 (gdir / ".done").write_text("ok", encoding="utf-8")
                 break
         else:
-            raise ExtractError(f"MinerU lỗi hai lần ở trang {a}-{b}; xem {work.logs / f'mineru-g{gi:03d}.log'}")
+            raise ExtractError(f"MinerU failed twice on pages {a}-{b}; see {work.logs / f'mineru-g{gi:03d}.log'}")
         on_beat(gi, len(groups))
     data = [(read_json(work.mineru / f"g{gi:03d}" / "x" / "middle_json.json"), work.mineru / f"g{gi:03d}" / "x")
             for gi in range(1, len(groups) + 1)]
@@ -76,6 +76,6 @@ def extract_core(work: Work, cmd: list[str], on_beat) -> dict:
     for bt in batches:
         write_json(work.batch_path(bt["batch"]), bt)
     write_json(work.flagged, flags)
-    write_json(work.document, doc)  # ghi sau cùng: có document.json nghĩa là extract đã xong trọn vẹn
+    write_json(work.document, doc)  # written last: document.json exists only if extract finished completely
     return {"blocks": len(doc["blocks"]), "units": len(doc["units"]), "batches": len(batches),
             "flagged": len(flags), "columns": doc["source"]["columns"]}

@@ -1,4 +1,4 @@
-"""Gói ngôn ngữ và kiểm tra bản dịch (accept từng lô, validate toàn bài). So sánh luôn trên NFC."""
+"""Language packs and translation checks (accept per batch, validate for the whole paper). Comparisons are always done on NFC."""
 from __future__ import annotations
 
 import json
@@ -27,8 +27,8 @@ def nfc(s: str) -> str:
 
 
 def normalize_ws(typ: str, s: str) -> str:
-    """Chuẩn hóa khoảng trắng bản dịch: chỉ đoạn văn được giữ ngắt đoạn (một dòng trống);
-    mọi loại khác (tiêu đề, chú thích, ô bảng, chú thích chân trang) thành một dòng, vì nằm trong đối số lệnh LaTeX."""
+    """Normalize whitespace in a translation: only paragraphs keep paragraph breaks (one blank line);
+    every other kind (heading, caption, table cell, footnote) becomes one line, because it sits in a LaTeX command argument."""
     if typ == "paragraph":
         return re.sub(r"\n(?:[ \t]*\n)+", "\n\n", re.sub(r"[ \t]+(?=\n)", "", s)).strip()
     return " ".join(s.split())
@@ -84,27 +84,27 @@ def check_item(item: dict, dst: str, pack: dict, terms: dict | None) -> tuple[li
     errs, warns = [], []
     src, dst = nfc(item["text"]), nfc(dst or "")
     if not dst.strip():
-        return ["đoạn rỗng"], []
+        return ["empty paragraph"], []
     ps, pd = placeholders(src), placeholders(dst)
     if ps - pd:
-        errs.append("thiếu placeholder: " + " ".join(sorted((ps - pd).elements())))
+        errs.append("missing placeholder: " + " ".join(sorted((ps - pd).elements())))
     if pd - ps:
-        errs.append("thừa hoặc sai placeholder: " + " ".join(sorted((pd - ps).elements())))
+        errs.append("extra or wrong placeholder: " + " ".join(sorted((pd - ps).elements())))
     lost = numbers(src) - numbers(dst)
     if lost:
-        errs.append("thiếu hoặc đổi số: " + " ".join(sorted(lost.elements()))
-                    + " (giữ nguyên dạng số như bản gốc, kể cả dấu chấm thập phân)")
+        errs.append("missing or changed number: " + " ".join(sorted(lost.elements()))
+                    + " (keep numbers exactly as in the source, including the decimal point)")
     if looks_untranslated(src, dst, pack, (terms or {}).get("keep", [])):
-        errs.append("nghi chưa dịch")
+        errs.append("looks untranslated")
     bad = bad_chars(src, dst, pack)
     if bad:
-        errs.append("ký tự lạ (lỗi mã hóa?): " + "".join(sorted(set(bad))))
+        errs.append("unexpected characters (encoding error?): " + "".join(sorted(set(bad))))
     lo, hi = pack["length_ratio"]
     if len(src) >= pack["min_len_check"] and not lo <= len(dst) / len(src) <= hi:
-        warns.append(f"tỉ lệ độ dài {len(dst) / len(src):.2f} ngoài [{lo}, {hi}]")
+        warns.append(f"length ratio {len(dst) / len(src):.2f} outside [{lo}, {hi}]")
     for t in (terms or {}).get("terms", []):
         if t["src"].lower() in src.lower() and nfc(t["dst"]).lower() not in dst.lower():
-            warns.append(f"thuật ngữ '{t['src']}' nên dịch là '{t['dst']}'")
+            warns.append(f"term '{t['src']}' should be translated as '{t['dst']}'")
     return errs, warns
 
 
@@ -112,10 +112,10 @@ def check_batch(batch: dict, submitted: dict, pack: dict, terms: dict | None) ->
     errors, warnings = {}, {}
     ids = [it["id"] for it in batch["items"]]
     for extra in sorted(set(submitted) - set(ids)):
-        errors[extra] = ["id không thuộc lô này"]
+        errors[extra] = ["id does not belong to this batch"]
     for it in batch["items"]:
         if it["id"] not in submitted:
-            errors[it["id"]] = ["thiếu bản dịch cho id này"]
+            errors[it["id"]] = ["missing translation for this id"]
             continue
         e, w = check_item(it, submitted[it["id"]], pack, terms)
         if e:

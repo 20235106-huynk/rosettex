@@ -1,4 +1,4 @@
-"""Gộp đoạn, vai trò giữ nguyên, placeholder/liên kết, đơn vị dịch và lô (SG 9.4–9.8, spec lát 1 mục 6)."""
+"""Merge paragraphs, keep roles, placeholders/links, translation units and batches (SG 9.4-9.8, slice 1 spec section 6)."""
 from __future__ import annotations
 
 import itertools
@@ -77,7 +77,7 @@ def assign_roles(blocks) -> None:
 
 
 def unwrap_text_math(spans) -> list:
-    """`\\mathrm{Eq.~(1)}` (MinerU nhận nhầm tham chiếu thành công thức) → span chữ."""
+    """`\\mathrm{Eq.~(1)}` (MinerU mistakes a reference for a formula) → text span."""
     out = []
     for s in spans:
         if s["t"] == "math":
@@ -106,7 +106,7 @@ def _expand(keys: str) -> list[str]:
 
 
 def _resolve(kind, m, ctx):
-    """→ (chữ trước, src, tex, chữ sau) hoặc None khi không thành liên kết hợp lệ."""
+    """→ (text before, src, tex, text after) or None when it is not a valid link."""
     if kind == "u":
         url = m.group(0)
         return "", url, "\\url{" + url.replace("%", "\\%").replace("#", "\\#") + "}", ""

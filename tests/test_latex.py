@@ -27,8 +27,8 @@ def test_placeholders_filled_and_front_matter():
     assert r"\cite{ref4}" in tex and r"\eqref{eq:1}" in tex and r"\ref{tab:1}" in tex
     assert r"\begin{equation}" in tex and r"\tag{1}\label{eq:1}" in tex
     assert r"\rxlabel{2}{sec:2}" in tex and r"\bibitem{ref4}" in tex
-    assert "Alice Nguyen" in tex  # tác giả giữ nguyên
-    assert "References" not in tex  # tiêu đề mục tài liệu tham khảo do thebibliography in
+    assert "Alice Nguyen" in tex  # author kept unchanged
+    assert "References" not in tex  # the references heading is printed by thebibliography
     assert tex.index("RX:p1b15") < tex.index(r"\begin{table")
 
 

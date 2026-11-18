@@ -1,4 +1,4 @@
-"""MinerU giả cho kiểm thử: `parse` trả zip dựng từ fixture (lọc theo --pages); `models verify` luôn đạt."""
+"""Fake MinerU for tests: `parse` returns a zip built from the fixture (filtered by --pages); `models verify` always passes."""
 import json
 import os
 import sys

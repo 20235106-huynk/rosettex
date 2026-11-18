@@ -1,7 +1,7 @@
 [project]
 name = "rosettex"
 version = "0.1.0"
-description = "Tách, kiểm tra và dựng lại bài báo khoa học PDF để agent trong harness dịch"
+description = "Extracts, checks and rebuilds scientific PDF papers so an agent in a harness can translate them"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pypdfium2>=4.30"]

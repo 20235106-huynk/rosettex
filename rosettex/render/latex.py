@@ -1,4 +1,4 @@
-"""document.json + bản dịch → main.tex (bản dựng) và probe.tex (biên dịch thử từng công thức/bảng)."""
+"""document.json + translation → main.tex (the build) and probe.tex (trial compile of each formula/table)."""
 from __future__ import annotations
 
 import re
@@ -48,7 +48,7 @@ class Renderer:
         self.doc, self.tr, self.pack, self.fb, self.images = doc, tr, pack, set(fallback), images
         self.units = {u["id"]: u for u in doc["units"]}
 
-    # ---------- chữ ----------
+    # ---------- text ----------
     @staticmethod
     def mark(b) -> str:
         return "\\typeout{RX:" + b["id"] + "}\n"
@@ -77,7 +77,7 @@ class Renderer:
         if u is None:
             return self.verbatim(spans, uid)
         t = self.tr.get(uid, u["src"])
-        if uid in self.fb or (u["type"] == "cell" and u["block"] in self.fb):  # phương án cuối cho khối chữ: chữ thường một dòng, không macro
+        if uid in self.fb or (u["type"] == "cell" and u["block"] in self.fb):  # last-resort fallback for a text block: plain single-line text, no macros
             t = PH_RE.sub(lambda m: u["ph"][m.group(0)[1:-1]]["src"] if m.group(0)[1:-1] in u["ph"] else m.group(0), t)
             return escape_latex(" ".join(t.split()))
         out, pos = [], 0
@@ -95,7 +95,7 @@ class Renderer:
         out.append(escape_latex(t[pos:]))
         return "".join(out)
 
-    # ---------- khối ----------
+    # ---------- blocks ----------
     def heading(self, b) -> str:
         t = self.text(b["id"], b["spans"])
         if b["level"] == 1:
@@ -190,7 +190,7 @@ class Renderer:
             return self.float_(b)
         return ""
 
-    # ---------- tài liệu ----------
+    # ---------- document ----------
     def document(self) -> str:
         blocks = self.doc["blocks"]
         order = {b["id"]: i for i, b in enumerate(blocks)}
@@ -218,7 +218,7 @@ class Renderer:
                     body.append(self.bibliography(refs))
                 continue
             if k == "heading" and i + 1 < len(blocks) and blocks[i + 1]["kind"] == "reference":
-                continue  # thebibliography tự in tiêu đề theo ngôn ngữ đích
+                continue  # thebibliography prints its own heading in the target language
             body.append(self.mark(b) + self.render_block(b))
             for f in held.pop(b["id"], []):
                 body.append(self.mark(f) + self.float_(f))

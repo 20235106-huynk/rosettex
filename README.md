@@ -1,39 +1,39 @@
 # rosettex
 
-Công cụ để **agent trong harness** (Claude Code, Codex, …) dịch trọn bài báo khoa học PDF. rosettex không tự dịch:
-nó tách nội dung (MinerU), chia lô có placeholder, kiểm tra bản dịch và dựng lại PDF bằng LaTeX, với công thức và bảng là ký tự thật.
-Lát 1 hỗ trợ PDF có lớp chữ.
+A tool for an **agent in a harness** (Claude Code, Codex, …) to translate a whole scientific PDF paper. rosettex does not translate by itself:
+it extracts the content (MinerU), splits it into batches with placeholders, checks the translation and rebuilds the PDF with LaTeX, with formulas and tables as real characters.
+Slice 1 supports PDFs with a text layer.
 
-## Cài đặt (lát 1: cài thủ công)
+## Installation (slice 1: manual install)
 
 ```bash
-uv tool install <đường-dẫn-repo-rosettex>          # hoặc: pipx install <đường-dẫn>
+uv tool install <path-to-rosettex-repo>            # or: pipx install <path>
 uv venv --python 3.12 ~/.rosettex/mineru-venv
 uv pip install --python ~/.rosettex/mineru-venv "mineru>=4,<5"
 ~/.rosettex/mineru-venv/bin/mineru-kit models download --tier standard --source modelscope
 #   Windows: %USERPROFILE%\.rosettex\mineru-venv\Scripts\mineru-kit.exe models download --tier standard
-#   Tải bị treo: dừng rồi chạy lại (tải nối tiếp được), hoặc đổi --source huggingface
-uv run python scripts/get_tectonic.py               # Tectonic 0.17.0 → ~/.rosettex/bin (bỏ qua nếu đã có xelatex)
+#   Download hangs: stop and rerun (downloads resume), or switch to --source huggingface
+uv run python scripts/get_tectonic.py               # Tectonic 0.17.0 → ~/.rosettex/bin (skip if xelatex is already installed)
 ```
 
-Biến môi trường tùy chọn (người dùng đặt một lần): `ROSETTEX_MINERU` (đường dẫn `mineru-kit`), `ROSETTEX_TEX` (đường dẫn `tectonic`/`xelatex`), `ROSETTEX_HOME` (mặc định `~/.rosettex`).
+Optional environment variables (the user sets them once): `ROSETTEX_MINERU` (path to `mineru-kit`), `ROSETTEX_TEX` (path to `tectonic`/`xelatex`), `ROSETTEX_HOME` (default `~/.rosettex`).
 
-## Gắn vào harness
+## Hooking into a harness
 
-- **Claude Code:** chép `skill/SKILL.md` vào `~/.claude/skills/rosettex/SKILL.md`.
-- **Codex, OpenCode, Cursor và harness đọc AGENTS.md:** chép nội dung `skill/AGENTS.md` vào `AGENTS.md` của bạn (đầu file có dòng "When to use" để agent biết khi nào áp dụng).
-- **Gemini CLI:** chép nội dung `skill/AGENTS.md` vào `GEMINI.md` (hoặc đặt tên file ngữ cảnh theo cấu hình của bạn).
-- **Cline:** chép nội dung `skill/AGENTS.md` vào `.clinerules`.
-- **Harness khác:** bảo agent "chạy `rosettex guide` rồi làm theo".
+- **Claude Code:** copy `skill/SKILL.md` to `~/.claude/skills/rosettex/SKILL.md`.
+- **Codex, OpenCode, Cursor and harnesses that read AGENTS.md:** copy the contents of `skill/AGENTS.md` into your `AGENTS.md` (the file starts with a "When to use" line so the agent knows when to apply it).
+- **Gemini CLI:** copy the contents of `skill/AGENTS.md` into `GEMINI.md` (or name the context file according to your configuration).
+- **Cline:** copy the contents of `skill/AGENTS.md` into `.clinerules`.
+- **Other harnesses:** tell the agent "run `rosettex guide` and follow it".
 
-Sau đó chỉ cần nói: *"Dịch bài báo ~/papers/attention.pdf sang tiếng Việt, lưu ở ~/dich/"*.
+After that, just say: *"Translate the paper ~/papers/attention.pdf into Vietnamese, save it in ~/translated/"*.
 
-## Phát triển
+## Development
 
 ```bash
 uv sync
-uv run pytest -q                                   # ROSETTEX_REAL=1 để chạy thêm đầu-cuối với MinerU thật
-uv run python -m rosettex.protocol.build           # sau khi sửa rosettex/protocol/protocol.md
+uv run pytest -q                                   # ROSETTEX_REAL=1 also runs end-to-end with real MinerU
+uv run python -m rosettex.protocol.build           # after editing rosettex/protocol/protocol.md
 ```
 
-Spec: `docs/superpowers/specs/`. Kế hoạch: `docs/superpowers/plans/`.
+Specs: `docs/superpowers/specs/`. Plans: `docs/superpowers/plans/`.

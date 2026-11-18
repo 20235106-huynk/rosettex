@@ -1,61 +1,61 @@
-# rosettex — giao thức dịch bài báo PDF
+# rosettex — PDF paper translation protocol
 
-Bạn (agent) là người dịch. `rosettex` tách nội dung, chia lô, kiểm tra và dựng PDF. Quy tắc chung:
-- Mỗi lần chỉ chạy **một** lệnh `rosettex …`, luôn thêm `--json`. Không nối lệnh, không dùng ống dẫn.
-- Mọi kết quả đều có `next_action`: đó là lệnh nên chạy tiếp theo.
-- Lệnh trả mã 2 là lỗi môi trường hoặc sử dụng: báo người dùng nội dung `error` và `next_action`, rồi dừng.
-- `next_action` là null kèm `error` → báo lỗi cho người dùng và dừng.
+You (the agent) are the translator. `rosettex` extracts the content, splits it into batches, checks it and builds the PDF. General rules:
+- Run only **one** `rosettex …` command at a time, always with `--json`. Do not chain commands and do not use pipes.
+- Every result has a `next_action`: that is the next command to run.
+- A command that returns exit code 2 hit an environment or usage error: tell the user the `error` and the `next_action`, then stop.
+- `next_action` is null together with `error` → report the error to the user and stop.
 
-## 0. Trước khi chạy
-- Cần đủ ba thông tin: file PDF, ngôn ngữ đích, nơi lưu (thư mục hoặc file .pdf). Không tự đoán ngôn ngữ đích (không mặc định tiếng Việt hay tiếng Anh). Thiếu ngôn ngữ hoặc nơi lưu thì hỏi người dùng **một câu gộp** (ví dụ "Bạn muốn dịch sang ngôn ngữ nào, và lưu kết quả ở đâu?"; thiếu một thì chỉ hỏi cái thiếu), rồi dừng chờ trả lời.
-- Không chạy được lệnh `rosettex` thì báo người dùng cài theo README của rosettex.
+## 0. Before running
+- You need all three of: the PDF file, the target language, and where to save (a directory or a .pdf file). Do not guess the target language (no default to Vietnamese or English). If the language or the save location is missing, ask the user **one combined question** (for example "Which language do you want to translate into, and where should I save the result?"; if only one is missing, ask only for that), then stop and wait for the answer.
+- If the `rosettex` command cannot be run, tell the user to install it following the rosettex README.
 
-## 1. Tách nội dung
-Chạy `rosettex extract "<pdf>" --lang <mã> --out "<nơi lưu>" --json`.
-- `output_exists: true`: hỏi người dùng có ghi đè file kết quả không, và nhớ câu trả lời cho bước 5.
-- `lang_tested: false`: báo người dùng "ngôn ngữ này chưa được kiểm thử".
-- Ghi lại `work` (thư mục làm việc).
+## 1. Extract
+Run `rosettex extract "<pdf>" --lang <code> --out "<save location>" --json`.
+- `output_exists: true`: ask the user whether to overwrite the output file, and remember the answer for step 5.
+- `lang_tested: false`: tell the user "this language has not been tested".
+- Note the `work` value (the work directory).
 
-Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần, cho tới khi `state` không còn là `extract_running`. Báo người dùng tiến độ ngắn gọn theo `step`.
+Then every 30–60 seconds run `rosettex status "<work>" --json` once, until `state` is no longer `extract_running`. Give the user a short progress update based on `step`.
 
-## 2. Thuật ngữ
-Chạy `rosettex next "<work>" --outline --json` để đọc tiêu đề, tóm tắt và các tiêu đề mục. Ghi một file JSON:
-`{"topic": "<một câu>", "terms": [{"src": "<thuật ngữ gốc>", "dst": "<bản dịch>"}], "keep": ["<giữ nguyên>"], "abbreviations": [{"abbr": "<viết tắt>", "expansion": "<dạng đầy đủ>"}]}`
-rồi chạy `rosettex terms "<work>" --file "<file>" --json`.
+## 2. Terms
+Run `rosettex next "<work>" --outline --json` to read the title, abstract and section headings. Write a JSON file:
+`{"topic": "<one sentence>", "terms": [{"src": "<source term>", "dst": "<translation>"}], "keep": ["<keep unchanged>"], "abbreviations": [{"abbr": "<abbreviation>", "expansion": "<full form>"}]}`
+then run `rosettex terms "<work>" --file "<file>" --json`.
 
-## 3. Dịch từng lô
-Lặp lại các bước sau:
-1. Chạy `rosettex next "<work>" --json`. Nếu nhận `done: true` thì sang bước 4.
-2. Dịch mọi `batch.items[].text` theo quy tắc ở cuối tài liệu. Dùng `terms`, `topic`, `section` và `previous` (đoạn cuối lô trước) để giữ mạch văn.
-3. Ghi file JSON `{"<id>": "<bản dịch>"}` chứa đủ mọi `id` của lô.
-4. Chạy đúng lệnh `rosettex accept …` trong `submit`, thay `<file.json>` bằng file vừa ghi.
-5. Nếu nhận `ok: false`, sửa đúng các `id` có trong `errors` rồi nộp lại cả lô.
+## 3. Translate batch by batch
+Repeat these steps:
+1. Run `rosettex next "<work>" --json`. If you get `done: true`, go to step 4.
+2. Translate every `batch.items[].text` following the rules at the end of this document. Use `terms`, `topic`, `section` and `previous` (the last paragraph of the previous batch) to keep the text coherent.
+3. Write a JSON file `{"<id>": "<translation>"}` containing every `id` of the batch.
+4. Run exactly the `rosettex accept …` command in `submit`, replacing `<file.json>` with the file you just wrote.
+5. If you get `ok: false`, fix exactly the `id`s listed in `errors` and resubmit the whole batch.
 
-Thêm:
-- Nếu bạn đọc được ảnh, xem `page_images` khi câu gốc khó hiểu.
-- Có subagent thì giao mỗi subagent một lô qua `rosettex next "<work>" --batch <id> --json`. Mỗi subagent tự nộp lô của mình.
+Also:
+- If you can read images, look at `page_images` when a source sentence is hard to understand.
+- If you have subagents, give each subagent one batch via `rosettex next "<work>" --batch <id> --json`. Each subagent submits its own batch.
 
-## 4. Kiểm tra toàn bài
-Chạy `rosettex validate "<work>" --json`. Còn lỗi thì nộp lại lô chứa các `id` bị báo, cho tới khi `ok: true`.
+## 4. Validate the whole paper
+Run `rosettex validate "<work>" --json`. If errors remain, resubmit the batches containing the reported `id`s, until `ok: true`.
 
-## 5. Dựng PDF
-Chạy `rosettex render "<work>" --json`. Thêm `--overwrite` nếu ở bước 1 người dùng đã đồng ý ghi đè.
+## 5. Build the PDF
+Run `rosettex render "<work>" --json`. Add `--overwrite` if the user agreed to overwrite in step 1.
 
-Sau đó cứ 30–60 giây chạy `rosettex status "<work>" --json` một lần, cho tới khi `state` là `done`. Nếu bạn đọc được ảnh hoặc PDF, mở file kết quả và xem trang đầu, một trang có bảng, một trang có công thức.
+Then every 30–60 seconds run `rosettex status "<work>" --json` once, until `state` is `done`. If you can read images or PDFs, open the output file and look at the first page, a page with a table, and a page with a formula.
 
-## 6. Báo kết quả
-Đọc file `report.json` (đường dẫn có trong `status`) rồi báo người dùng ngắn gọn:
-- đường dẫn file kết quả;
-- chủ đề và vài thuật ngữ chính;
-- tier đã dùng;
-- các mục trong `fallback`, kèm trang: công thức hoặc bảng đang hiển thị dạng mã LaTeX;
-- các mục trong `flagged`, kèm trang: công thức đáng ngờ;
-- `dropped`: số mục nội dung của bản gốc mà bộ tách không đọc được và nên không có trong bản dịch (loại khối, span hoặc phần bảng/hình lạ; chi tiết trong `document.json`, `source.dropped`). Nếu khác 0, nói rõ với người dùng rằng bản dịch có thể thiếu những phần đó;
-- câu "công thức và bảng chưa được đối chiếu với bản gốc";
-- các vấn đề trong `postcheck.problems`, nếu có.
+## 6. Report the result
+Read the `report.json` file (its path is in `status`) and give the user a short report:
+- the path of the output file;
+- the topic and a few key terms;
+- the tier used;
+- the items in `fallback`, with pages: formulas or tables shown as LaTeX source;
+- the items in `flagged`, with pages: suspicious formulas;
+- `dropped`: the number of source content items that the extractor could not read and that are therefore missing from the translation (unknown block types, spans or table/figure parts; details in `document.json`, `source.dropped`). If it is not 0, tell the user plainly that the translation may be missing those parts;
+- the sentence "formulas and tables have not been checked against the source";
+- the problems in `postcheck.problems`, if any.
 
-## Bị gián đoạn hoặc mất ngữ cảnh
-Chạy `rosettex status "<work>" --json` và làm đúng `next_action`. Nếu không nhớ `<work>`, nó nằm ở `<thư mục chứa file kết quả>/.rosettex/<tên file PDF gốc>.<mã ngôn ngữ>`.
+## Interrupted or lost context
+Run `rosettex status "<work>" --json` and follow `next_action`. If you do not remember `<work>`, it is at `<directory containing the output file>/.rosettex/<source PDF file name>.<language code>`.
 
-## Quy tắc dịch
+## Translation rules
 {{RULES}}

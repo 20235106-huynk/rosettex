@@ -9,7 +9,7 @@ _WORD = re.compile(r"⟦[a-z]\d+⟧|\S+")
 
 
 def fake_vi(src: str) -> str:
-    """'Người dịch giả': giữ placeholder và mọi từ có chữ số, thay từ khác bằng từ tiếng Việt."""
+    """Fake translator: keep placeholders and every word with a digit, replace other words with Vietnamese words."""
     out = []
     for i, w in enumerate(_WORD.findall(src)):
         out.append(w if w.startswith("⟦") or re.search(r"\d", w) else ("của" if i % 3 == 0 else "việc"))
@@ -17,7 +17,7 @@ def fake_vi(src: str) -> str:
 
 
 def make_work(tmp_path, tier="standard", name="short", lang="vi"):
-    """Thư mục làm việc đã extract xong, dựng thẳng từ fixture (không cần MinerU)."""
+    """A work directory with extract already done, built straight from the fixture (no MinerU needed)."""
     from rosettex.extract.mineru_adapter import adapt
     from rosettex.extract.segment import segment
     from rosettex.workspace import Work, write_json
@@ -51,7 +51,7 @@ TERMS = {"topic": "Kiến trúc chỉ dùng cơ chế chú ý cho dịch máy",
 
 
 def translate_all(work):
-    """Dịch mọi lô bằng fake_vi và ghi thẳng file bản dịch."""
+    """Translate every batch with fake_vi and write the translation files directly."""
     from rosettex.translate import batch_ids
     from rosettex.workspace import read_json, write_json
 

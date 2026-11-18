@@ -1,4 +1,4 @@
-"""Tải Tectonic 0.17.0 dựng sẵn, kiểm SHA-256, đặt vào ~/.rosettex/bin (hoặc thư mục ở đối số 1)."""
+"""Download the prebuilt Tectonic 0.17.0, verify SHA-256, install into ~/.rosettex/bin (or the directory in argument 1)."""
 import hashlib
 import io
 import os
@@ -27,13 +27,13 @@ def main() -> int:
     dest = Path(sys.argv[1]) if len(sys.argv) > 1 else home / "bin"
     key = (platform.system(), platform.machine())
     if key not in ASSETS:
-        print(f"chưa có bản Tectonic dựng sẵn cho {key}; hãy cài TeX Live/MiKTeX (xelatex)", file=sys.stderr)
+        print(f"no prebuilt Tectonic for {key}; install TeX Live/MiKTeX (xelatex)", file=sys.stderr)
         return 2
     name, sha = ASSETS[key]
     url = f"https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40{VER}/tectonic-{VER}-{name}"
     data = urllib.request.urlopen(url, timeout=60).read()
     if hashlib.sha256(data).hexdigest() != sha:
-        print("checksum không khớp, không cài", file=sys.stderr)
+        print("checksum mismatch, not installing", file=sys.stderr)
         return 1
     dest.mkdir(parents=True, exist_ok=True)
     exe = "tectonic.exe" if name.endswith(".zip") else "tectonic"

@@ -1,4 +1,4 @@
-"""Bảng HTML của MinerU (`rowspan`/`colspan`) → danh sách ô có toạ độ lưới."""
+"""MinerU HTML table (`rowspan`/`colspan`) → list of cells with grid coordinates."""
 from __future__ import annotations
 
 from html.parser import HTMLParser

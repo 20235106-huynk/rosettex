@@ -1,6 +1,6 @@
-"""MinerU `docvortex.middle` 2.0 (đầu ra --format zip) → document.json (`rosettex.document/1`).
+"""MinerU `docvortex.middle` 2.0 (--format zip output) → document.json (`rosettex.document/1`).
 
-Schema đã kiểm chứng ở SG 4.1: khối → span, chỉ khối có bbox (chuẩn hóa 0–1), page_idx tuyệt đối đếm từ 0.
+Schema verified in SG 4.1: block → span, only blocks with a bbox (normalized 0-1), page_idx is absolute and counted from 0.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .tables import parse_table_html
 
 KIND = {"doc_title": "heading", "paragraph_title": "heading", "text": "paragraph", "equation": "equation",
         "table": "table", "chart": "figure", "image": "figure", "page_footnote": "footnote", "ref_text": "reference"}
-NOISE = {"page_number", "header", "footer"}  # bỏ có chủ ý, không báo là mất nội dung
+NOISE = {"page_number", "header", "footer"}  # dropped on purpose, not reported as lost content
 NUM_HEAD = re.compile(r"^\s*(\d+(?:\.\d+)*)\.?\s+(?=\S)")
 CAPTION = re.compile(r"^\s*(?:Figure|Fig\.|Table|Tab\.)\s*(\d+)\s*[:.]\s*", re.I)
 TAG = re.compile(r"\\tag\s*\{([^{}]*)\}")
@@ -23,7 +23,7 @@ _WORDCMD = re.compile(r"\\(operatorname|mathrm|text|mathit|mathbf|mathsf)\s*\{([
 
 
 def normalize_tex(s: str) -> str:
-    """Chỉ gộp khoảng trắng MinerU chèn vào giữa chữ số và giữa chữ cái của lệnh chữ; không đổi ký hiệu."""
+    """Only merges whitespace MinerU inserts between digits and between letters of a text command; does not change symbols."""
     s = _DIGIT_DOT.sub(".", s)
     s = _DIGIT_GAP.sub("", s)
 
@@ -49,7 +49,7 @@ def spans_of(content) -> list[dict]:
 
 
 def _strip(spans, rx):
-    """Cắt tiền tố khớp `rx` khỏi span chữ đầu tiên; trả match hoặc None."""
+    """Cut the prefix matching `rx` off the first text span; return the match or None."""
     for s in spans:
         if s["t"] == "text" and s["v"].strip():
             m = rx.match(s["v"])
@@ -95,7 +95,7 @@ def _block(b, kind, page, gdir, root) -> dict:
         out["image"] = _img(body, gdir, root)
     elif kind == "footnote":
         spans = spans_of(c)
-        if spans and spans[0]["t"] == "sup":  # dấu chú thích là span chỉ số trên riêng
+        if spans and spans[0]["t"] == "sup":  # the footnote mark is its own superscript span
             mark = spans.pop(0)["v"].strip()
         else:
             m = _strip(spans, FOOTMARK)
@@ -109,7 +109,7 @@ def _block(b, kind, page, gdir, root) -> dict:
 
 
 def _dropped(b, kind, page) -> list[dict]:
-    """Ghi lại những gì adapter không đọc: loại khối lạ, loại span lạ, phần của bảng/hình bị bỏ hoặc bị ghi đè."""
+    """Record what the adapter does not read: unknown block types, unknown span types, table/figure parts that are dropped or overwritten."""
     bid = f"p{page}b{b.get('index')}"
     mk = lambda what, t: {"what": what, "type": t, "page": page, "block": bid}  # noqa: E731
     if kind is None:

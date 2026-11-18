@@ -44,7 +44,7 @@ def test_adapt_short_standard():
     assert B["p1b22"]["mark"] == "∗" and B["p1b24"]["mark"] == "1"
     assert B["p1b24"]["spans"][0]["v"].startswith("We found warmup")
     assert B["p2b1"]["key"] == "1" and B["p2b1"]["spans"][0]["v"].startswith("A. Vaswani")
-    assert "p1b25" not in B  # page_number bị bỏ
+    assert "p1b25" not in B  # page_number is dropped
     assert [s["t"] for s in B["p1b9"]["spans"]].count("math") == 6
 
 
@@ -85,7 +85,7 @@ def test_dropped_content_is_recorded():
     assert {"what": "block", "type": "list", "page": pg, "block": f"p{pg}b90"} in dropped
     assert {"what": "span", "type": "footnote_ref", "page": pg, "block": f"p{pg}b91"} in dropped
     assert {"what": "part", "type": "table_footnote", "page": pg, "block": f"p{pg}b92"} in dropped
-    assert not any(x["type"] == "page_number" for x in dropped)  # nhiễu có chủ ý, không tính
+    assert not any(x["type"] == "page_number" for x in dropped)  # deliberate noise, not counted
 
 
 def test_clean_fixture_records_nothing_dropped():

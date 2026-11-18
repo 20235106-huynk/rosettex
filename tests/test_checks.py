@@ -15,7 +15,7 @@ def errs(dst):
     return check_batch(BATCH, {"p1b20": dst}, VI, TERMS)["errors"]
 
 
-def test_correct_vietnamese_passes():  # hồi quy: bộ kiểm tra dựa chữ Hán báo lỗi bản dịch tiếng Việt đúng
+def test_correct_vietnamese_passes():  # regression: the Han-character-based check rejected a correct Vietnamese translation
     assert errs(GOOD) == {}
 
 
@@ -28,22 +28,22 @@ def test_added_number_passes():
     assert errs(GOOD.replace("trước đó", "trước đó (tức 2 hệ thống)")) == {}
 
 
-def test_changed_number_rejected():  # hồi quy: PaperReader chấp nhận bản dịch đã bị sửa số liệu
-    assert "thiếu hoặc đổi số" in " ".join(errs(GOOD.replace("28.4", "28.5"))["p1b20"])
+def test_changed_number_rejected():  # regression: PaperReader accepted a translation with altered numbers
+    assert "missing or changed number" in " ".join(errs(GOOD.replace("28.4", "28.5"))["p1b20"])
 
 
 def test_decimal_comma_rejected():
-    assert "thiếu hoặc đổi số" in " ".join(errs(GOOD.replace("2.0", "2,0"))["p1b20"])
+    assert "missing or changed number" in " ".join(errs(GOOD.replace("2.0", "2,0"))["p1b20"])
 
 
 def test_placeholder_missing_or_altered_rejected():
-    assert "thiếu placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", ""))["p1b20"])
-    assert "thừa hoặc sai placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", "⟦m2⟧"))["p1b20"])
+    assert "missing placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", ""))["p1b20"])
+    assert "extra or wrong placeholder" in " ".join(errs(GOOD.replace("⟦m1⟧", "⟦m2⟧"))["p1b20"])
 
 
 def test_english_left_untranslated_rejected():
-    assert "nghi chưa dịch" in errs(SRC)["p1b20"]
-    assert looks_untranslated("short", "short", VI) is False  # đoạn ngắn: không kết luận
+    assert "looks untranslated" in errs(SRC)["p1b20"]
+    assert looks_untranslated("short", "short", VI) is False  # short paragraph: no conclusion
 
 
 def test_nfd_input_is_equivalent():
@@ -52,7 +52,7 @@ def test_nfd_input_is_equivalent():
 
 def test_missing_and_extra_ids():
     res = check_batch(BATCH, {"zzz": GOOD}, VI, TERMS)["errors"]
-    assert res["p1b20"] == ["thiếu bản dịch cho id này"] and res["zzz"] == ["id không thuộc lô này"]
+    assert res["p1b20"] == ["missing translation for this id"] and res["zzz"] == ["id does not belong to this batch"]
 
 
 def test_bad_chars():

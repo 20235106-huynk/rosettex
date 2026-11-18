@@ -78,7 +78,7 @@ def test_validate_reports_untranslated_batches(tmp_path):
     w = make_work(tmp_path)
     translate.write_terms(w, write(tmp_path / "t.json", TERMS))
     v = translate.validate(w)
-    assert v["ok"] is False and v["errors"]["b001"] == ["lô chưa được dịch"]
+    assert v["ok"] is False and v["errors"]["b001"] == ["batch has not been translated"]
 
 
 def test_terms_wrong_types_give_errors_not_exceptions(tmp_path):

@@ -9,7 +9,7 @@ from rosettex.render.compile import culprit, render_core
 from rosettex.tools import find_tex
 from rosettex.workspace import read_json, write_json
 
-needs_tex = pytest.mark.skipif(find_tex() is None, reason="cần Tectonic hoặc XeLaTeX (scripts/get_tectonic.py)")
+needs_tex = pytest.mark.skipif(find_tex() is None, reason="needs Tectonic or XeLaTeX (scripts/get_tectonic.py)")
 
 
 def test_culprit():
@@ -25,7 +25,7 @@ def test_render_short_end_to_end(tmp_path):
     rep = render_core(w, out)
     assert out.is_file() and rep["postcheck"]["ok"], rep["postcheck"]
     assert rep["fallback"] == [] and rep["unreviewed"] is True
-    text = " ".join(nfc(full_text(out)).split())  # tiêu đề bị ngắt dòng trong cột hẹp, text lớp chữ xen kẽ
+    text = " ".join(nfc(full_text(out)).split())  # the title wraps in a narrow column, text-layer text interleaves
     assert "việc" in text and "Alice Nguyen" in text and "Tài liệu" in text
     assert read_json(w.report)["output"] == str(out)
 
@@ -43,7 +43,7 @@ def test_broken_formulas_fall_back_without_breaking_build(tmp_path):
     translate_all(w)
     tr = read_json(w.translation_path("b001", "vi"))
     first = next(iter(tr))
-    tr[first] = tr[first] + " 50% & _ # ~ ^ α ∗"  # Review Focus 3: ký tự đặc biệt trong bản dịch
+    tr[first] = tr[first] + " 50% & _ # ~ ^ α ∗"  # Review Focus 3: special characters in the translation
     write_json(w.translation_path("b001", "vi"), tr)
     rep = render_core(w, tmp_path / "out.pdf")
     ids = {f["id"] for f in rep["fallback"]}
@@ -69,7 +69,7 @@ def test_tex_sources_written_with_lf_newline(tmp_path, monkeypatch):
     try:
         C.render_core(w, tmp_path / "o.pdf")
     except Exception:
-        pass  # PDF giả không tồn tại; chỉ quan tâm cách ghi .tex
+        pass  # the fake PDF does not exist; only the way .tex is written matters
     assert seen == {"probe.tex": "\n", "main.tex": "\n"}
 
 
@@ -93,7 +93,7 @@ def test_heading_with_blank_line_renders(tmp_path):
 
 @needs_tex
 def test_blank_line_in_heading_recovers_via_fallback(tmp_path):
-    """Dù bản dịch đã lưu có dòng trống (file cũ), fallback theo id khối phải cứu được bản dựng."""
+    """Even if the saved translation has a blank line (old file), the fallback by block id must rescue the build."""
     w = make_work(tmp_path)
     translate_all(w)
     doc = read_json(w.document)
