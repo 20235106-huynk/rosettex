@@ -177,6 +177,16 @@ def _run(cmd: list[str], log: Path) -> bool:
         ).returncode == 0
 
 
+def _run_retry(cmd: list[str], log: Path, tries: int = 3) -> bool:
+    """tlmgr over mirror.ctan.org: a mirror can fail mid-download; each retry is redirected to another mirror."""
+    for attempt in range(tries):
+        if _run(cmd, log):
+            return True
+        if attempt < tries - 1:
+            time.sleep(10 * (attempt + 1))
+    return False
+
+
 def _tlpdb(path: Path) -> dict[str, list[str]]:
     deps = {}
     for rec in path.read_text(encoding="utf-8", errors="replace").split("\n\n"):
@@ -312,7 +322,7 @@ def setup(yes: bool, budget: float | None, tex: str) -> tuple[dict, int]:
         t0 = time.monotonic()
         tl = str(_private_tlmgr())
         # the pinned tlmgr is older than the repository's: tlmgr refuses to install until it updates itself
-        if not _run([tl, "update", "--self"], log):
+        if not _run_retry([tl, "update", "--self"], log):
             return failed("tlmgr update --self")
         todo = _missing_packages()
         st.setdefault("packages_total", len(todo))
@@ -322,7 +332,7 @@ def setup(yes: bool, budget: float | None, tex: str) -> tuple[dict, int]:
                 st["seconds"]["packages"] = round(time.monotonic() - t0 + st["seconds"].get("packages", 0), 1)
                 return partial("packages")
             # --no-depends: the batch list is already the closure, and the default would pull fontsextra back in
-            if not _run([tl, "install", "--no-depends", *todo[:BATCH]], log):
+            if not _run_retry([tl, "install", "--no-depends", *todo[:BATCH]], log):
                 return failed("tlmgr install")
             todo = todo[BATCH:]
         st.pop("packages_left", None)
