@@ -1,0 +1,24 @@
+{
+  "name": "rosettex",
+  "version": "1.0.3",
+  "description": "Translate scientific papers (TeX source or born-digital PDF) into 19+ languages with the paper's own layout, using the rosettex command-line tool you install.",
+  "author": {
+    "name": "20235106-huynk",
+    "url": "https://github.com/20235106-huynk"
+  },
+  "homepage": "https://github.com/20235106-huynk/rosettex",
+  "repository": "https://github.com/20235106-huynk/rosettex",
+  "license": "MIT",
+  "keywords": [
+    "translation",
+    "latex",
+    "pdf",
+    "arxiv",
+    "scientific-papers",
+    "mcp"
+  ],
+  "icon": "./logo.svg",
+  "privacyPolicyUrl": "https://github.com/20235106-huynk/rosettex/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/20235106-huynk/rosettex/issues",
+  "documentationUrl": "https://github.com/20235106-huynk/rosettex#readme"
+}
