@@ -36,12 +36,12 @@ MCP server and an Agent Skill, packaged as a plugin for the major agent harnesse
 |---|---|
 | 🤖 **Built for agents** | Every command speaks `--json` and returns the next command to run (`next_argv`); an agent can drive the whole loop and resume after any interruption. |
 | 📐 **Original layout** | From TeX source the paper is rebuilt with its own class and packages; from a PDF the original pages are kept and only the text in the translated boxes is replaced. |
-| 🧮 **Formulas stay formulas** | Math, citations and links become placeholders (`⟦m1⟧`, `⟦l2⟧`) the translation must keep; on PDFs they are copied as vector snippets of the original. A formula the agent copies verbatim is protected automatically. |
+| 🧮 **Formulas stay formulas** | Math, citations and links become placeholders (`⟦m1⟧`, `⟦l2⟧`) the translation must keep; on PDFs they are copied as vector snippets of the original, and a formula the agent copies verbatim is protected automatically. |
 | 🛡️ **Strict checks** | `rosettex check` catches lost placeholders, changed numbers, glossary violations, untranslated text and over-long answers before anything is built. |
 | 🔁 **Repair loop** | When text does not fit, `build` answers `needs_repair` with the segments to shorten and by how much; nothing is silently cut. |
 | 🌐 **Many scripts** | Latin, Cyrillic, CJK, Arabic/Persian/Urdu, Devanagari, Bengali, Tamil, Thai, Myanmar, Ethiopic … with bundled fonts (Noto, Vazirmatn) and copy/search-friendly output. |
 | 🔌 **One plugin, many harnesses** | Claude Code, Codex, GitHub Copilot, VS Code, Cursor, Antigravity, Gemini CLI, Hermes, Devin and more install it from this repository; any MCP client or Agent Skills host can use it too. |
-| 💻 **Linux, macOS, Windows** | CI runs the full smoke test on all three. |
+| 💻 **Linux, macOS, Windows** | CI builds translated PDFs (Vietnamese, Arabic, Japanese) on all three. |
 
 ## 🔀 Two Routes
 
@@ -105,7 +105,7 @@ builds the PDF, shortens any text `build` reports as too long, and tells you whe
 ## 🔌 Connect Your Agent
 
 This repository is a plugin at its root: one skill (`skills/rosettex`) and one MCP server that `uvx` starts from the
-tagged release, so [uv](https://docs.astral.sh/uv/) must be on PATH. The first run of `setup` installs TeX (the agent
+tagged release (the manual snippets below start it from PyPI), so [uv](https://docs.astral.sh/uv/) must be on PATH. The first run of `setup` installs TeX (the agent
 asks you first).
 
 ### Install as a plugin
@@ -114,7 +114,7 @@ asks you first).
 |---|---|
 | **Claude Code** | `/plugin marketplace add 20235106-huynk/rosettex`, then `/plugin install rosettex@rosettex` |
 | **Claude Desktop / claude.ai** | Customize › Plugins › Add marketplace `20235106-huynk/rosettex` |
-| **Codex CLI / ChatGPT desktop** | `codex plugin marketplace add 20235106-huynk/rosettex`, then install `rosettex` from the Plugins tab |
+| **Codex CLI / ChatGPT desktop** | `codex plugin marketplace add 20235106-huynk/rosettex`, then install `rosettex` from `/plugins` (or the app's Plugins directory) |
 | **GitHub Copilot CLI** | `copilot plugin install 20235106-huynk/rosettex` |
 | **VS Code (Copilot)** | *Chat: Install Plugin from Source* with the repository URL, or add `20235106-huynk/rosettex` to `chat.plugins.marketplaces` |
 | **Antigravity** | `agy plugin install https://github.com/20235106-huynk/rosettex` |
@@ -132,8 +132,8 @@ asks you first).
 
 1. Install the skill: `rosettex install-skill` (writes `~/.agents/skills`, `~/.claude/skills`, `~/.gemini/config/skills`,
    and the Cline, Kiro, Qoder, Trae and CodeBuddy skill folders when they exist), or `npx skills add 20235106-huynk/rosettex`.
-2. Add the MCP server. Most harnesses (Cursor, Cline, Kiro CLI, Qoder, Kimi Code, Pi, CodeBuddy, Warp, Junie, Roo/Zoo,
-   Tabnine, Trae, JetBrains AI Assistant) take the standard block:
+2. Add the MCP server. Most harnesses (Cursor, Cline, Kiro, Qoder, Kimi Code, Pi, CodeBuddy, Warp, Junie, Auggie, Tabnine,
+   Trae, JetBrains AI Assistant) take the standard block in their MCP settings:
 
 ```json
 { "mcpServers": { "rosettex": { "command": "uvx", "args": ["--from", "rosettex", "rosettex-mcp"] } } }
@@ -144,10 +144,10 @@ asks you first).
 
 | Harness | Where | Entry |
 |---|---|---|
-| OpenCode | `opencode.json` | `"mcp": { "rosettex": { "type": "local", "command": ["uvx", "--from", "rosettex", "rosettex-mcp"] } }` |
-| Kilo | `kilo.jsonc` | same as OpenCode |
+| OpenCode | `opencode.json` | `"mcp": { "servers": { "rosettex": { "type": "local", "command": ["uvx", "--from", "rosettex", "rosettex-mcp"] } } }` |
+| Kilo | `kilo.jsonc` | `"mcp": { "rosettex": { "type": "local", "command": ["uvx", "--from", "rosettex", "rosettex-mcp"] } }` |
 | Crush | `crush.json` | `"mcp": { "rosettex": { "type": "stdio", "command": "uvx", "args": ["--from", "rosettex", "rosettex-mcp"] } }` |
-| goose | `config.yaml` | `extensions: { rosettex: { type: stdio, cmd: uvx, args: [--from, rosettex, rosettex-mcp] } }` |
+| goose | `config.yaml` | `extensions: { rosettex: { name: rosettex, type: stdio, enabled: true, cmd: uvx, args: [--from, rosettex, rosettex-mcp], envs: {}, timeout: 300 } }` |
 | Mistral Vibe | `config.toml` | `[[mcp_servers]]` with `name = "rosettex"`, `transport = "stdio"`, `command = "uvx"`, `args = [...]` |
 | Amp | CLI | `amp mcp add rosettex -- uvx --from rosettex rosettex-mcp` |
 | Zed | `settings.json` | `"context_servers": { "rosettex": { "command": "uvx", "args": [...] } }` |
