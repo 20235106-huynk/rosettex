@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3 — 2026-11-28
+- `rosettex mcp` runs the MCP server (same as `rosettex-mcp`); plugin manifests and the MCP Registry entry now start it
+  from PyPI (`uvx rosettex==<version> mcp`) instead of a git checkout.
+- Slim `plugins/antigravity` package that passes `agy plugin validate --strict`; plugin logo.
+- Releases also publish to the official MCP Registry.
+
 ## 1.0.2 — 2026-11-28
 - Fix: the MCP tools without positional arguments (`guide`, `doctor`, `setup`) failed with
   "unrecognized arguments: --". CI now calls them through the MCP server.

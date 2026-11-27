@@ -5,7 +5,7 @@
 
 **Translate scientific papers into 19+ languages — and keep the paper's own layout.**
 
-[![PyPI](https://img.shields.io/pypi/v/rosettex?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/rosettex/)
+[![PyPI](https://img.shields.io/github/v/tag/20235106-huynk/rosettex?style=flat-square&logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/rosettex/)
 [![CI](https://img.shields.io/github/actions/workflow/status/20235106-huynk/rosettex/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/20235106-huynk/rosettex/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/rosettex/)
 [![Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex%20%7C%20Copilot%20%7C%20Gemini%20%7C%20Antigravity%20%7C%20MCP-8e44ad?style=flat-square)](#-connect-your-agent)
@@ -90,7 +90,7 @@ builds the PDF, shortens any text `build` reports as too long, and tells you whe
 ## 🔌 Connect Your Agent
 
 This repository is a plugin at its root: one skill (`skills/rosettex`) and one MCP server that `uvx` starts from the
-tagged release (the manual snippets below start it from PyPI), so [uv](https://docs.astral.sh/uv/) must be on PATH. The first run of `setup` installs TeX (the agent
+release on PyPI (`uvx rosettex==<version> mcp`), so [uv](https://docs.astral.sh/uv/) must be on PATH. The first run of `setup` installs TeX (the agent
 asks you first).
 
 ### Install as a plugin
@@ -102,7 +102,7 @@ asks you first).
 | **Codex CLI / ChatGPT desktop** | `codex plugin marketplace add 20235106-huynk/rosettex`, then install `rosettex` from `/plugins` (or the app's Plugins directory) |
 | **GitHub Copilot CLI** | `copilot plugin install 20235106-huynk/rosettex` |
 | **VS Code (Copilot)** | *Chat: Install Plugin from Source* with the repository URL, or add `20235106-huynk/rosettex` to `chat.plugins.marketplaces` |
-| **Antigravity** | `agy plugin install https://github.com/20235106-huynk/rosettex` |
+| **Antigravity** | `agy plugin install https://github.com/20235106-huynk/rosettex` (or the strict-clean slim package in `plugins/antigravity`) |
 | **Gemini CLI** | `gemini extensions install https://github.com/20235106-huynk/rosettex` |
 | **Hermes** | `hermes plugins install 20235106-huynk/rosettex/plugins/hermes`, then `hermes plugins enable rosettex` |
 | **Devin** (Desktop, CLI, cloud) | `devin plugins install 20235106-huynk/rosettex`; cloud: Customize › Add plugin › From repository |
@@ -121,7 +121,7 @@ asks you first).
    Trae, JetBrains AI Assistant) take the standard block in their MCP settings:
 
 ```json
-{ "mcpServers": { "rosettex": { "command": "uvx", "args": ["--from", "rosettex", "rosettex-mcp"] } } }
+{ "mcpServers": { "rosettex": { "command": "uvx", "args": ["rosettex", "mcp"] } } }
 ```
 
 <details>
@@ -129,12 +129,12 @@ asks you first).
 
 | Harness | Where | Entry |
 |---|---|---|
-| OpenCode | `opencode.json` | `"mcp": { "servers": { "rosettex": { "type": "local", "command": ["uvx", "--from", "rosettex", "rosettex-mcp"] } } }` |
-| Kilo | `kilo.jsonc` | `"mcp": { "rosettex": { "type": "local", "command": ["uvx", "--from", "rosettex", "rosettex-mcp"] } }` |
-| Crush | `crush.json` | `"mcp": { "rosettex": { "type": "stdio", "command": "uvx", "args": ["--from", "rosettex", "rosettex-mcp"] } }` |
-| goose | `config.yaml` | `extensions: { rosettex: { name: rosettex, type: stdio, enabled: true, cmd: uvx, args: [--from, rosettex, rosettex-mcp], envs: {}, timeout: 300 } }` |
+| OpenCode | `opencode.json` | `"mcp": { "servers": { "rosettex": { "type": "local", "command": ["uvx", "rosettex", "mcp"] } } }` |
+| Kilo | `kilo.jsonc` | `"mcp": { "rosettex": { "type": "local", "command": ["uvx", "rosettex", "mcp"] } }` |
+| Crush | `crush.json` | `"mcp": { "rosettex": { "type": "stdio", "command": "uvx", "args": ["rosettex", "mcp"] } }` |
+| goose | `config.yaml` | `extensions: { rosettex: { name: rosettex, type: stdio, enabled: true, cmd: uvx, args: [rosettex, mcp], envs: {}, timeout: 300 } }` |
 | Mistral Vibe | `config.toml` | `[[mcp_servers]]` with `name = "rosettex"`, `transport = "stdio"`, `command = "uvx"`, `args = [...]` |
-| Amp | CLI | `amp mcp add rosettex -- uvx --from rosettex rosettex-mcp` |
+| Amp | CLI | `amp mcp add rosettex -- uvx rosettex mcp` |
 | Zed | `settings.json` | `"context_servers": { "rosettex": { "command": "uvx", "args": [...] } }` |
 | Zencoder | VS Code `settings.json` | `"zencoder.mcpServers"` with the standard block |
 | Visual Studio | `%USERPROFILE%\.mcp.json` | `"servers": { "rosettex": { "command": "uvx", "args": [...] } }` |

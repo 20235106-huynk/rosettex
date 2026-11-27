@@ -6,24 +6,17 @@
     "url": "https://github.com/20235106-huynk/rosettex",
     "source": "github"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "rosettex",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "runtimeHint": "uvx",
-      "runtimeArguments": [
-        {
-          "type": "named",
-          "name": "--from",
-          "value": "rosettex==1.0.2"
-        }
-      ],
       "packageArguments": [
         {
           "type": "positional",
-          "value": "rosettex-mcp"
+          "value": "mcp"
         }
       ],
       "transport": {

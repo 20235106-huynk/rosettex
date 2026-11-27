@@ -1,6 +1,6 @@
 [project]
 name = "rosettex"
-version = "1.0.2"
+version = "1.0.3"
 description = "Translate scientific papers (TeX source or born-digital PDF) into another language with the original layout, for AI agent harnesses"
 readme = "README.md"
 authors = [{ name = "Nguyễn Kim Huy" }]

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rosettex": {
+      "command": "uvx",
+      "args": [
+        "rosettex==1.0.3",
+        "mcp"
+      ]
+    }
+  }
+}

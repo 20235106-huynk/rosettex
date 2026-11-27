@@ -3,9 +3,8 @@
     "rosettex": {
       "command": "uvx",
       "args": [
-        "--from",
-        "git+https://github.com/20235106-huynk/rosettex@v1.0.2",
-        "rosettex-mcp"
+        "rosettex==1.0.3",
+        "mcp"
       ]
     }
   }

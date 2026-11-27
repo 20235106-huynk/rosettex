@@ -1,0 +1,21 @@
+{
+  "name": "rosettex",
+  "version": "1.0.3",
+  "description": "Translate a scientific paper from its TeX source (folder, archive, arXiv ID) or a born-digital PDF into another language and rebuild the PDF with the paper's own layout. You translate; rosettex prepares, checks and typesets.",
+  "author": {
+    "name": "20235106-huynk",
+    "url": "https://github.com/20235106-huynk"
+  },
+  "homepage": "https://github.com/20235106-huynk/rosettex",
+  "repository": "https://github.com/20235106-huynk/rosettex",
+  "license": "MIT",
+  "keywords": [
+    "translation",
+    "latex",
+    "pdf",
+    "arxiv",
+    "scientific-papers",
+    "mcp"
+  ],
+  "logo": "assets/logo.svg"
+}

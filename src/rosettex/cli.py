@@ -1122,6 +1122,7 @@ def _main(argv: list[str]) -> int:
     dr.add_argument("--force", action="store_true")
     for sp in (f, pr, c, rv, fx, b, s, g, ins, su, dr):
         sp.add_argument("--json", action="store_true")
+    sub.add_parser("mcp", help="run the MCP server over stdio (same as rosettex-mcp)")
     a = p.parse_args(argv)
     return {
         "fetch": cmd_fetch,
@@ -1135,4 +1136,5 @@ def _main(argv: list[str]) -> int:
         "install-skill": cmd_install_skill,
         "setup": cmd_setup,
         "doctor": cmd_doctor,
+        "mcp": lambda _a: __import__("rosettex.mcp", fromlist=["main"]).main(),
     }[a.cmd](a)
