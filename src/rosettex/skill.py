@@ -126,7 +126,12 @@ def render_manifests(version: str) -> dict[str, str]:
     files = {
         "plugin.json": {"$schema": f"{SCHEMAS}/plugin.schema.json", **common, **meta},
         "mcp.json": {"$schema": f"{SCHEMAS}/mcp.schema.json", "mcpServers": typed},
-        ".claude-plugin/plugin.json": {**common, **meta, "icon": "./assets/logo.svg"},
+        ".claude-plugin/plugin.json": {
+            **common, **meta, "icon": "./assets/logo.svg",
+            "privacyPolicyUrl": f"{REPO}/blob/main/PRIVACY.md",
+            "supportUrl": f"{REPO}/issues",
+            "documentationUrl": f"{REPO}#readme",
+        },
         ".claude-plugin/marketplace.json": {
             "name": "rosettex",
             "owner": {"name": OWNER},

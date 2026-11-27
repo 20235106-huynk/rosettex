@@ -192,6 +192,14 @@ Language data covers about 50 target languages (`src/rosettex/data/langs/`). Tes
 - Table contents are not translated; scanned PDFs, vertical writing and PDF forms are not supported.
 - Very tight layouts may need shorter translations (`needs_repair`) or a slightly smaller font.
 
+## 🔒 Privacy and network access
+
+rosettex runs on your machine: no server, no account, no telemetry. It goes online only to download what you ask for —
+a paper from arxiv.org (`fetch`), the TeX toolchain from github.com and mirror.ctan.org (`setup`, after you agree), and
+the package from PyPI when `uvx` starts the MCP server. Local papers are never uploaded. Your AI agent, not rosettex,
+does the translating; what it sends to its model provider follows that provider's policy. Details:
+[`PRIVACY.md`](https://github.com/20235106-huynk/rosettex/blob/main/PRIVACY.md).
+
 ## 📄 License
 
 MIT — see [`LICENSE`](https://github.com/20235106-huynk/rosettex/blob/main/LICENSE). Bundled fonts are under the SIL Open

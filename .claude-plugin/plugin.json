@@ -17,5 +17,8 @@
     "scientific-papers",
     "mcp"
   ],
-  "icon": "./assets/logo.svg"
+  "icon": "./assets/logo.svg",
+  "privacyPolicyUrl": "https://github.com/20235106-huynk/rosettex/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/20235106-huynk/rosettex/issues",
+  "documentationUrl": "https://github.com/20235106-huynk/rosettex#readme"
 }
