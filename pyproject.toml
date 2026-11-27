@@ -1,6 +1,6 @@
 [project]
 name = "rosettex"
-version = "1.0.0"
+version = "1.0.1"
 description = "Translate scientific papers (TeX source or born-digital PDF) into another language with the original layout, for AI agent harnesses"
 readme = "README.md"
 keywords = ["translation", "latex", "pdf", "scientific-papers", "mcp", "agents"]

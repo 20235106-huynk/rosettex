@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-11-28
+- Fix: the 1.0.0 package missed the `rosettex.build` subpackage (the MCP server and CLI failed to start). Releases now
+  check that the built wheel imports every module.
+- Plugin manifests for every harness at the repo root (Claude Code, Codex, Copilot/Cursor/VS Code, Antigravity, Gemini
+  CLI, Hermes), MCP tool annotations, MCP protocol 2025-11-25.
+
 ## 1.0.0 — 2026-11-27
 Complete redesign (replaces the 0.x MinerU-based tool): input is the paper's TeX source or a born-digital PDF.
 - TeX route: fetch from a folder, archive or arXiv, segment the source into question sheets, check translations

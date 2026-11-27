@@ -19,6 +19,12 @@ jobs:
         run: test "v$(uv run python -c 'import rosettex; print(rosettex.__version__)')" = "$GITHUB_REF_NAME"
       - run: uv run python -m rosettex.skill --check
       - run: uv build
+      # The wheel must contain every subpackage and start: import all modules and run the CLI from the built wheel.
+      - name: Wheel smoke
+        run: |
+          uv venv /tmp/whl && uv pip install --python /tmp/whl dist/*.whl
+          /tmp/whl/bin/python -c "import pkgutil, importlib, rosettex; [importlib.import_module(m.name) for m in pkgutil.walk_packages(rosettex.__path__, 'rosettex.')]"
+          /tmp/whl/bin/rosettex guide > /dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: dist

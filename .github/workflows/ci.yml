@@ -53,6 +53,12 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync
       - run: uv run ruff check .
+      # The built wheel (not the source tree) must import every module.
+      - name: Wheel imports every module
+        shell: bash
+        run: |
+          uv build --wheel -o .ci/dist
+          uv run --isolated --no-project --with .ci/dist/*.whl python -c "import pkgutil, importlib, rosettex; [importlib.import_module(m.name) for m in pkgutil.walk_packages(rosettex.__path__, 'rosettex.')]"
       - uses: actions/download-artifact@v4
         with:
           name: fixtures

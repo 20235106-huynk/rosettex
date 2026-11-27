@@ -3,7 +3,7 @@ name: rosettex
 description: Translate a scientific paper from its LaTeX source (a folder, an archive, or an arXiv ID/link) or a born-digital PDF into another language and build the translated PDF with the paper's own layout. Use when the user asks to translate a paper/article. You translate; the rosettex CLI prepares, checks and typesets.
 license: MIT
 metadata:
-  rosettex-version: "1.0.0"
+  rosettex-version: "1.0.1"
 ---
 
 # rosettex — translate a scientific paper
