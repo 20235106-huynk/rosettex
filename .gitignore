@@ -16,6 +16,8 @@ dev/
 CLAUDE.md
 AGENTS.md
 GEMINI.md
-# Only scripts/ci_smoke.py is published (the CI uses it)
+# Only the CI scripts are published
 scripts/*
 !scripts/ci_smoke.py
+!scripts/pseudo_translate.py
+!scripts/roundtrip_gate.py
