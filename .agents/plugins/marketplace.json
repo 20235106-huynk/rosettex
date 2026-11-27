@@ -1,0 +1,20 @@
+{
+  "name": "rosettex",
+  "interface": {
+    "displayName": "rosettex"
+  },
+  "plugins": [
+    {
+      "name": "rosettex",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

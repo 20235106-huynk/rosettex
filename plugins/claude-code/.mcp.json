@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "rosettex": {
-      "type": "stdio",
-      "command": "rosettex-mcp",
-      "args": []
-    }
-  }
-}

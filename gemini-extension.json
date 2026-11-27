@@ -1,0 +1,15 @@
+{
+  "name": "rosettex",
+  "version": "1.0.0",
+  "description": "Translate a scientific paper from its TeX source (folder, archive, arXiv ID) or a born-digital PDF into another language and rebuild the PDF with the paper's own layout. You translate; rosettex prepares, checks and typesets.",
+  "mcpServers": {
+    "rosettex": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/20235106-huynk/rosettex@v1.0.0",
+        "rosettex-mcp"
+      ]
+    }
+  }
+}

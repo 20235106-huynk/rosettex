@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.20235106-huynk/rosettex",
+  "description": "Translate scientific papers (TeX source or born-digital PDF) and rebuild the PDF with its layout.",
+  "repository": {
+    "url": "https://github.com/20235106-huynk/rosettex",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "rosettex",
+      "version": "1.0.0",
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--from",
+          "value": "rosettex==1.0.0"
+        }
+      ],
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "rosettex-mcp"
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

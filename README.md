@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.20235106-huynk/rosettex -->
 <div align="center">
 
 # rosettex 📜✨
@@ -82,7 +83,7 @@ folders written by "rosettex install-skill"); ask me before running a remote ins
 run one command at a time and show me any error.
 
 1. uv: run "uv --version". If missing, ask me, then install it with the official installer
-   (Linux/macOS: curl -LsSf https://astral.sh/uv/install.sh | sh).
+   (the commands are on https://docs.astral.sh/uv/getting-started/installation/).
 2. rosettex: run "uv tool install git+https://github.com/20235106-huynk/rosettex", then "rosettex --help".
    If the command is not found, use the path from "uv tool dir --bin".
 3. TeX: run "rosettex setup --json". If it asks (ask_user), ask me exactly that question; on yes run its next_argv and
@@ -106,15 +107,28 @@ builds the PDF, shortens any text `build` reports as too long, and tells you whe
 
 ## 🔌 Connect Your Agent
 
-| Agent | How |
+This repository is a plugin at its root: one skill (`skills/rosettex`) and one MCP server (`uvx` runs `rosettex-mcp` from
+the tagged release), so you need [uv](https://docs.astral.sh/uv/) on PATH. Install it into your harness with its own command:
+
+| Harness | Command |
 |---|---|
-| **Claude Code, Antigravity, agents reading `~/.agents/skills`** | `rosettex install-skill` |
-| **Claude Code plugin** | `claude --plugin-dir plugins/claude-code` (skill + MCP server) |
-| **Gemini CLI** | `gemini extensions link plugins/gemini` |
-| **Any MCP client** | a stdio server running `rosettex-mcp` (same commands as tools) |
+| **Claude Code** | `/plugin marketplace add 20235106-huynk/rosettex`, then `/plugin install rosettex@rosettex` |
+| **Codex CLI** | `codex plugin marketplace add 20235106-huynk/rosettex --ref v1.0.0`, then install `rosettex` from the Plugins tab |
+| **GitHub Copilot CLI** | `copilot plugin install 20235106-huynk/rosettex` |
+| **VS Code (Copilot)** | "Chat: Install Plugin from Source", then the repository URL |
+| **Antigravity** | `agy plugin install https://github.com/20235106-huynk/rosettex` |
+| **Gemini CLI** | `gemini extensions install https://github.com/20235106-huynk/rosettex --ref v1.0.0` |
+| **Hermes** | `hermes plugins install 20235106-huynk/rosettex/plugins/hermes`, then `hermes plugins enable rosettex` (the slim package: Hermes rejects the full repository) |
+| **Factory Droid, Auggie, Junie, Qwen Code, Devin, Kiro, goose** | their plugin or extension command on the repository URL (they read the Claude Code or Agent Plugins files) |
+| **Any harness with Agent Skills** | `rosettex install-skill` (writes `~/.agents/skills`, `~/.claude/skills`, `~/.gemini/config/skills`, and `~/.cline`, `~/.kiro`, `~/.qoder`, `~/.trae`, `~/.codebuddy` skills when those folders exist) |
+| **Any MCP client** | a stdio server: `uvx --from git+https://github.com/20235106-huynk/rosettex@v1.0.0 rosettex-mcp` (or `rosettex-mcp` after `uv tool install`) |
 | **Anything else** | tell the agent: *"Run `rosettex guide` and follow it."* |
 
-Details: [`plugins/README.md`](plugins/README.md).
+Claude Code, in one step: `/plugin install rosettex --marketplace 20235106-huynk/rosettex`. Harnesses that accept only
+remote MCP servers (Android Studio, Replit, ChatGPT custom MCP) cannot run the stdio server; use the skill and the CLI.
+The manifests are generated from the package version: `uv run python -m rosettex.skill` (`--check` in CI).
+
+To try the server from a checkout, `plugins/mcp.dev.json` runs it with `uv run --project .`.
 
 ## 🛠️ Manual Install
 
@@ -139,7 +153,7 @@ rosettex install-skill
 ### Update and uninstall
 ```bash
 uv tool upgrade rosettex && rosettex install-skill --force
-rosettex install-skill --remove && uv tool uninstall rosettex && rm -rf ~/.rosettex
+rosettex install-skill --remove && uv tool uninstall rosettex   # then delete the folder ~/.rosettex
 ```
 </details>
 

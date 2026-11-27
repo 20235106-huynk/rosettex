@@ -10,7 +10,7 @@ import sys
 
 from rosettex import __version__
 
-PROTOCOLS = ("2025-06-18", "2025-03-26", "2024-11-05")
+PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 BUDGET = 45  # seconds; long commands stop at a safe point and return state "partial"
 
 S, B, N = "string", "boolean", "number"
@@ -42,6 +42,9 @@ TOOLS = {
                ("tex", "--tex", S, False, "private (default) or system TeX")]),
     "doctor": ("Check the toolchain.", [("force", "--force", B, False, "re-run all checks")]),
 }
+# MCP tool annotations: hosts use them to decide when to ask. Only `fix --drop` deletes (a copied source file).
+READ_ONLY = {"status", "guide", "check", "review", "doctor"}
+OPEN_WORLD = {"fetch", "setup"}  # reach the network
 LONG = {"build", "setup"}  # always get --budget
 INSTRUCTIONS = (
     "rosettex translates a paper from its LaTeX source or a born-digital PDF. Call the `guide` tool first and follow it. "
@@ -58,9 +61,18 @@ def _schema(args: list, long: bool) -> dict:
     return {"type": "object", "properties": props, "required": [a[0] for a in args if a[3]]}
 
 
+def _annotations(name: str) -> dict:
+    ro = name in READ_ONLY
+    ann = {"readOnlyHint": ro, "openWorldHint": name in OPEN_WORLD}
+    if not ro:
+        ann["destructiveHint"] = name == "fix"
+    return ann
+
+
 def tool_list() -> list[dict]:
     return [
-        {"name": name, "description": desc + " See `guide`.", "inputSchema": _schema(args, name in LONG)}
+        {"name": name, "description": desc + " See `guide`.", "inputSchema": _schema(args, name in LONG),
+         "annotations": _annotations(name)}
         for name, (desc, args) in TOOLS.items()
     ]
 
