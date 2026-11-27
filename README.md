@@ -13,7 +13,7 @@
 
 [Quick Install](#-quick-install-let-your-agent-do-it) • [Features](#-key-features) • [How It Works](#-how-it-works) • [Usage](#-usage) • [Languages](#-languages) • [Manual Install](#-manual-install)
 
-<img src="assets/demo-pdf-vi.png" alt="Page 1 of a paper in English (left) and the same page translated into Vietnamese by rosettex (right)" width="900">
+<img src="https://raw.githubusercontent.com/20235106-huynk/rosettex/main/assets/demo-pdf-vi.png" alt="Page 1 of a paper in English (left) and the same page translated into Vietnamese by rosettex (right)" width="900">
 
 <sub>A born-digital PDF (left) and rosettex's Vietnamese output (right): same page, same figure, same fonts for names and
 formulas. Paper: Berestov et al., CEUR-WS Vol-3550 (CC BY 4.0).</sub>
