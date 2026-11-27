@@ -134,7 +134,16 @@ def render_manifests(version: str) -> dict[str, str]:
             "plugins": [{"name": "rosettex", "source": "./", "description": DESCRIPTION, "version": version}],
         },
         ".mcp.json": {"mcpServers": typed},
-        ".antigravity-plugin/plugin.json": {**common, **meta, "logo": "assets/logo.svg"},
+        ".antigravity-plugin/plugin.json": {
+            **common, **meta, "logo": "assets/logo.svg", "displayName": "rosettex",
+            # Marketplace: description 120-160 characters, up to 3 suggested prompts
+            "description": "Translate scientific papers from TeX source or born-digital PDF into 19+ languages and rebuild the PDF with the paper's own layout.",
+            "suggestedPrompts": [
+                "Translate arXiv 1706.03762 into Vietnamese",
+                "Translate ~/papers/paper.pdf into Simplified Chinese",
+                "Translate this paper's TeX source into French",
+            ],
+        },
         "mcp_config.json": {"mcpServers": bare},
         "gemini-extension.json": {**common, "mcpServers": bare},
         "server.json": {  # MCP Registry; needs the package on PyPI (see .github/workflows/release.yml)

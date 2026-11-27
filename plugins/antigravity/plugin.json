@@ -1,7 +1,7 @@
 {
   "name": "rosettex",
   "version": "1.0.3",
-  "description": "Translate a scientific paper from its TeX source (folder, archive, arXiv ID) or a born-digital PDF into another language and rebuild the PDF with the paper's own layout. You translate; rosettex prepares, checks and typesets.",
+  "description": "Translate scientific papers from TeX source or born-digital PDF into 19+ languages and rebuild the PDF with the paper's own layout.",
   "author": {
     "name": "20235106-huynk",
     "url": "https://github.com/20235106-huynk"
@@ -17,5 +17,11 @@
     "scientific-papers",
     "mcp"
   ],
-  "logo": "assets/logo.svg"
+  "logo": "assets/logo.svg",
+  "displayName": "rosettex",
+  "suggestedPrompts": [
+    "Translate arXiv 1706.03762 into Vietnamese",
+    "Translate ~/papers/paper.pdf into Simplified Chinese",
+    "Translate this paper's TeX source into French"
+  ]
 }
