@@ -97,11 +97,20 @@ end
 local allowed_roots = {}
 local seen_roots = {}
 
+-- Windows paths (with a drive letter) are case-insensitive: kpathsea may return "d:/…" while SELFAUTOPARENT is "D:/…".
+local function cmp_key(p)
+  if p:match("^[A-Za-z]:") then
+    return p:lower()
+  end
+  return p
+end
+
 local function add_root(raw)
   if not raw or raw == "" then
     return
   end
   local r = realpath(raw)
+  r = r and cmp_key(r)
   if r and r ~= "" and not seen_roots[r] then
     seen_roots[r] = true
     allowed_roots[#allowed_roots + 1] = r
@@ -137,6 +146,7 @@ else
 end
 
 local function is_allowed(real)
+  real = cmp_key(real)
   for i = 1, #allowed_roots do
     local root = allowed_roots[i]
     if real == root or real:sub(1, #root + 1) == root .. "/" then
