@@ -78,24 +78,9 @@ rosettex build work --out paper.vi.pdf    # may ask for shorter text (needs_repa
 > any download.
 
 ```text
-Install the tool "rosettex" (https://pypi.org/project/rosettex/) on this computer and connect it to yourself, so that
-later I can ask you to translate scientific papers.
-
-Rules: never use sudo; install only into my home folder (~/.rosettex, the folder where uv puts tools, and the skill
-folders written by "rosettex install-skill"); ask me before running a remote installer or editing my shell profile;
-run one command at a time and show me any error.
-
-1. uv: run "uv --version". If missing, ask me, then install it with the official installer
-   (the commands are on https://docs.astral.sh/uv/getting-started/installation/).
-2. rosettex: run "uv tool install rosettex", then "rosettex --help".
-   If the command is not found, use the path from "uv tool dir --bin".
-3. TeX: run "rosettex setup --json". If it asks (ask_user), ask me exactly that question; on yes run its next_argv and
-   keep running next_argv while state is "partial". If I prefer my own TeX Live, run "rosettex setup --tex system --json".
-4. Run "rosettex doctor --json" and tell me the result.
-5. Connect yourself: if your harness can install plugins, install the rosettex plugin from
-   https://github.com/20235106-huynk/rosettex (see its README table); otherwise run "rosettex install-skill --json".
-6. Report what you installed and give me an example request, such as:
-   "Translate the paper ~/papers/attention.pdf into Vietnamese and save it in ~/translated/".
+Install rosettex (https://github.com/20235106-huynk/rosettex) and connect it to yourself: install uv if it is
+missing, then `uv tool install rosettex`, `rosettex setup` (follow its next_argv), `rosettex doctor`, and the rosettex
+plugin for your harness from the README (or `rosettex install-skill`). No sudo; ask me before any download or installer.
 ```
 
 Then just ask, for example: *"Translate arXiv 1512.03385 into Simplified Chinese and save it as ~/papers/resnet.zh.pdf."*
