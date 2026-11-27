@@ -1,0 +1,23 @@
+{
+  "code": "es",
+  "name": "Spanish",
+  "script": "latin",
+  "babel": "spanish",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "pdflatex": {
+    "fontenc": "T1",
+    "babel": "spanish"
+  },
+  "babel_aliases": [
+    "spanish"
+  ]
+}

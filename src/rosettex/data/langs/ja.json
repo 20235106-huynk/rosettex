@@ -1,0 +1,15 @@
+{
+ "code": "ja",
+ "name": "日本語",
+ "script": "kana",
+ "babel": "japanese",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.2,
+  1.5
+ ],
+ "tested": "pipeline"
+}

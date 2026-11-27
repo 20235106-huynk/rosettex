@@ -1,0 +1,15 @@
+{
+ "code": "kn",
+ "name": "ಕನ್ನಡ",
+ "script": "kannada",
+ "babel": "kannada",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "tested": "pipeline"
+}

@@ -1,0 +1,55 @@
+{
+  "code": "de",
+  "name": "German",
+  "script": "latin",
+  "babel": "german",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "pdflatex": {
+    "fontenc": "T1",
+    "babel": "german"
+  },
+  "babel_aliases": [
+    "ngerman",
+    "germanb",
+    "austrian",
+    "naustrian",
+    "swissgerman",
+    "nswissgerman"
+  ],
+  "function_words": [
+    "der",
+    "die",
+    "das",
+    "und",
+    "ist",
+    "nicht",
+    "mit",
+    "von",
+    "den",
+    "dem",
+    "des",
+    "ein",
+    "eine",
+    "einer",
+    "zu",
+    "auf",
+    "für",
+    "wir",
+    "sich",
+    "sind",
+    "wird",
+    "im",
+    "auch",
+    "es",
+    "dass"
+  ]
+}

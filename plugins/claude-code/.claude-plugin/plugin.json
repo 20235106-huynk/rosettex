@@ -1,0 +1,7 @@
+{
+  "name": "rosettex",
+  "version": "1.0.0",
+  "description": "Translate a scientific paper from its LaTeX source into another language and build the translated PDF with the paper's own layout. You translate; rosettex prepares, checks and typesets.",
+  "license": "MIT",
+  "keywords": ["translation", "latex", "scientific-papers", "pdf", "mcp"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "cyrillic",
+  "direction": "ltr",
+  "blocks": [
+    "0400-052F"
+  ],
+  "otf_script": "Cyrillic",
+  "fonts": [
+    "NotoSerif-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "italic",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "и в на с что для по из не это как от к при рисунок таблица литература аннотация ключевые слова приложение благодарности введение методы результаты обсуждение заключение данные модель исследование система анализ",
+  "page_ratio": 1.5,
+  "polyglossia_default": "russian",
+  "layout": "plain"
+}

@@ -1,0 +1,28 @@
+[project]
+name = "rosettex"
+version = "1.0.0"
+description = "Translate scientific papers (TeX source or born-digital PDF) into another language with the original layout, for AI agent harnesses"
+readme = "README.md"
+keywords = ["translation", "latex", "pdf", "scientific-papers", "mcp", "agents"]
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["pylatexenc==2.10", "pypdfium2>=5.15,<6", "pypdf>=7.2,<8"]
+
+[project.scripts]
+rosettex = "rosettex.cli:main"
+rosettex-mcp = "rosettex.mcp:main"
+
+[dependency-groups]
+dev = ["ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rosettex"]
+
+[tool.ruff]
+line-length = 110
+[tool.ruff.lint]
+select = ["F", "E9"]

@@ -1,0 +1,39 @@
+{
+ "code": "ru",
+ "name": "Русский",
+ "script": "cyrillic",
+ "babel": "russian",
+ "decimal": ",",
+ "group": [
+  ".",
+  " "
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "tested": "pipeline",
+ "function_words": [
+  "и",
+  "в",
+  "на",
+  "с",
+  "что",
+  "для",
+  "по",
+  "из",
+  "не",
+  "это",
+  "как",
+  "от",
+  "к",
+  "при"
+ ],
+ "pdflatex": {
+  "fontenc": "T2A",
+  "babel": "russian"
+ },
+ "babel_aliases": [
+  "russianb"
+ ]
+}

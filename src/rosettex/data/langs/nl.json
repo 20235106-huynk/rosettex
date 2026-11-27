@@ -1,0 +1,20 @@
+{
+  "code": "nl",
+  "name": "Dutch",
+  "script": "latin",
+  "babel": "dutch",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "pdflatex": {
+    "fontenc": "T1",
+    "babel": "dutch"
+  }
+}

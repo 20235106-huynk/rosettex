@@ -1,0 +1,12 @@
+{
+  "name": "rosettex",
+  "version": "1.0.0",
+  "description": "Translate a scientific paper from its LaTeX source into another language and build the translated PDF with the paper's own layout.",
+  "contextFileName": "ROSETTEX.md",
+  "mcpServers": {
+    "rosettex": {
+      "command": "rosettex-mcp",
+      "args": []
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+ "code": "zh-Hant",
+ "name": "繁體中文",
+ "script": "han",
+ "babel": "chinese-traditional",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.2,
+  1.5
+ ],
+ "sample": "圖 表 參考文獻 摘要 關鍵詞 附錄 致謝 引言 相關工作 方法 實驗 結果 討論 結論 資料集 數據集 模型 參數 訓練 測試 效能 性能 準確率 評估 提出 本文 系統 架構 最佳化 優化 演算法 算法 特徵 學習 分析 比較 研究",
+ "tested": "pipeline"
+}

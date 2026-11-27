@@ -1,0 +1,59 @@
+{
+ "code": "fr",
+ "name": "Français",
+ "script": "latin",
+ "babel": "french",
+ "decimal": ",",
+ "group": [
+  ".",
+  " "
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "sample": "modèle données résultat méthode entraînement réseau expérience précision optimisation analyse étude système paramètre fonction algorithme évaluation structure processus représentation tableau figure référence comparaison performance application proposition classification génération tâche test théorie développement métrique étape apprentissage",
+ "tested": "pipeline",
+ "function_words": [
+  "le",
+  "la",
+  "les",
+  "des",
+  "du",
+  "et",
+  "est",
+  "une",
+  "dans",
+  "pour",
+  "que",
+  "qui",
+  "sur",
+  "par",
+  "avec",
+  "nous",
+  "sont",
+  "de",
+  "à",
+  "au",
+  "aux",
+  "ce",
+  "cette",
+  "ces",
+  "il",
+  "ou",
+  "être",
+  "mais",
+  "leur"
+ ],
+ "pdflatex": {
+  "fontenc": "T1",
+  "babel": "french"
+ },
+ "babel_aliases": [
+  "francais",
+  "français",
+  "frenchb",
+  "acadian",
+  "canadien"
+ ]
+}

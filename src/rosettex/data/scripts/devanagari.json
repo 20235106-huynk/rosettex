@@ -1,0 +1,21 @@
+{
+  "id": "devanagari",
+  "direction": "ltr",
+  "blocks": [
+    "0900-097F",
+    "A8E0-A8FF",
+    "200C-200D"
+  ],
+  "otf_script": "Devanagari",
+  "fonts": [
+    "NotoSerifDevanagari-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "चित्र सारणी संदर्भ सारांश बीजशब्द परिशिष्ट आभार प्रस्तावना संबंधित कार्य पद्धति प्रयोग परिणाम चर्चा निष्कर्ष डेटासेट मॉडल पैरामीटर प्रशिक्षण परीक्षण प्रदर्शन मूल्यांकन यह अध्ययन प्रणाली अनुकूलन एल्गोरिथ्म विश्लेषण सटीकता तुलना",
+  "page_ratio": 1.6,
+  "polyglossia_default": "hindi",
+  "layout": "plain"
+}

@@ -1,0 +1,32 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "guide.json",
+ "title": "rosettex guide --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "text"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "text": {
+   "type": "string"
+  }
+ }
+}

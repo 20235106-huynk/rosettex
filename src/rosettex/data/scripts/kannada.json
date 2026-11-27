@@ -1,0 +1,21 @@
+{
+  "id": "kannada",
+  "direction": "ltr",
+  "blocks": [
+    "0C80-0CFF",
+    "0964-0965",
+    "200C-200D"
+  ],
+  "otf_script": "Kannada",
+  "fonts": [
+    "NotoSerifKannada-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "ಚಿತ್ರ ಕೋಷ್ಟಕ ಉಲ್ಲೇಖಗಳು ಸಾರಾಂಶ ಕೀವರ್ಡ್ಗಳು ಅನುಬಂಧ ಕೃತಜ್ಞತೆಗಳು ಪೀಠಿಕೆ ಸಂಬಂಧಿತ ಕೆಲಸ ವಿಧಾನ ಪ್ರಯೋಗ ಫಲಿತಾಂಶಗಳು ಚರ್ಚೆ ತೀರ್ಮಾನ ಡೇಟಾಸೆಟ್ ಮಾದರಿ ನಿಯತಾಂಕಗಳು ತರಬೇತಿ ಪರೀಕ್ಷೆ ಕಾರ್ಯಕ್ಷಮತೆ ಮೌಲ್ಯಮಾಪನ ಈ ಸಂಶೋಧನೆ ವ್ಯವಸ್ಥೆ ಆಪ್ಟಿಮೈಸೇಶನ್ ಅಲ್ಗಾರಿದಮ್ ವಿಶ್ಲೇಷಣೆ ನಿಖರತೆ ಹೋಲಿಕೆ",
+  "page_ratio": 1.6,
+  "polyglossia_default": "kannada",
+  "layout": "plain"
+}

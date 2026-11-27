@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "rosettex": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--project", ".", "rosettex-mcp"]
+    }
+  }
+}

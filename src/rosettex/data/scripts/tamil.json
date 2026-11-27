@@ -1,0 +1,20 @@
+{
+  "id": "tamil",
+  "direction": "ltr",
+  "blocks": [
+    "0B80-0BFF",
+    "200C-200D"
+  ],
+  "otf_script": "Tamil",
+  "fonts": [
+    "NotoSerifTamil-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "படம் அட்டவணை குறிப்புகள் சுருக்கம் முக்கியச்சொற்கள் பின்னிணைப்பு நன்றியுரை அறிமுகம் தொடர்புடைய பணிகள் முறை பரிசோதனை முடிவுகள் கலந்துரையாடல் முடிவு தரவுத்தொகுப்பு மாதிரி அளவுருக்கள் பயிற்சி சோதனை செயல்திறன் மதிப்பீடு இந்த ஆய்வு அமைப்பு உகப்பாக்கம் வழிமுறை பகுப்பாய்வு துல்லியம் ஒப்பீடு",
+  "page_ratio": 1.6,
+  "polyglossia_default": "tamil",
+  "layout": "plain"
+}

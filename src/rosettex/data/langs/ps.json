@@ -1,0 +1,15 @@
+{
+  "code": "ps",
+  "name": "Pashto",
+  "script": "arabic",
+  "babel": "pashto",
+  "decimal": ".",
+  "group": [
+    ","
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none"
+}

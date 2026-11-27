@@ -1,0 +1,38 @@
+{
+  "code": "uk",
+  "name": "Українська",
+  "script": "cyrillic",
+  "babel": "ukrainian",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "function_words": [
+    "і",
+    "в",
+    "на",
+    "з",
+    "що",
+    "для",
+    "не",
+    "це",
+    "як",
+    "від",
+    "до",
+    "при",
+    "та"
+  ],
+  "pdflatex": {
+    "fontenc": "T2A",
+    "babel": "ukrainian"
+  },
+  "babel_aliases": [
+    "ukraineb"
+  ]
+}

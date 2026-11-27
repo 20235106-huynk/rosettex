@@ -1,0 +1,15 @@
+{
+ "code": "my",
+ "name": "မြန်မာ",
+ "script": "myanmar",
+ "babel": "burmese",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "tested": "pipeline"
+}

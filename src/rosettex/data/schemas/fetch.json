@@ -1,0 +1,57 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "fetch.json",
+ "title": "rosettex fetch --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "main",
+     "files",
+     "engine_hint"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "main": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "files": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "arxiv": {
+   "type": [
+    "object",
+    "string",
+    "null"
+   ]
+  },
+  "engine_hint": {
+   "type": [
+    "object",
+    "string",
+    "null"
+   ]
+  }
+ }
+}

@@ -1,0 +1,16 @@
+{
+  "code": "zh-HK",
+  "name": "Chinese",
+  "script": "han",
+  "babel": "chinese-traditional",
+  "decimal": ".",
+  "group": [
+    ","
+  ],
+  "length_ratio": [
+    0.2,
+    1.5
+  ],
+  "tested": "none",
+  "alias": "zh-Hant"
+}

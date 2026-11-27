@@ -1,0 +1,20 @@
+{
+  "code": "ky",
+  "name": "Kyrgyz",
+  "script": "cyrillic",
+  "babel": "kyrgyz",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "pdflatex": {
+    "fontenc": "T2A",
+    "babel": "kyrgyz"
+  }
+}

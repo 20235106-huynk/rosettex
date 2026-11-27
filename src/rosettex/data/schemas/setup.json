@@ -1,0 +1,49 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "setup.json",
+ "title": "rosettex setup --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": []
+   }
+  }
+ ],
+ "properties": {
+  "tex": {
+   "enum": [
+    "private",
+    "system"
+   ]
+  },
+  "root": {
+   "type": "string"
+  },
+  "download_bytes": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "step": {
+   "type": "string"
+  },
+  "done": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  }
+ }
+}

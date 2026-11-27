@@ -1,0 +1,15 @@
+{
+ "code": "hi",
+ "name": "हिन्दी",
+ "script": "devanagari",
+ "babel": "hindi",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "tested": "pipeline"
+}

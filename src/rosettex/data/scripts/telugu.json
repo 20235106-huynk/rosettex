@@ -1,0 +1,21 @@
+{
+  "id": "telugu",
+  "direction": "ltr",
+  "blocks": [
+    "0C00-0C7F",
+    "0964-0965",
+    "200C-200D"
+  ],
+  "otf_script": "Telugu",
+  "fonts": [
+    "NotoSerifTelugu-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "చిత్రం పట్టిక మూలాలు సారాంశం కీలకపదాలు అనుబంధం కృతజ్ఞతలు పరిచయం సంబంధిత పనులు విధానం ప్రయోగం ఫలితాలు చర్చ ముగింపు డేటాసెట్ మోడల్ పారామితులు శిక్షణ పరీక్ష పనితీరు మూల్యాంకనం ఈ పరిశోధన వ్యవస్థ ఆప్టిమైజేషన్ అల్గోరిథం విశ్లేషణ ఖచ్చితత్వం పోలిక",
+  "page_ratio": 1.6,
+  "polyglossia_default": "telugu",
+  "layout": "plain"
+}

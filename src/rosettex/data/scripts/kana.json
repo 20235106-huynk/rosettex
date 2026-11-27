@@ -1,0 +1,27 @@
+{
+  "id": "kana",
+  "direction": "ltr",
+  "blocks": [
+    "2E80-2FDF",
+    "3000-303F",
+    "3400-4DBF",
+    "4E00-9FFF",
+    "F900-FAFF",
+    "FF00-FFEF",
+    "20000-3134F",
+    "3040-30FF",
+    "31F0-31FF"
+  ],
+  "otf_script": "Kana",
+  "fonts": [
+    "NotoSerifJP-Regular.otf"
+  ],
+  "linebreak": "cjk",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "図 表 参考文献 要旨 キーワード 付録 謝辞 はじめに 関連研究 提案手法 実験 結果 考察 結論 データセット モデル パラメータ 訓練 テスト 性能 評価 本論文 システム 最適化 アルゴリズム 特徴 学習 解析 精度 比較 検証",
+  "page_ratio": 1.4,
+  "polyglossia_default": null,
+  "layout": "cjk"
+}

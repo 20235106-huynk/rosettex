@@ -1,0 +1,24 @@
+{
+  "id": "arabic",
+  "direction": "rtl",
+  "blocks": [
+    "0600-06FF",
+    "0750-077F",
+    "08A0-08FF",
+    "FB50-FDFF",
+    "FE70-FEFF",
+    "200C-200F"
+  ],
+  "otf_script": "Arabic",
+  "fonts": [
+    "Vazirmatn-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "شكل جدول المراجع ملخص الكلمات المفتاحية الملاحق شكر وتقدير في من على إلى أن هذا هذه تم التي الذي مع كل عن كان والتي أجهزة نظام بحث دراسة نتائج تجارب نموذج بيانات طريقة عمل تحليل",
+  "page_ratio": 1.5,
+  "polyglossia_default": "arabic",
+  "layout": "rtl"
+}

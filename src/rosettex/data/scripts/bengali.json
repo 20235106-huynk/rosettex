@@ -1,0 +1,21 @@
+{
+  "id": "bengali",
+  "direction": "ltr",
+  "blocks": [
+    "0980-09FF",
+    "0964-0965",
+    "200C-200D"
+  ],
+  "otf_script": "Bengali",
+  "fonts": [
+    "NotoSerifBengali-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "চিত্র সারণী তথ্যসূত্র সারসংক্ষেপ মূলশব্দ পরিশিষ্ট কৃতজ্ঞতা ভূমিকা সম্পর্কিত কাজ পদ্ধতি পরীক্ষা ফলাফল আলোচনা উপসংহার উপাত্ত মডেল পরামিতি প্রশিক্ষণ পরীক্ষণ কর্মক্ষমতা মূল্যায়ন এই গবেষণা সিস্টেম অপ্টিমাইজেশন অ্যালগরিদম বিশ্লেষণ নির্ভুলতা তুলনা",
+  "page_ratio": 1.6,
+  "polyglossia_default": "bengali",
+  "layout": "plain"
+}

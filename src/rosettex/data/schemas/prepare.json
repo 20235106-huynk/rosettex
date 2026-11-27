@@ -1,0 +1,49 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "prepare.json",
+ "title": "rosettex prepare --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "segments",
+     "sheets",
+     "unknown",
+     "instructions"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "segments": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "sheets": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "unknown": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "instructions": {
+   "type": "string"
+  }
+ }
+}

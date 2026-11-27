@@ -1,0 +1,64 @@
+{
+ "code": "vi",
+ "name": "Vietnamese",
+ "script": "latin",
+ "babel": "vietnamese",
+ "decimal": ",",
+ "group": [
+  ".",
+  " ",
+  " ",
+  " "
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "sample": "dịch mô hình dữ liệu kết quả phương pháp huấn luyện mạng thử nghiệm độ chính xác tối ưu giảm tăng biểu diễn ngữ cảnh học máy phân tích đánh giá nghiên cứu hệ thống thuật toán tham số thực nghiệm cấu trúc tập dữ liệu hiệu năng",
+ "tested": "pipeline",
+ "function_words": [
+  "của",
+  "và",
+  "là",
+  "các",
+  "những",
+  "được",
+  "trong",
+  "cho",
+  "với",
+  "không",
+  "một",
+  "này",
+  "có",
+  "để",
+  "từ",
+  "khi",
+  "theo",
+  "đến",
+  "như",
+  "về",
+  "trên",
+  "bằng",
+  "hơn",
+  "thì",
+  "đã",
+  "sẽ",
+  "cũng",
+  "mà",
+  "nên",
+  "vì",
+  "bị",
+  "tại",
+  "do",
+  "nhưng",
+  "hoặc",
+  "nếu"
+ ],
+ "pdflatex": {
+  "fontenc": "T5",
+  "babel": "vietnamese"
+ },
+ "babel_aliases": [
+  "vietnam"
+ ]
+}

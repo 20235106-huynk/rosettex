@@ -1,0 +1,42 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "review.json",
+ "title": "rosettex review --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "path",
+     "segments",
+     "translated"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "path": {
+   "type": "string"
+  },
+  "segments": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "translated": {
+   "type": "integer",
+   "minimum": 0
+  }
+ }
+}

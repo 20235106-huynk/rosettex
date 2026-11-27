@@ -1,0 +1,21 @@
+{
+  "id": "latin",
+  "direction": "ltr",
+  "blocks": [
+    "0000-024F",
+    "1E00-1EFF"
+  ],
+  "otf_script": "Latin",
+  "fonts": [
+    "texgyretermes-regular.otf",
+    "lmroman10-regular.otf"
+  ],
+  "linebreak": "space",
+  "emphasis": "italic",
+  "digits": "ascii",
+  "min_target_ratio": 0.0,
+  "sample": "the of and to in is that for with as on are by this be we from an which or at it can our these has have not their its was were than between each where when into also such",
+  "page_ratio": 1.5,
+  "polyglossia_default": "english",
+  "layout": "plain"
+}

@@ -1,0 +1,80 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # arXiv is hit once per workflow run (and not at all on a cache hit); the matrix gets the sources as an artifact.
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .ci/work/corpus
+          key: arxiv-fixtures-${{ hashFiles('scripts/ci_smoke.py') }}
+      - run: uv sync
+      - run: uv run python scripts/ci_smoke.py --root .ci/work --fetch-only
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixtures
+          path: .ci/work/corpus
+          retention-days: 3
+
+  test:
+    needs: fixtures
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      ROSETTEX_HOME: ${{ github.workspace }}/.ci/home
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync
+      - run: uv run ruff check .
+      - uses: actions/download-artifact@v4
+        with:
+          name: fixtures
+          path: .ci/work/corpus
+      # Private TinyTeX (~2 GB, ~9 min cold on Linux) per OS; the Python versions share it. A stale key restores the
+      # previous home and `setup` installs only what is missing.
+      - uses: actions/cache@v4
+        with:
+          path: .ci/home
+          key: rosettex-home-${{ runner.os }}-${{ hashFiles('src/rosettex/toolchain.py') }}
+          restore-keys: rosettex-home-${{ runner.os }}-
+      - run: uv run rosettex setup --yes --json
+      - run: uv run rosettex doctor --json
+      # Round-trip gate on the fixtures, then fetch → prepare → pseudo → check → build --no-agent, 2 papers × vi/ar/ja.
+      - run: uv run python scripts/ci_smoke.py --root .ci/work
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            .ci/work/summary.json
+            .ci/work/work/*/*.pdf
+            .ci/work/work/*/build/*.log
+          if-no-files-found: ignore
+          retention-days: 7

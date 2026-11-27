@@ -1,0 +1,35 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "fix.json",
+ "title": "rosettex fix --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "path"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "path": {
+   "type": "string"
+  },
+  "dropped": {
+   "type": "boolean"
+  }
+ }
+}

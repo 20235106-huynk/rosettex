@@ -1,0 +1,21 @@
+{
+  "id": "ethiopic",
+  "direction": "ltr",
+  "blocks": [
+    "1200-139F",
+    "2D80-2DDF",
+    "AB00-AB2F"
+  ],
+  "otf_script": "Ethiopic",
+  "fonts": [
+    "NotoSerifEthiopic-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "ምስል ሰንጠረዥ ማጣቀሻዎች አጭርመግለጫ ቁልፍቃላት አባሪ ምስጋና መግቢያ ተዛማጅስራዎች ዘዴ ሙከራ ውጤቶች ውይይት መደምደሚያ ዳታሴት ሞዴል መለኪያዎች ስልጠና ፈተና አፈፃፀም ግምገማ ይህጥናት ስርዓት ማመቻቸት አልጎሪዝም ትንተና ትክክለኛነት ንፅፅር ምርምር ቡድን ምሳሌ ልማት",
+  "page_ratio": 1.6,
+  "polyglossia_default": "amharic",
+  "layout": "plain"
+}

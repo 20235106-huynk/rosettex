@@ -1,0 +1,88 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "build.json",
+ "title": "rosettex build --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "pdf",
+     "engine",
+     "problems",
+     "warnings",
+     "kept_source"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "pdf": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "engine": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "problems": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "code",
+     "message"
+    ]
+   }
+  },
+  "warnings": {
+   "type": "array"
+  },
+  "kept_source": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "repairs": {
+   "type": "array"
+  },
+  "diagnosis": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "message",
+     "channel"
+    ]
+   }
+  },
+  "rounds_left": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "guard_errors": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  }
+ },
+ "description": "--budget S (default 45) is soft: build stops at the first safe point (between engine passes, after a tlmgr install, after bibtex/biber) after S seconds, so it may exceed S by one step. A stop returns state partial, exit 1, next_argv = the same build command; the argv is also recorded in work/build_state.json for status."
+}

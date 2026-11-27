@@ -1,0 +1,56 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "doctor.json",
+ "title": "rosettex doctor --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "passed",
+     "profiles",
+     "packages"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "passed": {
+   "type": "string"
+  },
+  "cached": {
+   "type": "boolean"
+  },
+  "profiles": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "profile",
+     "ok"
+    ]
+   }
+  },
+  "packages": {
+   "type": "object"
+  },
+  "texlive": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  }
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "code": "th",
+ "name": "ไทย",
+ "script": "thai",
+ "babel": "thai",
+ "decimal": ".",
+ "group": [
+  ","
+ ],
+ "length_ratio": [
+  0.8,
+  1.6
+ ],
+ "tested": "pipeline"
+}

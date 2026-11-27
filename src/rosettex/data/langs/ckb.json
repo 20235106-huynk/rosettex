@@ -1,0 +1,15 @@
+{
+  "code": "ckb",
+  "name": "Kurdish",
+  "script": "arabic",
+  "babel": "kurdish",
+  "decimal": ".",
+  "group": [
+    ","
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none"
+}

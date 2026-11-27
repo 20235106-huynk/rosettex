@@ -1,0 +1,125 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "envelope.json",
+ "title": "rosettex --json envelope (spec §13)",
+ "type": "object",
+ "required": [
+  "ok",
+  "state",
+  "next_action",
+  "next_argv"
+ ],
+ "properties": {
+  "ok": {
+   "type": "boolean"
+  },
+  "state": {
+   "enum": [
+    "done",
+    "partial",
+    "needs_repair",
+    "not_started",
+    "ask_user",
+    "error"
+   ]
+  },
+  "error": {
+   "type": "string",
+   "pattern": "^[a-z_]+$"
+  },
+  "message": {
+   "type": "string"
+  },
+  "next_action": {
+   "type": "string",
+   "minLength": 1
+  },
+  "next_argv": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "prefixItems": [
+    {
+     "const": "rosettex"
+    }
+   ],
+   "description": "The next command, one shell-free argv. It may contain exactly one of these placeholders, which the agent replaces with the value next_action names: <code> (target language code), <source> (the paper: folder, archive, arXiv ID or link), <candidate> (one of ask_user.options). No other <…> is ever emitted."
+  },
+  "ask_user": {
+   "type": "object",
+   "required": [
+    "question",
+    "options"
+   ],
+   "properties": {
+    "question": {
+     "type": "string"
+    },
+    "options": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "resynced": {
+   "type": "boolean"
+  },
+  "translations_kept": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "translations_lost": {
+   "type": "integer",
+   "minimum": 0
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": false
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "error"
+    ]
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "state": {
+      "const": "ask_user"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "ask_user"
+    ]
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "state": {
+      "const": "partial"
+     }
+    }
+   },
+   "then": {
+    "properties": {
+     "next_argv": {
+      "minItems": 2
+     }
+    }
+   }
+  }
+ ]
+}

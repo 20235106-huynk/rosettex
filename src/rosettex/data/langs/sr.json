@@ -1,0 +1,21 @@
+{
+  "code": "sr",
+  "name": "Serbian",
+  "script": "cyrillic",
+  "babel": "serbian",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "alias": "sr-Cyrl",
+  "pdflatex": {
+    "fontenc": "T2A",
+    "babel": "serbian"
+  }
+}

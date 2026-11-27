@@ -1,0 +1,21 @@
+# Python / tooling
+__pycache__/
+.venv/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.ci/
+
+# Development-only content: never published
+docs/
+spike/
+dev/
+.claude/
+.orca/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+# Only scripts/ci_smoke.py is published (the CI uses it)
+scripts/*
+!scripts/ci_smoke.py

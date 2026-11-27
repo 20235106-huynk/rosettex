@@ -1,0 +1,21 @@
+{
+  "id": "gujarati",
+  "direction": "ltr",
+  "blocks": [
+    "0A80-0AFF",
+    "0964-0965",
+    "200C-200D"
+  ],
+  "otf_script": "Gujarati",
+  "fonts": [
+    "NotoSerifGujarati-Regular.ttf"
+  ],
+  "linebreak": "space",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "ચિત્ર કોષ્ટક સંદર્ભ સારાંશ કીવર્ડ્સ પરિશિષ્ટ આભાર પરિચય સંબંધિત કાર્યો પદ્ધતિ પ્રયોગ પરિણામો ચર્ચા નિષ્કર્ષ ડેટાસેટ મોડેલ પરિમાણો તાલીમ પરીક્ષણ કામગીરી મૂલ્યાંકન આ સંશોધન પ્રણાલી ઓપ્ટિમાઇઝેશન અલ્ગોરિધમ વિશ્લેષણ ચોકસાઈ સરખામણી",
+  "page_ratio": 1.6,
+  "polyglossia_default": "gujarati",
+  "layout": "plain"
+}

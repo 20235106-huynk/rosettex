@@ -1,0 +1,88 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "check.json",
+ "title": "rosettex check --json",
+ "allOf": [
+  {
+   "$ref": "envelope.json"
+  },
+  {
+   "if": {
+    "properties": {
+     "ok": {
+      "const": true
+     }
+    },
+    "required": [
+     "ok"
+    ]
+   },
+   "then": {
+    "required": [
+     "errors",
+     "warnings",
+     "missing_count",
+     "translated",
+     "total"
+    ]
+   }
+  }
+ ],
+ "properties": {
+  "errors": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/issue"
+   }
+  },
+  "warnings": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/issue"
+   }
+  },
+  "missing": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "missing_count": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "translated": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "total": {
+   "type": "integer",
+   "minimum": 0
+  }
+ },
+ "$defs": {
+  "issue": {
+   "type": "object",
+   "required": [
+    "id",
+    "code",
+    "message",
+    "fix_hint"
+   ],
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "code": {
+     "type": "string"
+    },
+    "message": {
+     "type": "string"
+    },
+    "fix_hint": {
+     "type": "string"
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "hangul",
+  "direction": "ltr",
+  "blocks": [
+    "1100-11FF",
+    "3130-318F",
+    "A960-A97F",
+    "AC00-D7AF",
+    "D7B0-D7FF",
+    "2E80-2FDF",
+    "3000-303F",
+    "3400-4DBF",
+    "4E00-9FFF",
+    "F900-FAFF",
+    "FF00-FFEF",
+    "20000-3134F"
+  ],
+  "otf_script": "Hangul",
+  "fonts": [
+    "NotoSerifKR-Regular.otf"
+  ],
+  "linebreak": "cjk",
+  "emphasis": "bold",
+  "digits": "ascii",
+  "min_target_ratio": 0.3,
+  "sample": "그림 표 참고문헌 요약 키워드 부록 감사의글 서론 관련연구 제안방법 실험 결과 고찰 결론 데이터셋 모델 매개변수 학습 테스트 성능 평가 본논문 시스템 최적화 알고리즘 특징 분석 정확도 비교 검증 연구",
+  "page_ratio": 1.4,
+  "polyglossia_default": null,
+  "layout": "cjk"
+}

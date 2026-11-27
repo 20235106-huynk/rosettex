@@ -1,0 +1,20 @@
+{
+  "code": "cs",
+  "name": "Czech",
+  "script": "latin",
+  "babel": "czech",
+  "decimal": ",",
+  "group": [
+    ".",
+    " "
+  ],
+  "length_ratio": [
+    0.8,
+    1.6
+  ],
+  "tested": "none",
+  "pdflatex": {
+    "fontenc": "T1",
+    "babel": "czech"
+  }
+}
