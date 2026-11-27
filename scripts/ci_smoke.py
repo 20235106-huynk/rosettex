@@ -47,6 +47,32 @@ def run(argv: list[str], log: list) -> dict:
     return {"ok": False, "env": env}
 
 
+def mcp_smoke() -> str:
+    """Call every argument-free MCP tool through rosettex-mcp; each must answer ok (not isError)."""
+    msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize",
+             "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "ci", "version": "0"}}},
+            {"jsonrpc": "2.0", "method": "notifications/initialized"}]
+    names = ["guide", "doctor", "setup"]
+    msgs += [{"jsonrpc": "2.0", "id": i, "method": "tools/call", "params": {"name": n, "arguments": {}}}
+             for i, n in enumerate(names, 2)]
+    p = subprocess.run([sys.executable, "-m", "rosettex.mcp"], input="".join(json.dumps(m) + "\n" for m in msgs),
+                       capture_output=True, text=True, timeout=600)
+    bad = []
+    for line in p.stdout.splitlines():
+        m = json.loads(line)
+        if m.get("id", 0) < 2:
+            continue
+        r = m.get("result", {})
+        text = (r.get("content") or [{}])[0].get("text", "")
+        try:
+            ok = not r.get("isError") and json.loads(text).get("ok") is not False
+        except ValueError:
+            ok = False
+        if not ok:
+            bad.append(f"{names[m['id'] - 2]}: {text[:200]}")
+    return "ok" if not bad and p.returncode == 0 else "; ".join(bad) or p.stderr[-300:]
+
+
 def _progress(argv: list[str]) -> str:
     """What a partial rerun must change: build_state.json (passes, memoised compiles) or toolchain.json (setup)."""
     files = [Path(argv[argv.index("build") + 1]) / "build_state.json"] if "build" in argv else []
@@ -89,6 +115,7 @@ def main() -> int:
     log = []
     summary["skill"] = run([sys.executable, "-m", "rosettex.skill", "--check"], log)["ok"] and "ok" or log
     log = []
+    summary["mcp"] = mcp_smoke()
     summary["gate"] = run([sys.executable, str(HERE / "roundtrip_gate.py"), str(corpus), "--strict"], log)["ok"] and "ok" or log
 
     for pid in a.papers:
@@ -110,7 +137,7 @@ def main() -> int:
                                     if pdf.is_file() else 0, "steps": log})
 
     failed = [r for r in summary["runs"] if not r["ok"]]
-    summary["ok"] = summary["gate"] == "ok" and summary["skill"] == "ok" and not failed and len(summary["runs"]) == len(a.papers) * len(a.langs)
+    summary["ok"] = summary["gate"] == "ok" and summary["skill"] == "ok" and summary["mcp"] == "ok" and not failed and len(summary["runs"]) == len(a.papers) * len(a.langs)
     summary["failed"] = [f"{r['paper']}:{r['lang']}" for r in failed]
     (root / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))

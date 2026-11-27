@@ -9,7 +9,7 @@
       "name": "rosettex",
       "source": "./",
       "description": "Translate a scientific paper from its TeX source (folder, archive, arXiv ID) or a born-digital PDF into another language and rebuild the PDF with the paper's own layout. You translate; rosettex prepares, checks and typesets.",
-      "version": "1.0.1"
+      "version": "1.0.2"
     }
   ]
 }

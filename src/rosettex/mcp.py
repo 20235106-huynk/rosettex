@@ -97,7 +97,8 @@ def _cli_argv(name: str, params: dict) -> list[str]:
             argv.append(f"{flag}={val}")  # one token: a value starting with "-" stays a value
     if name in LONG:
         argv.append(f"--budget={params.get('budget', BUDGET)}")
-    return [*argv, "--json", "--", *pos]
+    # "--" only before positionals: argparse rejects a bare "--" for commands without any (guide, doctor, setup)
+    return [*argv, "--json", *(["--", *pos] if pos else [])]
 
 
 def call_tool(name: str, params: dict) -> dict:

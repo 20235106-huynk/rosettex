@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 — 2026-11-28
+- Fix: the MCP tools without positional arguments (`guide`, `doctor`, `setup`) failed with
+  "unrecognized arguments: --". CI now calls them through the MCP server.
+
 ## 1.0.1 — 2026-11-28
 - Fix: the 1.0.0 package missed the `rosettex.build` subpackage (the MCP server and CLI failed to start). Releases now
   check that the built wheel imports every module.

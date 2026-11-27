@@ -5,7 +5,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/20235106-huynk/rosettex@v1.0.1",
+        "git+https://github.com/20235106-huynk/rosettex@v1.0.2",
         "rosettex-mcp"
       ]
     }
