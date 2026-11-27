@@ -23,7 +23,7 @@ jobs:
       - name: Wheel smoke
         run: |
           uv venv /tmp/whl && uv pip install --python /tmp/whl dist/*.whl
-          /tmp/whl/bin/python -c "import pkgutil, importlib, rosettex; [importlib.import_module(m.name) for m in pkgutil.walk_packages(rosettex.__path__, 'rosettex.')]"
+          /tmp/whl/bin/python -c "import pkgutil, importlib, rosettex; [importlib.import_module(m.name) for m in pkgutil.walk_packages(rosettex.__path__, 'rosettex.') if not m.name.endswith('__main__')]; print('wheel ok')"
           /tmp/whl/bin/rosettex guide > /dev/null
       - uses: actions/upload-artifact@v4
         with:
