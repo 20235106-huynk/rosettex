@@ -5,11 +5,11 @@
 
 **Translate scientific papers into 19+ languages — and keep the paper's own layout.**
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://github.com/20235106-huynk/rosettex/blob/main/pyproject.toml)
 [![Input](https://img.shields.io/badge/input-TeX%20source%20%7C%20born--digital%20PDF-007acc?style=flat-square)](#-two-routes)
 [![Typesetting](https://img.shields.io/badge/typesetting-LuaLaTeX-critical?style=flat-square)](#-requirements)
 [![Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Gemini%20CLI%20%7C%20Antigravity%20%7C%20MCP-8e44ad?style=flat-square)](#-connect-your-agent)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](https://github.com/20235106-huynk/rosettex/blob/main/LICENSE)
 
 [Quick Install](#-quick-install-let-your-agent-do-it) • [Features](#-key-features) • [How It Works](#-how-it-works) • [Usage](#-usage) • [Languages](#-languages) • [Manual Install](#-manual-install)
 
@@ -180,5 +180,5 @@ Language data covers about 50 target languages (`src/rosettex/data/langs/`). Tes
 
 ## 📄 License
 
-MIT — see [`LICENSE`](LICENSE). Bundled fonts are under the SIL Open Font License 1.1
+MIT — see [`LICENSE`](https://github.com/20235106-huynk/rosettex/blob/main/LICENSE). Bundled fonts are under the SIL Open Font License 1.1
 (`src/rosettex/data/fonts/LICENSES/`).
